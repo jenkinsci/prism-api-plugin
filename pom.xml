@@ -27,7 +27,7 @@
     <plugin-util-api.version>2.16.0</plugin-util-api.version>
     <bootstrap5-api.version>5.1.3-6</bootstrap5-api.version>
     <font-awesome-api.version>6.0.0-1</font-awesome-api.version>
-    <testcontainers.version>1.17.1</testcontainers.version>
+    <testcontainers.version>1.17.2</testcontainers.version>
     <jsoup.version>1.14.3</jsoup.version>
   </properties>
 
