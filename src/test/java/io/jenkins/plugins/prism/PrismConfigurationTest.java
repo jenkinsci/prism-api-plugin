@@ -1,5 +1,6 @@
 package io.jenkins.plugins.prism;
 
+import io.jenkins.plugins.thememanager.Theme;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -121,7 +122,7 @@ class PrismConfigurationTest {
 
         assertThat(configuration.getTheme())
                 .isEqualTo(PrismTheme.PRISM)
-                .extracting(PrismTheme::getFileName)
+                .extracting(a -> a.getFileName(Theme.builder().build()))
                 .isEqualTo("prism.css");
         configuration.setTheme(PrismTheme.COY);
         assertThat(configuration.getTheme()).isEqualTo(PrismTheme.COY);
