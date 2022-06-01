@@ -40,7 +40,7 @@ public enum PrismTheme {
     }
 
     /**
-     * File name for the CSS to load for the prism theme
+     * File name for the CSS to load for the prism theme.
      * @param theme the currently active theme from theme manager plugin
      * @return relative file path to the theme to load
      */
