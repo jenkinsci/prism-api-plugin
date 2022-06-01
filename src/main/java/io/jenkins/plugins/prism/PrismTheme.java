@@ -31,22 +31,26 @@ public enum PrismTheme {
         return displayName;
     }
 
-    private String getId() {
+    private String getId(Theme theme) {
         if (this == PrismTheme.PRISM) {
-            Theme theme = ThemeManagerPageDecorator.get().findTheme();
             return theme.getProperty("prism-api", "theme").orElse("prism");
         }
 
         return id;
     }
 
-    public String getFileName() {
-        String id = getId();
-        if (id.equals("prism")) {
+    /**
+     * File name for the CSS to load for the prism theme
+     * @param theme the currently active theme from theme manager plugin
+     * @return relative file path to the theme to load
+     */
+    public String getFileName(Theme theme) {
+        String themeId = getId(theme);
+        if ("prism".equals(themeId)) {
             return "prism.css";
         }
 
-        return "prism-" + getId() + ".css";
+        return "prism-" + themeId + ".css";
     }
 
     /**

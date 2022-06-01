@@ -1,5 +1,7 @@
 package io.jenkins.plugins.prism;
 
+import io.jenkins.plugins.thememanager.Theme;
+import io.jenkins.plugins.thememanager.ThemeManagerPageDecorator;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -79,7 +81,8 @@ public class SourceCodeViewModel implements ModelObject {
      * @return the theme CSS file
      */
     public String getThemeCssFileName() {
-        return PrismConfiguration.getInstance().getTheme().getFileName();
+        Theme theme = ThemeManagerPageDecorator.get().findTheme();
+        return PrismConfiguration.getInstance().getTheme().getFileName(theme);
     }
 }
 
