@@ -1,5 +1,7 @@
 package io.jenkins.plugins.prism;
 
+import io.jenkins.plugins.thememanager.Theme;
+import io.jenkins.plugins.thememanager.ThemeManagerPageDecorator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,6 +11,8 @@ import java.util.stream.Collectors;
 import edu.hm.hafner.util.PathUtil;
 import edu.hm.hafner.util.VisibleForTesting;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.verb.POST;
 import org.jenkinsci.Symbol;
@@ -157,5 +161,17 @@ public class PrismConfiguration extends GlobalConfigurationItem {
             options.addAll(PrismTheme.getAllDisplayNames());
         }
         return options;
+    }
+
+    /**
+     * Returns the filename of the prism theme. Themes are stored in the package below the css folder.
+     *
+     * @return the theme CSS file
+     */
+    @Restricted(NoExternalUse.class)
+    @SuppressWarnings("unused") // used in jelly
+    public static String getThemeCssFileName() {
+        Theme theme = ThemeManagerPageDecorator.get().findTheme();
+        return PrismConfiguration.getInstance().getTheme().getFileName(theme);
     }
 }

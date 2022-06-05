@@ -1,13 +1,21 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:bs="/bootstrap5">
+<j:jelly xmlns:p="/lib/prism" xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:bs="/bootstrap5">
 
   <st:header name="Content-Type" value="text/html;charset=UTF-8"/>
 
   <bs:page it="${it}" notitle="true">
 
-    <st:adjunct includes="io.jenkins.plugins.prism"/>
+    <p:prism prismConfiguration="${it.prismConfiguration}" />
+
+    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/line-highlight/prism-line-highlight.css"/>
+    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/line-numbers/prism-line-numbers.css"/>
+    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/match-braces/prism-match-braces.css"/>
+    <script type="text/javascript" src="${resURL}/plugin/prism-api/js/line-highlight/prism-line-highlight.min.js"/>
+    <script type="text/javascript" src="${resURL}/plugin/prism-api/js/line-numbers/prism-line-numbers.min.js"/>
+    <script type="text/javascript" src="${resURL}/plugin/prism-api/js/match-braces/prism-match-braces.min.js"/>
+    <script type="text/javascript" src="${resURL}/plugin/prism-api/js/keep-markup/prism-keep-markup.min.js"/>
+
     <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/custom-prism.css"/>
-    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/${it.themeCssFileName}"/>
 
     <h1>${%sourcedetail.header(it.displayName)}</h1>
 

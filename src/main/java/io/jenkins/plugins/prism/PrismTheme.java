@@ -54,6 +54,17 @@ public enum PrismTheme {
     }
 
     /**
+     * Use {@link #getFileName(Theme)} instead.
+     * You probably shouldn't be calling this directly though and should be calling
+     * {@link PrismConfiguration#getThemeCssFileName()}.
+     */
+    @Deprecated
+    public String getFileName() {
+        Theme theme = ThemeManagerPageDecorator.get().findTheme();
+        return getFileName(theme);
+    }
+
+    /**
      * Returns all available themes in a {@link ListBoxModel}.
      *
      * @return the themes as an model
