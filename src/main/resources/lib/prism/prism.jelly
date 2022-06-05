@@ -1,0 +1,19 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler">
+  <st:documentation>
+    <!--
+     I wasn't able to retrieve this at runtime due to invokeStatic not using the right classloader,
+     which is why the user has to pass it in :(.
+     -->
+    <st:attribute name="prismConfiguration">
+      Pass a reference to the 'PrismConfiguration' instance.
+    </st:attribute>
+  </st:documentation>
+
+  <st:adjunct includes="io.jenkins.plugins.prism" />
+  <st:once>
+    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/${prismConfiguration.themeCssFileName}"/>
+  </st:once>
+
+
+</j:jelly>

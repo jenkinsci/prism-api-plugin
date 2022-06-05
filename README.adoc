@@ -51,13 +51,24 @@ Then you can use Prism in your jelly files using the following snippet:
 
 [source,xml]
 ----
-<st:adjunct includes="io.jenkins.plugins.prism"/>
+<j:jelly xmlns:j="jelly:core" xmlns:p="/lib/prism">
+  <p:prism prismConfiguration="${it.prismConfiguration}"/>
+</j:jelly>
+----
+
+In your descriptor you will need to add a `getPrismConfiguration()` method:
+
+[source,java]
+----
+public PrismConfiguration getPrismConfiguration() {
+    return PrismConfiguration.getInstance();
+}
 ----
 
 == Examples
 
-Currently, no additional help is available for this plugin. You can have a look into the
+For source code rendering look into the
 https://github.com/jenkinsci/warnings-ng-plugin[warnings plugin] that
 uses the `SourceCodeViewModel` to render the source code with the selected warning.
 
-
+For general prism API integration see https://github.com/jenkinsci/design-library-plugin/pull/72[design-library-plugin PR#72].
