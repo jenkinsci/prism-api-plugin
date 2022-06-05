@@ -51,7 +51,7 @@ Then you can use Prism in your jelly files using the following snippet:
 
 [source,xml]
 ----
-<j:jelly xmlns:j="jelly:core" xmlns:p="/lib/prism">
+<j:jelly xmlns:j="jelly:core" xmlns:p="/prism">
   <p:prism prismConfiguration="${it.prismConfiguration}"/>
 </j:jelly>
 ----
