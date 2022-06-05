@@ -10,6 +10,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import hudson.model.ModelObject;
 import hudson.model.Run;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Renders a source code file with Prism syntax highlighting in a separate Jenkins view. Optionally, highlights a marker
@@ -75,14 +77,9 @@ public class SourceCodeViewModel implements ModelObject {
         return sourceCode;
     }
 
-    /**
-     * Returns the filename of the prism theme. Themes are stored in the package below the css folder.
-     *
-     * @return the theme CSS file
-     */
-    public String getThemeCssFileName() {
-        Theme theme = ThemeManagerPageDecorator.get().findTheme();
-        return PrismConfiguration.getInstance().getTheme().getFileName(theme);
+    @Restricted(NoExternalUse.class) // stapler only
+    public PrismConfiguration getPrismConfiguration() {
+        return PrismConfiguration.getInstance();
     }
 }
 
