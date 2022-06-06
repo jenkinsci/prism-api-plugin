@@ -2,7 +2,6 @@ package io.jenkins.plugins.prism;
 
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.thememanager.Theme;
-import io.jenkins.plugins.thememanager.ThemeManagerPageDecorator;
 
 /**
  * Defines the active theme to be used when rendering the source code with Prism.
@@ -51,17 +50,6 @@ public enum PrismTheme {
         }
 
         return "prism-" + themeId + ".css";
-    }
-
-    /**
-     * Use {@link #getFileName(Theme)} instead.
-     * You probably shouldn't be calling this directly though and should be calling
-     * {@link PrismConfiguration#getThemeCssFileName()}.
-     */
-    @Deprecated
-    public String getFileName() {
-        Theme theme = ThemeManagerPageDecorator.get().findTheme();
-        return getFileName(theme);
     }
 
     /**
