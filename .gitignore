@@ -10,3 +10,7 @@ pom.xml.releaseBackup
 release.properties
 .DS_Store
 work/
+
+src/main/webapp/css/**/prism*.css
+src/main/webapp/js/**/prism*.js
+src/main/webapp/js/index.js
