@@ -1,6 +1,7 @@
 package io.jenkins.plugins.prism;
 
 import hudson.util.ListBoxModel;
+import io.jenkins.plugins.thememanager.Theme;
 
 /**
  * Defines the active theme to be used when rendering the source code with Prism.
@@ -8,29 +9,47 @@ import hudson.util.ListBoxModel;
  * @author Ullrich Hafner
  */
 public enum PrismTheme {
-    PRISM("Default", "prism.css"),
-    COY("Coy", "prism-coy.css"),
-    DARK("Dark", "prism-dark.css"),
-    FUNKY("Funky", "prism-funky.css"),
-    OKAIDIA("Okaidia", "prism-okaidia.css"),
-    SOLARIZED_LIGHT("Solarized Light", "prism-solarizedlight.css"),
-    TOMORROW_NIGHT("Tomorrow Night", "prism-tomorrow.css"),
-    TWILIGHT("Twilight", "prism-twilight.css");
+    PRISM("Recommended", null),
+    COY("Coy", "coy"),
+    DARK("Dark", "dark"),
+    FUNKY("Funky", "funky"),
+    OKAIDIA("Okaidia", "okaidia"),
+    SOLARIZED_LIGHT("Solarized Light", "solarizedlight"),
+    TOMORROW_NIGHT("Tomorrow Night", "tomorrow"),
+    TWILIGHT("Twilight", "twilight");
 
     private final String displayName;
-    private final String fileName;
+    private final String id;
 
-    PrismTheme(final String displayName, final String fileName) {
+    PrismTheme(final String displayName, final String id) {
         this.displayName = displayName;
-        this.fileName = fileName;
+        this.id = id;
     }
 
     public String getDisplayName() {
         return displayName;
     }
 
-    public String getFileName() {
-        return fileName;
+    private String getId(Theme theme) {
+        if (this == PrismTheme.PRISM) {
+            return theme.getProperty("prism-api", "theme").orElse("prism");
+        }
+
+        return id;
+    }
+
+    /**
+     * File name for the CSS to load for the prism theme.
+     * @param theme the currently active theme from theme manager plugin
+     * @return relative file path to the theme to load
+     */
+    public String getFileName(Theme theme) {
+        String themeId = getId(theme);
+        if ("prism".equals(themeId)) {
+            return "prism.css";
+        }
+
+        return "prism-" + themeId + ".css";
     }
 
     /**

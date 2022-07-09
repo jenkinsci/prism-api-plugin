@@ -20,7 +20,9 @@
   <properties>
     <revision>1.28.0-3</revision>
     <changelist>-SNAPSHOT</changelist>
-    <jenkins.baseline>2.319</jenkins.baseline>
+    <jenkins.baseline>2.332</jenkins.baseline>
+    <!-- TODO remove when 2.346.1 is release and switch baseline to that -->
+    <jenkins.version>2.336</jenkins.version>
 
     <module.name>${project.groupId}.prism</module.name>
 
@@ -59,6 +61,11 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>antisamy-markup-formatter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>theme-manager</artifactId>
+      <version>1.4</version>
     </dependency>
     <dependency>
       <groupId>org.jsoup</groupId>
@@ -175,7 +182,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.directory}/${project.artifactId}/js</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/webapp/js</outputDirectory>
               <resources>
                 <resource>
                   <directory>${project.basedir}/node_modules/prismjs/components</directory>
@@ -198,7 +205,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.directory}/${project.artifactId}/css</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/webapp/css</outputDirectory>
               <resources>
                 <resource>
                   <directory>${project.basedir}/node_modules/prismjs/themes</directory>
