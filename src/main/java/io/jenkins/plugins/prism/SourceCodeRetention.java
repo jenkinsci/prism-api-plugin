@@ -23,11 +23,11 @@ public enum SourceCodeRetention {
     /** Store source code files for all builds, never delete those files automatically. */
     EVERY_BUILD(new Cleanup(), Messages._SourceCodeRetention_EVERY_BUILD());
 
-    private final Cleanup cleanup;
+    private final Cleanup cleanupStrategy;
     private final Localizable localizable;
 
-    SourceCodeRetention(final Cleanup cleanup, final Localizable localizable) {
-        this.cleanup = cleanup;
+    SourceCodeRetention(final Cleanup cleanupStrategy, final Localizable localizable) {
+        this.cleanupStrategy = cleanupStrategy;
         this.localizable = localizable;
     }
 
@@ -46,7 +46,7 @@ public enum SourceCodeRetention {
      *         logger
      */
     public void cleanup(final Run<?, ?> build, final String directory, final FilteredLog log) {
-        cleanup.clean(build, directory, log);
+        cleanupStrategy.clean(build, directory, log);
     }
 
     static class Cleanup {
