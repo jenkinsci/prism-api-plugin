@@ -71,11 +71,11 @@ pre > code.highlight {
     background-color: #FFF59D;
 }
 
-.analysis-collapse-button svg {
+.analysis-collapse-button .analysis-collapse-icon {
     transition: .3s transform ease-in-out;
 }
 
-.analysis-collapse-button.open svg {
+.analysis-collapse-button.open .analysis-collapse-icon {
     transform: rotate(180deg);
 }
 

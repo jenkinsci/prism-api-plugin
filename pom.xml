@@ -20,7 +20,9 @@
   <properties>
     <revision>1.28.0-3</revision>
     <changelist>-SNAPSHOT</changelist>
-    <jenkins.baseline>2.319</jenkins.baseline>
+
+    <jenkins.baseline>2.346</jenkins.baseline>
+    <jenkins.version>2.346.3</jenkins.version>
 
     <module.name>${project.groupId}.prism</module.name>
 
@@ -51,6 +53,7 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>font-awesome-api</artifactId>
+      <version>6.2.0-3</version>
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>

@@ -25,6 +25,7 @@ class SourcePrinterTest extends ResourceTest {
     private static final String MESSAGE = "Hello Message";
     private static final String DESCRIPTION = "Hello Description";
     private static final String FILE_NAME = "filename.txt";
+    private static final String ICON = "/plugin/xyz/icon";
 
     @Test
     void shouldCreateSourceWithoutLineNumber() {
@@ -84,15 +85,17 @@ class SourcePrinterTest extends ResourceTest {
     @Test
     void shouldCreateIcon() {
         MarkerBuilder builder = new MarkerBuilder();
-        Marker issue = builder.withLineStart(7).withTitle("Hello Message").withIcon("icon").build();
+        Marker issue = builder.withLineStart(7).withTitle("Hello Message").withIcon(ICON).build();
 
-        SourcePrinter printer = new SourcePrinter();
+        JenkinsFacade jenkins = mock(JenkinsFacade.class);
+        when(jenkins.getImagePath(ICON)).thenReturn("/resolved");
+        SourcePrinter printer = new SourcePrinter(jenkins);
 
         Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), issue));
 
         assertThatCodeIsEqualToSourceText(document);
 
-        assertThat(document.getElementsByClass("analysis-title").html()).contains("<td><img src=\"icon\"></td>");
+        assertThat(document.getElementsByClass("analysis-title").html()).contains("<td><img src=\"/resolved\" class=\"icon-md\"></td>");
     }
 
     @Test
