@@ -9,9 +9,11 @@ import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
 
 import j2html.tags.ContainerTag;
+import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
 
 import io.jenkins.plugins.fontawesome.api.SvgTag;
+import io.jenkins.plugins.fontawesome.api.SvgTag.FontAwesomeStyle;
 import io.jenkins.plugins.util.JenkinsFacade;
 
 import static j2html.TagCreator.*;
@@ -29,6 +31,7 @@ class SourcePrinter {
     private static final ColumnMarker COLUMN_MARKER = new ColumnMarker("-n/a-");
     private static final String LINE_NUMBERS = "line-numbers";
     private static final String MATCH_BRACES = "match-braces";
+    private static final String ICON_MD = "icon-md";
 
     private final JenkinsFacade jenkinsFacade;
 
@@ -91,19 +94,28 @@ class SourcePrinter {
 
     private ContainerTag createBox(final Marker marker) {
         if (StringUtils.isEmpty(marker.getDescription())) {
-            return createTitle(marker.getTitle(), marker.getIcon(), false);
+            return createTitle(marker, false);
         }
         else {
-            return createTitleAndCollapsedDescription(marker.getTitle(),
-                    marker.getDescription(), marker.getIcon());
+            return createTitleAndCollapsedDescription(marker, marker.getDescription());
         }
     }
 
-    private ContainerTag createTitle(final String message, final String iconUrl, final boolean isCollapseVisible) {
+    private DomContent createIcon(final String name) {
+        if (name.startsWith("symbol")) {
+            return new UnescapedText(
+                    new SvgTag("bookmark", jenkinsFacade, FontAwesomeStyle.REGULAR)
+                            .withClasses(ICON_MD)
+                            .render());
+        }
+        return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(ICON_MD);
+    }
+
+    private ContainerTag createTitle(final Marker marker, final boolean isCollapseVisible) {
         return div().with(table().withClass("analysis-title").with(tr().with(
-                td().with(img().withSrc(iconUrl)),
+                td().with(createIcon(marker.getIcon())),
                 td().withClass("analysis-title-column")
-                        .with(div().withClass("analysis-warning-title").with(replaceNewLine(message))),
+                        .with(div().withClass("analysis-warning-title").with(replaceNewLine(marker.getTitle()))),
                 createCollapseButton(isCollapseVisible)
         )));
     }
@@ -111,24 +123,22 @@ class SourcePrinter {
     private ContainerTag createCollapseButton(final boolean isCollapseVisible) {
         ContainerTag td = td();
         if (isCollapseVisible) {
-            td.with(new UnescapedText(new SvgTag("chevron-circle-down", jenkinsFacade)
+            td.with(new UnescapedText(new SvgTag("circle-chevron-down", jenkinsFacade)
                     .withClasses("analysis-collapse-icon").render()));
         }
         return td;
     }
 
-    private ContainerTag createTitleAndCollapsedDescription(final String message, final String description,
-            final String iconUrl) {
+    private ContainerTag createTitleAndCollapsedDescription(final Marker marker, final String description) {
         return div().with(
-                div().withClass("analysis-collapse-button").with(createTitle(message, iconUrl, true)),
+                div().withClass("analysis-collapse-button").with(createTitle(marker, true)),
                 div().withClasses("collapse", "analysis-detail")
                         .with(unescape(description))
                         .withId("analysis-description"));
     }
 
     private UnescapedText replaceNewLine(final String message) {
-        String m = message.replace("\n", "<br>");
-        return unescape(m);
+        return unescape(message.replace("\n", "<br>"));
     }
 
     private UnescapedText unescape(final String message) {
@@ -208,7 +218,7 @@ class SourcePrinter {
         }
 
         String sanitized = SANITIZER.render(StringEscapeUtils.escapeHtml4(marked.toString()));
-        String  markerReplaced = COLUMN_MARKER.replacePlaceHolderWithHtmlTag(sanitized);
+        String markerReplaced = COLUMN_MARKER.replacePlaceHolderWithHtmlTag(sanitized);
         return code().withClasses(classes).with(new UnescapedText(markerReplaced)).render();
     }
 
@@ -217,8 +227,8 @@ class SourcePrinter {
     }
 
     /**
-     * Encloses columns between {@code start} and {@code end} with an HTML tag (see {@code openingTag} and {@code
-     * closingTag}).
+     * Encloses columns between {@code start} and {@code end} with an HTML tag (see {@code openingTag} and
+     * {@code closingTag}).
      */
     static final class ColumnMarker {
         private static final String OPENING_TAG = "<span class='code-mark'>";
@@ -228,8 +238,9 @@ class SourcePrinter {
          * Creates a {@link ColumnMarker} that will use {@code placeHolderText} for enclosing.
          *
          * @param placeHolderText
-         *         Used to construct an opening and closing text that can later be replaced with the HTML tag {@code
-         *         openingTag} {@code closingTag}. It should be a text that is unlikely to appear in any source code.
+         *         Used to construct an opening and closing text that can later be replaced with the HTML tag
+         *         {@code openingTag} {@code closingTag}. It should be a text that is unlikely to appear in any source
+         *         code.
          */
         ColumnMarker(final String placeHolderText) {
             openingTagPlaceHolder = "OpEn" + placeHolderText;
