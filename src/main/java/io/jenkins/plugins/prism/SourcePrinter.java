@@ -103,6 +103,7 @@ class SourcePrinter {
 
     private DomContent createIcon(final String name) {
         if (name.startsWith("symbol")) {
+            // TODO: replace with Jenkins symbol tag once https://github.com/jenkinsci/jenkins/pull/6659 is merged
             return new UnescapedText(
                     new SvgTag("bookmark", jenkinsFacade, FontAwesomeStyle.REGULAR)
                             .withClasses(ICON_MD)
