@@ -25,7 +25,7 @@
     <module.name>${project.groupId}.prism</module.name>
 
     <testcontainers.version>1.17.3</testcontainers.version>
-    <jsoup.version>1.15.2</jsoup.version>
+    <jsoup.version>1.15.3</jsoup.version>
   </properties>
 
   <licenses>
