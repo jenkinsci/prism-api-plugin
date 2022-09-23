@@ -1,6 +1,5 @@
 package io.jenkins.plugins.prism;
 
-import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -103,17 +102,14 @@ class SourcePrinter {
         }
     }
 
-    protected DomContent createIcon(final String name) {
+    private DomContent createIcon(final String name) {
         if (name.startsWith("symbol")) {
             String[] elements = StringUtils.split(name);
-            Logger.getLogger(SourcePrinter.class.getName()).severe(name);
             if (elements.length == 2) {
-                Logger.getLogger(SourcePrinter.class.getName()).severe(elements[0]);
-                Logger.getLogger(SourcePrinter.class.getName()).severe(elements[1]);
                 String symbol = Symbol.get(new SymbolRequest.Builder()
-                        .withName(elements[0])
-                        .withPluginName(elements[1])
-                                .withClasses(ICON_MD)
+                        .withName(StringUtils.removeStart(elements[0], "symbol-"))
+                        .withPluginName(StringUtils.removeStart(elements[1], "plugin-"))
+                        .withClasses(ICON_MD)
                         .build());
                 return new UnescapedText(symbol);
             }
