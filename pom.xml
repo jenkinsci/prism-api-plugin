@@ -21,9 +21,6 @@
     <revision>1.29.0-2</revision>
     <changelist>-SNAPSHOT</changelist>
 
-    <jenkins.baseline>2.346</jenkins.baseline>
-    <jenkins.version>2.346.3</jenkins.version>
-
     <module.name>${project.groupId}.prism</module.name>
 
     <testcontainers.version>1.17.4</testcontainers.version>
