@@ -220,7 +220,7 @@
   </build>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/prism-api-plugin.git</connection>
+    <connection>scm:git:https://github.com/jenkinsci/prism-api-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/prism-api-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/prism-api-plugin</url>
     <tag>${scmTag}</tag>
