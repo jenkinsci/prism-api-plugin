@@ -17,8 +17,10 @@ import hudson.util.FormValidation;
  * Validates the charset configuration.
  *
  * @author Ullrich Hafner
+ * @deprecated moved to plugin-util
  */
 @SuppressWarnings("PMD.GodClass")
+@Deprecated
 public class CharsetValidation {
     private static final Set<String> ALL_CHARSETS = Charset.availableCharsets().keySet();
 
