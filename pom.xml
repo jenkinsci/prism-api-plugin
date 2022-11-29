@@ -22,7 +22,7 @@
     <changelist>-SNAPSHOT</changelist>
 
     <jenkins.baseline>2.346</jenkins.baseline>
-    <jenkins.version>2.367-rc32812.b_5570c0a_b_825</jenkins.version>
+    <jenkins.version>2.380-rc33164.1fa_0f3ffcdb_c</jenkins.version>
 
     <module.name>${project.groupId}.prism</module.name>
 

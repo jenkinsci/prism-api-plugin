@@ -104,16 +104,11 @@ class SourcePrinter {
 
     private DomContent createIcon(final String name) {
         if (name.startsWith("symbol")) {
-            String[] elements = StringUtils.split(name);
-            if (elements.length == 2) {
-                String symbol = Symbol.get(new SymbolRequest.Builder()
-                        .withName(StringUtils.removeStart(elements[0], "symbol-"))
-                        .withPluginName(StringUtils.removeStart(elements[1], "plugin-"))
-                        .withClasses(ICON_MD)
-                        .build());
-                return new UnescapedText(symbol);
-            }
-            return div();
+            String symbol = Symbol.get(new SymbolRequest.Builder()
+                    .withRaw(name)
+                    .withClasses(ICON_MD)
+                    .build());
+            return new UnescapedText(symbol);
         }
         return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(ICON_MD);
     }
