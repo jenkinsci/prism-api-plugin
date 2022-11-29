@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>analysis-pom</artifactId>
-    <version>5.33.0</version>
+    <version>5.35.0</version>
     <relativePath />
   </parent>
 
@@ -26,7 +26,7 @@
 
     <module.name>${project.groupId}.prism</module.name>
 
-    <testcontainers.version>1.17.3</testcontainers.version>
+    <testcontainers.version>1.17.5</testcontainers.version>
     <jsoup.version>1.15.3</jsoup.version>
   </properties>
 
@@ -223,7 +223,7 @@
   </build>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/prism-api-plugin.git</connection>
+    <connection>scm:git:https://github.com/jenkinsci/prism-api-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/prism-api-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/prism-api-plugin</url>
     <tag>${scmTag}</tag>
