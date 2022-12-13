@@ -25,6 +25,7 @@
 
     <testcontainers.version>1.17.5</testcontainers.version>
     <jsoup.version>1.15.3</jsoup.version>
+    <plugin-util-api.version>2.20.0</plugin-util-api.version>
   </properties>
 
   <licenses>
@@ -46,6 +47,7 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>plugin-util-api</artifactId>
+      <version>${plugin-util-api.version}</version>
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
@@ -69,6 +71,7 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>plugin-util-api</artifactId>
+      <version>${plugin-util-api.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
