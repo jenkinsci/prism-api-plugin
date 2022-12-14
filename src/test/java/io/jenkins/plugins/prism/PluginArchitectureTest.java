@@ -4,7 +4,6 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
-import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import edu.hm.hafner.util.ArchitectureRules;
 
 import io.jenkins.plugins.util.PluginArchitectureRules;
@@ -36,7 +35,7 @@ class PluginArchitectureTest {
     static final ArchRule NO_FORBIDDEN_CLASSES_CALLED = ArchitectureRules.NO_FORBIDDEN_CLASSES_CALLED;
 
     @ArchTest
-    static final ArchRule NO_PUBLIC_ARCHITECTURE_TESTS = ArchRuleDefinition.fields().that().areAnnotatedWith(ArchTest.class).should().notBePublic();
+    ONLY_PACKAGE_PRIVATE_ARCHITECTURE_TESTS = ArchitectureRules.ONLY_PACKAGE_PRIVATE_ARCHITECTURE_TESTS
 
     @ArchTest
     static final ArchRule NO_JENKINS_INSTANCE_CALL = PluginArchitectureRules.NO_JENKINS_INSTANCE_CALL;
