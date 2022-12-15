@@ -43,6 +43,16 @@
     </developer>
   </developers>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jenkins.plugins</groupId>
+        <artifactId>commons-text-api</artifactId>
+        <version>1.10.0-27.vb_fa_3896786a_7</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
@@ -137,16 +147,6 @@
       </exclusions>
     </dependency>
   </dependencies>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>io.jenkins.plugins</groupId>
-        <artifactId>commons-text-api</artifactId>
-        <version>1.10.0-27.vb_fa_3896786a_7</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <build>
     <plugins>
