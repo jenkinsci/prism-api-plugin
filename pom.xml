@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>analysis-pom</artifactId>
-    <version>6.0.0</version>
+    <version>6.1.0</version>
     <relativePath />
   </parent>
 
@@ -25,7 +25,7 @@
 
     <testcontainers.version>1.17.6</testcontainers.version>
     <jsoup.version>1.15.3</jsoup.version>
-    <plugin-util-api.version>2.20.0</plugin-util-api.version>
+    <plugin-util-api.version>3.0.0-rc674.f33a_a_ee40321</plugin-util-api.version>
   </properties>
 
   <licenses>
@@ -228,6 +228,13 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.revapi</groupId>
+        <artifactId>revapi-maven-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
       </plugin>
     </plugins>
   </build>

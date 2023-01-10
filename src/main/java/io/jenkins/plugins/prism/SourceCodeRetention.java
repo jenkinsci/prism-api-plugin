@@ -11,6 +11,7 @@ import edu.hm.hafner.util.FilteredLog;
 import org.jvnet.localizer.LocaleProvider;
 import org.jvnet.localizer.Localizable;
 import hudson.model.Run;
+import hudson.util.ListBoxModel;
 
 /**
  * Defines the retention strategy for source code files.
@@ -22,6 +23,19 @@ public enum SourceCodeRetention {
     LAST_BUILD(new CleanupOldBuilds(), Messages._SourceCodeRetention_LAST_BUILD()),
     /** Store source code files for all builds, never delete those files automatically. */
     EVERY_BUILD(new Cleanup(), Messages._SourceCodeRetention_EVERY_BUILD());
+
+    /**
+     * Returns all available {@link SourceCodeRetention} strategies as a {@link ListBoxModel}.
+     *
+     * @return all strategies
+     */
+    public static ListBoxModel fillItems() {
+        ListBoxModel items = new ListBoxModel();
+        for (SourceCodeRetention retention : values()) {
+            items.add(retention.getDisplayName(), retention.name());
+        }
+        return items;
+    }
 
     private final Cleanup cleanupStrategy;
     private final Localizable localizable;
