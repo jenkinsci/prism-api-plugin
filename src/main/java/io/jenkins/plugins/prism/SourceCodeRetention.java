@@ -37,6 +37,7 @@ public enum SourceCodeRetention {
         return items;
     }
 
+    @SuppressWarnings("PMD.NonSerializableClass")
     private final Cleanup cleanupStrategy;
     private final Localizable localizable;
 
