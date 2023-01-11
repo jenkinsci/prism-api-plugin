@@ -25,7 +25,7 @@
 
     <testcontainers.version>1.17.6</testcontainers.version>
     <jsoup.version>1.15.3</jsoup.version>
-    <plugin-util-api.version>3.0.0-rc674.f33a_a_ee40321</plugin-util-api.version>
+    <plugin-util-api.version>3.0.0-rc676.39c5d554b_82f</plugin-util-api.version>
   </properties>
 
   <licenses>
