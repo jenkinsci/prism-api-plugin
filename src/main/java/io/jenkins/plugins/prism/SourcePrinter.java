@@ -4,6 +4,8 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
+import org.jenkins.ui.symbol.Symbol;
+import org.jenkins.ui.symbol.SymbolRequest;
 
 import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
@@ -13,7 +15,6 @@ import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
 
 import io.jenkins.plugins.fontawesome.api.SvgTag;
-import io.jenkins.plugins.fontawesome.api.SvgTag.FontAwesomeStyle;
 import io.jenkins.plugins.util.JenkinsFacade;
 
 import static j2html.TagCreator.*;
@@ -103,11 +104,11 @@ class SourcePrinter {
 
     private DomContent createIcon(final String name) {
         if (name.startsWith("symbol")) {
-            // TODO: replace with Jenkins symbol tag once https://github.com/jenkinsci/jenkins/pull/6659 is merged
-            return new UnescapedText(
-                    new SvgTag("bookmark", jenkinsFacade, FontAwesomeStyle.REGULAR)
-                            .withClasses(ICON_MD)
-                            .render());
+            String symbol = Symbol.get(new SymbolRequest.Builder()
+                    .withRaw(name)
+                    .withClasses(ICON_MD)
+                    .build());
+            return new UnescapedText(symbol);
         }
         return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(ICON_MD);
     }
