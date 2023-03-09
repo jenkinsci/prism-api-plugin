@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
+import org.jenkins.ui.symbol.SymbolRequest.Builder;
 
 import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
@@ -14,7 +15,6 @@ import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
 
-import io.jenkins.plugins.fontawesome.api.SvgTag;
 import io.jenkins.plugins.util.JenkinsFacade;
 
 import static j2html.TagCreator.*;
@@ -125,8 +125,11 @@ class SourcePrinter {
     private ContainerTag createCollapseButton(final boolean isCollapseVisible) {
         ContainerTag td = td();
         if (isCollapseVisible) {
-            td.with(new UnescapedText(new SvgTag("circle-chevron-down", jenkinsFacade)
-                    .withClasses("analysis-collapse-icon").render()));
+            td.with(new UnescapedText(Symbol.get(new Builder()
+                    .withName("chevron-down-circle-outline")
+                    .withPluginName("ionicons-api")
+                    .withClasses("analysis-collapse-icon")
+                    .build())));
         }
         return td;
     }
