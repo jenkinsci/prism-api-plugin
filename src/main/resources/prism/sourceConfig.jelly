@@ -1,11 +1,11 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:c="/controls">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form">
   <st:documentation>
     Provides configuration entries for the source code encoding and a list of source code directories.
   </st:documentation>
 
   <f:entry title="${%title.sourceCodeEncoding}" field="sourceCodeEncoding">
-    <c:safe-combobox/>
+    <f:combobox/>
   </f:entry>
   <f:entry title="${%title.sourceDirectories}"
            description="${%description.sourceDirectories}"
