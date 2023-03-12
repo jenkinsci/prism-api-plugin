@@ -125,7 +125,7 @@ class SourcePrinter {
     private ContainerTag createCollapseButton(final boolean isCollapseVisible) {
         ContainerTag td = td();
         if (isCollapseVisible) {
-            td.with(new UnescapedText(Symbol.get(new Builder()
+            td.with(new UnescapedText(jenkinsFacade.getSymbol(new Builder()
                     .withName("chevron-down-circle-outline")
                     .withPluginName("ionicons-api")
                     .withClasses("analysis-collapse-icon")
