@@ -24,7 +24,7 @@
     <module.name>${project.groupId}.prism</module.name>
 
     <testcontainers.version>1.17.6</testcontainers.version>
-    <jsoup.version>1.15.3</jsoup.version>
+    <jsoup.version>1.15.4</jsoup.version>
     <plugin-util-api.version>3.1.0</plugin-util-api.version>
     <bootstrap5-api.version>5.2.2-1</bootstrap5-api.version>
     <font-awesome-api.version>6.3.0-1</font-awesome-api.version>
