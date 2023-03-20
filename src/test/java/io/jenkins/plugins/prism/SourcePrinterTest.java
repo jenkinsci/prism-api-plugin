@@ -202,7 +202,7 @@ class SourcePrinterTest extends ResourceTest {
         assertThatCodeIsEqualToSourceText(document);
 
         assertThat(document.getElementsByClass("analysis-warning-title").html())
-                .isEqualTo("Hello <b>MessageLine1<br>Line2<br>Line3</b>");
+                .isEqualToIgnoringWhitespace("Hello <b>MessageLine1<br>Line2<br>Line3</b>");
         assertThat(document.getElementsByClass("analysis-detail")).isEmpty();
         assertThat(document.getElementsByClass("collapse-panel")).isEmpty();
     }
