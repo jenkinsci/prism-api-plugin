@@ -17,6 +17,8 @@ import edu.hm.hafner.util.PathUtil;
  * @see PrismConfiguration
  */
 public class SourceDirectoryFilter {
+    private static final PathUtil PATH_UTIL = new PathUtil();
+
     /**
      * Filters the specified collection of additional source code directories so that only permitted source directories
      * will be returned. Permitted source directories are absolute paths that have been registered using
@@ -33,30 +35,46 @@ public class SourceDirectoryFilter {
      *
      * @return the permitted source directories
      */
-    public Set<String> getPermittedSourceDirectories(final String workspacePath,
+    public Set<String> getPermittedSourceDirectories(
+            final String workspacePath,
             final Set<String> allowedSourceDirectories,
             final Set<String> requestedSourceDirectories,
             final FilteredLog log) {
-        PathUtil pathUtil = new PathUtil();
         Set<String> filteredDirectories = new HashSet<>();
         for (String sourceDirectory : requestedSourceDirectories) {
-            if (StringUtils.isNotBlank(sourceDirectory)
-                    && !"-".equals(sourceDirectory)) {
-                if (pathUtil.isAbsolute(sourceDirectory)) {
-                    String normalized = pathUtil.getAbsolutePath(sourceDirectory);
-                    if (allowedSourceDirectories.contains(normalized)) { // add only registered absolute paths
-                        filteredDirectories.add(normalized);
-                    }
-                    else {
-                        log.logError("Removing source directory '%s' - "
-                                + "it has not been approved in Jenkins' global configuration.", normalized);
-                    }
+            if (isValidDirectory(sourceDirectory)) {
+                if (PATH_UTIL.isAbsolute(sourceDirectory)) {
+                    verifyAbsoluteDirectory(workspacePath, allowedSourceDirectories, filteredDirectories,
+                            PATH_UTIL.getAbsolutePath(sourceDirectory), log
+                    );
                 }
                 else {
-                    filteredDirectories.add(pathUtil.createAbsolutePath(workspacePath, sourceDirectory)); // relative workspace paths are always ok
+                    filteredDirectories.add(PATH_UTIL.createAbsolutePath(workspacePath,
+                            sourceDirectory)); // relative workspace paths are always ok
                 }
             }
         }
         return filteredDirectories;
+    }
+
+    private void verifyAbsoluteDirectory(final String workspacePath, final Set<String> allowedSourceDirectories,
+            final Set<String> filteredDirectories, final String sourceDirectory, final FilteredLog log) {
+        if (sourceDirectory.equals(workspacePath)) {
+            return; // workspace will be checked automatically
+        }
+        if (sourceDirectory.startsWith(workspacePath)) {
+            filteredDirectories.add(PATH_UTIL.getRelativePath(workspacePath, sourceDirectory)); // make path relative to workspace
+        }
+        else if (allowedSourceDirectories.contains(sourceDirectory)) { // add only registered absolute paths
+            filteredDirectories.add(sourceDirectory);
+        }
+        else {
+            log.logError("Removing non-workspace source directory '%s' - "
+                    + "it has not been approved in Jenkins' global configuration.", sourceDirectory);
+        }
+    }
+
+    private boolean isValidDirectory(final String sourceDirectory) {
+        return StringUtils.isNotBlank(sourceDirectory) && !"-".equals(sourceDirectory);
     }
 }

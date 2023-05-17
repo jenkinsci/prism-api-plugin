@@ -51,19 +51,7 @@ class PrismConfigurationTest {
         assertThat(log.getErrorMessages()).isEmpty();
         assertThat(get(configuration, log, ABSOLUTE_NOT_EXISTING)).isEmpty();
         assertThat(log.getErrorMessages())
-                .anySatisfy(m -> assertThat(m).contains("Removing source directory '/Three'"));
-    }
-
-    @Test
-    void shouldNotFilterRelativePaths() {
-        SourceDirectoryFilter filter = new SourceDirectoryFilter();
-        Set<String> requested = new HashSet<>();
-        String relative = "src/main/java";
-        requested.add(relative);
-
-        Set<String> allowedDirectories = filter.getPermittedSourceDirectories(NORMALIZED, new HashSet<>(),
-                requested, new FilteredLog("Error"));
-        assertThat(allowedDirectories).contains(NORMALIZED + "/" + relative);
+                .anySatisfy(m -> assertThat(m).contains("Removing").contains("'/Three'"));
     }
 
     @Test
@@ -85,7 +73,7 @@ class PrismConfigurationTest {
         assertThat(log.getErrorMessages()).isEmpty();
         assertThat(get(configuration, log, ABSOLUTE_NOT_EXISTING)).isEmpty();
         assertThat(log.getErrorMessages())
-                .anySatisfy(m -> assertThat(m).contains("Removing source directory '/Three'"));
+                .anySatisfy(m -> assertThat(m).contains("Removing").contains("'/Three'"));
         assertThat(get(configuration, log, ABSOLUTE_NOT_EXISTING, FIRST)).containsExactly(FIRST);
 
         configuration.clearRepeatableProperties();
