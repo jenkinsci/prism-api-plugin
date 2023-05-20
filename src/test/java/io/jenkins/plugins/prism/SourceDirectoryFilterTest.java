@@ -61,7 +61,7 @@ class SourceDirectoryFilterTest {
     }
 
     private String makeAbsolutePath(final String relative) {
-        return PATH_UTIL.getAbsolutePath(PATH_UTIL.createAbsolutePath(absoluteWorkspacePath(), relative));
+        return PATH_UTIL.createAbsolutePath(absoluteWorkspacePath(), relative);
     }
 
     @Test

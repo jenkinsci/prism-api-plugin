@@ -51,7 +51,8 @@ public class SourceDirectoryFilter {
                 }
                 else {
                     filteredDirectories.add(
-                            PATH_UTIL.createAbsolutePath(normalizedWorkspacePath, sourceDirectory)); // relative workspace paths are always ok
+                            PATH_UTIL.getAbsolutePath(
+                                    PATH_UTIL.createAbsolutePath(normalizedWorkspacePath, sourceDirectory))); // relative workspace paths are always ok
                 }
             }
         }
