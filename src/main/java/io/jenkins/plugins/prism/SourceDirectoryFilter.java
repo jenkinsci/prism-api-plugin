@@ -40,17 +40,18 @@ public class SourceDirectoryFilter {
             final Set<String> allowedSourceDirectories,
             final Set<String> requestedSourceDirectories,
             final FilteredLog log) {
+        var normalizedWorkspacePath = PATH_UTIL.getAbsolutePath(workspacePath);
         Set<String> filteredDirectories = new HashSet<>();
         for (String sourceDirectory : requestedSourceDirectories) {
             if (isValidDirectory(sourceDirectory)) {
                 if (PATH_UTIL.isAbsolute(sourceDirectory)) {
-                    verifyAbsoluteDirectory(workspacePath, allowedSourceDirectories, filteredDirectories,
+                    verifyAbsoluteDirectory(normalizedWorkspacePath, allowedSourceDirectories, filteredDirectories,
                             PATH_UTIL.getAbsolutePath(sourceDirectory), log
                     );
                 }
                 else {
-                    filteredDirectories.add(PATH_UTIL.createAbsolutePath(workspacePath,
-                            sourceDirectory)); // relative workspace paths are always ok
+                    filteredDirectories.add(
+                            PATH_UTIL.createAbsolutePath(normalizedWorkspacePath, sourceDirectory)); // relative workspace paths are always ok
                 }
             }
         }
