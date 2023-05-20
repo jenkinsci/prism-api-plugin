@@ -60,18 +60,19 @@ public class SourceDirectoryFilter {
 
     private void verifyAbsoluteDirectory(final String workspacePath, final Set<String> allowedSourceDirectories,
             final Set<String> filteredDirectories, final String sourceDirectory, final FilteredLog log) {
-        if (sourceDirectory.equals(workspacePath)) {
+        var normalizedSourceDirectory = PATH_UTIL.getAbsolutePath(sourceDirectory);
+        if (normalizedSourceDirectory.equals(workspacePath)) {
             return; // workspace will be checked automatically
         }
-        if (sourceDirectory.startsWith(workspacePath)) {
-            filteredDirectories.add(PATH_UTIL.getRelativePath(workspacePath, sourceDirectory)); // make path relative to workspace
+        if (normalizedSourceDirectory.startsWith(workspacePath)) {
+            filteredDirectories.add(PATH_UTIL.getRelativePath(workspacePath, normalizedSourceDirectory)); // make path relative to workspace
         }
-        else if (allowedSourceDirectories.contains(sourceDirectory)) { // add only registered absolute paths
-            filteredDirectories.add(sourceDirectory);
+        else if (allowedSourceDirectories.contains(normalizedSourceDirectory)) { // add only registered absolute paths
+            filteredDirectories.add(normalizedSourceDirectory);
         }
         else {
             log.logError("Removing non-workspace source directory '%s' - "
-                    + "it has not been approved in Jenkins' global configuration.", sourceDirectory);
+                    + "it has not been approved in Jenkins' global configuration.", normalizedSourceDirectory);
         }
     }
 
