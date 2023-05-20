@@ -26,15 +26,15 @@ class SourceDirectoryFilterTest {
     private Path otherFolder;
     private final FilteredLog log = new FilteredLog("Error");
 
-    private String aboluteWorkspacePath() {
-        return PATH_UTIL.getAbsolutePath(workspace);
+    private String absoluteWorkspacePath() {
+        return workspace.toString();
     }
 
     @Test
     void shouldSkipEmptyRequest() {
         SourceDirectoryFilter filter = new SourceDirectoryFilter();
 
-        var allowedDirectories = filter.getPermittedSourceDirectories(aboluteWorkspacePath(), EMPTY, EMPTY, log);
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(), EMPTY, EMPTY, log);
 
         assertThat(allowedDirectories).isEmpty();
     }
@@ -43,7 +43,7 @@ class SourceDirectoryFilterTest {
     void shouldSkipEmptyDirectories() {
         SourceDirectoryFilter filter = new SourceDirectoryFilter();
 
-        var allowedDirectories = filter.getPermittedSourceDirectories(aboluteWorkspacePath(),
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
                 EMPTY, Set.of(StringUtils.EMPTY, "-"), log);
 
         assertThat(allowedDirectories).isEmpty();
@@ -54,18 +54,18 @@ class SourceDirectoryFilterTest {
         SourceDirectoryFilter filter = new SourceDirectoryFilter();
 
         var relative = "src/main/java";
-        var allowedDirectories = filter.getPermittedSourceDirectories(aboluteWorkspacePath(),
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
                 EMPTY, Set.of(relative), log);
 
-        assertThat(allowedDirectories).contains(aboluteWorkspacePath() + "/" + relative);
+        assertThat(allowedDirectories).contains(absoluteWorkspacePath() + "/" + relative);
     }
 
     @Test
     void shouldAllowAbsoluteWorkspacePath() {
         SourceDirectoryFilter filter = new SourceDirectoryFilter();
 
-        var allowedDirectories = filter.getPermittedSourceDirectories(aboluteWorkspacePath(),
-                EMPTY, Set.of(aboluteWorkspacePath()), log);
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
+                EMPTY, Set.of(absoluteWorkspacePath()), log);
 
         assertThat(allowedDirectories).isEmpty();
     }
@@ -77,7 +77,7 @@ class SourceDirectoryFilterTest {
 
         SourceDirectoryFilter filter = new SourceDirectoryFilter();
 
-        var allowedDirectories = filter.getPermittedSourceDirectories(aboluteWorkspacePath(),
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
                 EMPTY, Set.of(PATH_UTIL.getAbsolutePath(subFolder)), log);
 
         assertThat(allowedDirectories).containsExactly(SUB_FOLDER);
@@ -90,7 +90,7 @@ class SourceDirectoryFilterTest {
 
         SourceDirectoryFilter filter = new SourceDirectoryFilter();
 
-        var allowedDirectories = filter.getPermittedSourceDirectories(aboluteWorkspacePath(),
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
                 EMPTY, Set.of(PATH_UTIL.getAbsolutePath(otherFolder)), log);
 
         assertThat(allowedDirectories).isEmpty();
@@ -107,7 +107,7 @@ class SourceDirectoryFilterTest {
         SourceDirectoryFilter filter = new SourceDirectoryFilter();
 
         var approvedFolder = PATH_UTIL.getAbsolutePath(otherFolder);
-        var allowedDirectories = filter.getPermittedSourceDirectories(aboluteWorkspacePath(),
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
                 Set.of(approvedFolder), Set.of(approvedFolder), log);
         assertThat(allowedDirectories).containsExactly(approvedFolder);
     }
