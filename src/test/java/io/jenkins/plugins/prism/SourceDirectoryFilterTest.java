@@ -57,7 +57,11 @@ class SourceDirectoryFilterTest {
         var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
                 EMPTY, Set.of(relative), log);
 
-        assertThat(allowedDirectories).contains(PATH_UTIL.createAbsolutePath(absoluteWorkspacePath(), relative));
+        assertThat(allowedDirectories).contains(makeAbsolutePath(relative));
+    }
+
+    private String makeAbsolutePath(final String relative) {
+        return PATH_UTIL.getAbsolutePath(PATH_UTIL.createAbsolutePath(absoluteWorkspacePath(), relative));
     }
 
     @Test
