@@ -23,7 +23,7 @@ public enum SourceCodeRetention {
     LAST_BUILD(new CleanupOldBuilds(), Messages._SourceCodeRetention_LAST_BUILD()),
     /** Store source code files for all builds, never delete those files automatically. */
     EVERY_BUILD(new Cleanup(), Messages._SourceCodeRetention_EVERY_BUILD()),
-    /** Store source code files for all builds, never delete those files automatically. */
+    /** Store only changed source code files for all builds, never delete those files automatically. */
     MODIFIED(new Cleanup(), Messages._SourceCodeRetention_MODIFIED());
 
     /**
