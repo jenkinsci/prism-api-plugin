@@ -62,8 +62,7 @@ public class SourceDirectoryFilter {
                 }
                 else {
                     // relative workspace paths are always ok
-                    findRelative(workspacePath, sourceDirectory, log)
-                            .forEach(path -> filteredDirectories.add(PATH_UTIL.getAbsolutePath(path)));
+                    filteredDirectories.addAll(findRelative(workspacePath, sourceDirectory, log));
                 }
             }
         }
@@ -106,9 +105,9 @@ public class SourceDirectoryFilter {
      * @return the matching paths
      * @see FileSystem#getPathMatcher(String)
      */
-    private List<Path> findRelative(final String directory, final String pattern, final FilteredLog log) {
+    private List<String> findRelative(final String directory, final String pattern, final FilteredLog log) {
         if (!pattern.startsWith("glob:") && !pattern.startsWith("regex:")) {
-            return List.of(Paths.get(directory, pattern));
+            return List.of(PATH_UTIL.createAbsolutePath(directory, pattern));
         }
 
         try {
@@ -130,7 +129,7 @@ public class SourceDirectoryFilter {
 
     private static class PathMatcherFileVisitor extends SimpleFileVisitor<Path> {
         private final PathMatcher pathMatcher;
-        private final List<Path> matches = new ArrayList<>();
+        private final List<String> matches = new ArrayList<>();
 
         PathMatcherFileVisitor(final String syntaxAndPattern) {
             super();
@@ -138,14 +137,14 @@ public class SourceDirectoryFilter {
             pathMatcher = FileSystems.getDefault().getPathMatcher(syntaxAndPattern);
         }
 
-        List<Path> getMatches() {
+        List<String> getMatches() {
             return matches;
         }
 
         @Override
         public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
             if (pathMatcher.matches(dir)) {
-                matches.add(dir);
+                matches.add(PATH_UTIL.getAbsolutePath(dir));
             }
             return FileVisitResult.CONTINUE;
         }
