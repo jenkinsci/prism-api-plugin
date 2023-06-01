@@ -57,12 +57,10 @@ public class SourceDirectoryFilter {
             if (isValidDirectory(sourceDirectory)) {
                 if (PATH_UTIL.isAbsolute(sourceDirectory)) {
                     verifyAbsoluteDirectory(normalizedWorkspacePath, allowedSourceDirectories, filteredDirectories,
-                            PATH_UTIL.getAbsolutePath(sourceDirectory), log
-                    );
+                            PATH_UTIL.getAbsolutePath(sourceDirectory), log);
                 }
-                else {
-                    // relative workspace paths are always ok
-                    filteredDirectories.addAll(findRelative(workspacePath, sourceDirectory, log));
+                else { // relative workspace paths are always ok
+                    filteredDirectories.addAll(findRelative(normalizedWorkspacePath, sourceDirectory, log));
                 }
             }
         }
