@@ -1,6 +1,17 @@
 package io.jenkins.plugins.prism;
 
+import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -50,9 +61,9 @@ public class SourceDirectoryFilter {
                     );
                 }
                 else {
-                    filteredDirectories.add(
-                            PATH_UTIL.getAbsolutePath(
-                                    PATH_UTIL.createAbsolutePath(normalizedWorkspacePath, sourceDirectory))); // relative workspace paths are always ok
+                    // relative workspace paths are always ok
+                    findRelative(workspacePath, sourceDirectory, log)
+                            .forEach(path -> filteredDirectories.add(PATH_UTIL.getAbsolutePath(path)));
                 }
             }
         }
@@ -66,7 +77,8 @@ public class SourceDirectoryFilter {
             return; // workspace will be checked automatically
         }
         if (normalizedSourceDirectory.startsWith(workspacePath)) {
-            filteredDirectories.add(PATH_UTIL.getRelativePath(workspacePath, normalizedSourceDirectory)); // make path relative to workspace
+            filteredDirectories.add(PATH_UTIL.getRelativePath(workspacePath,
+                    normalizedSourceDirectory)); // make path relative to workspace
         }
         else if (allowedSourceDirectories.contains(normalizedSourceDirectory)) { // add only registered absolute paths
             filteredDirectories.add(normalizedSourceDirectory);
@@ -79,5 +91,68 @@ public class SourceDirectoryFilter {
 
     private boolean isValidDirectory(final String sourceDirectory) {
         return StringUtils.isNotBlank(sourceDirectory) && !"-".equals(sourceDirectory);
+    }
+
+    /**
+     * Returns the subdirectories of a given base directory that match a specified pattern.
+     *
+     * @param directory
+     *         the directory where to search for files
+     * @param pattern
+     *         the pattern to use when searching
+     * @param log
+     *         the logger
+     *
+     * @return the matching paths
+     * @see FileSystem#getPathMatcher(String)
+     */
+    private List<Path> findRelative(final String directory, final String pattern, final FilteredLog log) {
+        if (!pattern.startsWith("glob:") && !pattern.startsWith("regex:")) {
+            return List.of(Paths.get(directory, pattern));
+        }
+
+        try {
+            PathMatcherFileVisitor visitor = new PathMatcherFileVisitor(pattern);
+            Files.walkFileTree(Paths.get(directory), visitor);
+            return visitor.getMatches();
+        }
+        catch (IllegalArgumentException exception) {
+            log.logException(exception,
+                    "Pattern not valid for FileSystem.getPathMatcher: '%s'", pattern);
+        }
+        catch (IOException exception) {
+            log.logException(exception,
+                    "Cannot find subdirectories in '%s' for glob: pattern '%s'", directory, pattern);
+        }
+
+        return new ArrayList<>();
+    }
+
+    private static class PathMatcherFileVisitor extends SimpleFileVisitor<Path> {
+        private final PathMatcher pathMatcher;
+        private final List<Path> matches = new ArrayList<>();
+
+        PathMatcherFileVisitor(final String syntaxAndPattern) {
+            super();
+
+            pathMatcher = FileSystems.getDefault().getPathMatcher(syntaxAndPattern);
+        }
+
+        List<Path> getMatches() {
+            return matches;
+        }
+
+        @Override
+        public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
+            if (pathMatcher.matches(dir)) {
+                matches.add(dir);
+            }
+            return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFileFailed(final Path file, final IOException exc) {
+            return FileVisitResult.CONTINUE;
+        }
     }
 }
