@@ -88,6 +88,37 @@ class SourceDirectoryFilterTest {
     }
 
     @Test
+    void shouldAllowPatternForRelativePaths() throws IOException {
+        var subFolder = workspace.resolve(SUB_FOLDER);
+        Files.createDirectory(subFolder);
+        Files.createDirectory(subFolder.resolve("ok-1"));
+        Files.createDirectory(subFolder.resolve("ok-2"));
+        Files.createDirectory(subFolder.resolve("nok-1"));
+        Files.createDirectory(subFolder.resolve("nok-2"));
+        Files.createDirectory(subFolder.resolve("ok-3"));
+
+        SourceDirectoryFilter filter = new SourceDirectoryFilter();
+
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
+                EMPTY, Set.of("glob:**/ok-*"), log);
+
+        assertThat(allowedDirectories).map(s -> StringUtils.substringAfterLast(s, "/"))
+                .containsExactlyInAnyOrder("ok-1", "ok-2", "ok-3");
+    }
+
+    @Test
+    void shouldIgnoreBrokenGlobs() throws IOException {
+        SourceDirectoryFilter filter = new SourceDirectoryFilter();
+
+        var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
+                EMPTY, Set.of("regex:a(]"), log);
+
+        assertThat(log.getErrorMessages())
+                .contains("Pattern not valid for FileSystem.getPathMatcher: 'regex:a(]'");
+        assertThat(allowedDirectories).isEmpty();
+    }
+
+    @Test
     void shouldNotAllowOtherFolder() throws IOException {
         var subFolder = workspace.resolve(SUB_FOLDER);
         Files.createDirectory(subFolder);
