@@ -20,6 +20,7 @@
   <properties>
     <revision>1.29.0-7</revision>
     <changelist>-SNAPSHOT</changelist>
+    <jenkins.version>2.420-rc34099.3e12ca_2a_ea_90</jenkins.version>
 
     <module.name>${project.groupId}.prism</module.name>
 

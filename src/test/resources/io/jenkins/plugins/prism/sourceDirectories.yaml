@@ -1,5 +1,5 @@
-unclassified:
-  prismConfiguration:
+appearance:
+  prism:
     sourceDirectories:
     - path: "C:\\Windows"
     - path: "/absolute"
