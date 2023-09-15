@@ -1,14 +1,12 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:bs="/bootstrap5">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:bs="/bootstrap5" xmlns:p="/prism">
 
   <st:header name="Content-Type" value="text/html;charset=UTF-8"/>
 
   <bs:page it="${it}" notitle="true">
 
-    <st:adjunct includes="io.jenkins.plugins.prism"/>
+  <p:prism configuration="${it.prismConfiguration}"/>
     <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/custom-prism.css"/>
-    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/${it.themeCssFileName}"/>
-
     <h1>${%sourcedetail.header(it.displayName)}</h1>
 
     <j:out value="${it.sourceCode}"/>
