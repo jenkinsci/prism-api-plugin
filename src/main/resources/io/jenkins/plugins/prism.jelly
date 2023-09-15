@@ -12,8 +12,7 @@ Use it like <st:adjunct includes="io.jenkins.plugins.prism"/>
   <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/prism/match-braces/prism-match-braces.css"/>
 
   <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/prism-core.min.js"/>
-  <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/autoloader/prism-autoloader.min.js"
-          data-autoloader-path="${resURL}/plugin/prism-api/js/prism/"/>
+  <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/autoloader/prism-autoloader.min.js" data-autoloader-path="${resURL}/plugin/prism-api/js/prism/"/>
   <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/line-highlight/prism-line-highlight.min.js"/>
   <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/line-numbers/prism-line-numbers.min.js"/>
   <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/match-braces/prism-match-braces.min.js"/>

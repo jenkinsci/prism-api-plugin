@@ -8,19 +8,14 @@
   </st:documentation>
 
   <st:once>
-    <link type="text/css" rel="stylesheet"
-          href="${resURL}/plugin/prism-api/css/prism/line-highlight/prism-line-highlight.css"/>
-    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/prism/css/line-numbers/prism-line-numbers.css"/>
-    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/prism/css/match-braces/prism-match-braces.css"/>
+    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/prism/line-highlight/prism-line-highlight.css"/>
+    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/prism/line-numbers/prism-line-numbers.css"/>
+    <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/prism/match-braces/prism-match-braces.css"/>
 
-    <script id="prism-theme-loader"
-            type="text/javascript"
-            data-selected-theme="${attrs.configuration.theme.fileName}"
-            src="${resURL}/plugin/prism-api/js/theme-loader.js"/>
+    <script id="prism-theme-loader" type="text/javascript" data-selected-theme="${attrs.configuration.theme.fileName}" src="${resURL}/plugin/prism-api/js/theme-loader.js"/>
 
     <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/prism-core.min.js"/>
-    <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/autoloader/prism-autoloader.min.js"
-            data-autoloader-path="${resURL}/plugin/prism-api/js/"/>
+    <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/autoloader/prism-autoloader.min.js" data-autoloader-path="${resURL}/plugin/prism-api/js/prism/"/>
     <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/line-highlight/prism-line-highlight.min.js"/>
     <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/line-numbers/prism-line-numbers.min.js"/>
     <script type="text/javascript" src="${resURL}/plugin/prism-api/js/prism/match-braces/prism-match-braces.min.js"/>
