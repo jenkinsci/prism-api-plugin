@@ -170,8 +170,6 @@
               </includes>
               <excludes>
                 <exclude>css/custom-prism.css</exclude>
-              </excludes>
-              <excludes>
                 <exclude>js/theme-loader.js</exclude>
               </excludes>
             </fileset>
