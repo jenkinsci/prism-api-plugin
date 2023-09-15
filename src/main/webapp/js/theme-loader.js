@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     head.insertAdjacentHTML(
       'beforeend',
-      `<link id="prism-active-theme" rel="stylesheet" href="${resUrl}/plugin/prism-api/css/${themeCss}" />`);
+      `<link id="prism-active-theme" rel="stylesheet" href="${resUrl}/plugin/prism-api/css/prism/${themeCss}" />`);
   }
 
   if (window.getThemeManagerProperty && window.isSystemRespectingTheme) {

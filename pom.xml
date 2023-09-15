@@ -166,12 +166,9 @@
             <fileset>
               <directory>${project.basedir}/src/main/webapp</directory>
               <includes>
-                <include>**/*</include>
+                <include>css/prism/**/*</include>
+                <include>js/prism/**/*</include>
               </includes>
-              <excludes>
-                <exclude>css/custom-prism.css</exclude>
-                <exclude>js/theme-loader.js</exclude>
-              </excludes>
             </fileset>
           </filesets>
         </configuration>
@@ -187,7 +184,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.basedir}/src/main/webapp/js</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/webapp/js/prism</outputDirectory>
               <resources>
                 <resource>
                   <directory>${project.basedir}/node_modules/prismjs/components</directory>
@@ -210,7 +207,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.basedir}/src/main/webapp/css</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/webapp/css/prism</outputDirectory>
               <resources>
                 <resource>
                   <directory>${project.basedir}/node_modules/prismjs/themes</directory>

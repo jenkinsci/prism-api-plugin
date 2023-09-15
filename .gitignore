@@ -13,6 +13,5 @@ release.properties
 /package-lock.json
 work/
 
-src/main/webapp/css/**/prism*.css
-src/main/webapp/js/**/prism*.js
-src/main/webapp/js/index.js
+src/main/webapp/css/prism/**
+src/main/webapp/js/prism/**
