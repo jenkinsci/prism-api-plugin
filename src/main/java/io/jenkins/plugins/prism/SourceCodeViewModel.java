@@ -40,6 +40,10 @@ public class SourceCodeViewModel implements ModelObject {
         sourceCode = render(sourceCodeReader, marker);
     }
 
+    public PrismConfiguration getPrismConfiguration() {
+        return PrismConfiguration.getInstance();
+    }
+
     private String render(final Reader affectedFile, final Marker marker) {
         try (BufferedReader reader = new BufferedReader(affectedFile)) {
             SourcePrinter sourcePrinter = new SourcePrinter();
@@ -71,15 +75,6 @@ public class SourceCodeViewModel implements ModelObject {
      */
     public String getSourceCode() {
         return sourceCode;
-    }
-
-    /**
-     * Returns the filename of the prism theme. Themes are stored in the package below the css folder.
-     *
-     * @return the theme CSS file
-     */
-    public String getThemeCssFileName() {
-        return PrismConfiguration.getInstance().getTheme().getFileName();
     }
 }
 

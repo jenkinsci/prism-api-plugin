@@ -18,13 +18,16 @@
   <url>https://github.com/jenkinsci/prism-api-plugin</url>
 
   <properties>
-    <revision>1.29.0-7</revision>
+    <revision>1.29.0-8</revision>
     <changelist>-SNAPSHOT</changelist>
 
     <module.name>${project.groupId}.prism</module.name>
 
     <testcontainers.version>1.18.3</testcontainers.version>
     <jsoup.version>1.16.1</jsoup.version>
+
+    <node.version>18.12.0</node.version>
+    <npm.version>8.19.4</npm.version>
 
   </properties>
 
@@ -160,35 +163,15 @@
                 <include>**/*</include>
               </includes>
             </fileset>
+            <fileset>
+              <directory>${project.basedir}/src/main/webapp</directory>
+              <includes>
+                <include>css/prism/**/*</include>
+                <include>js/prism/**/*</include>
+              </includes>
+            </fileset>
           </filesets>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <version>1.13.3</version>
-        <executions>
-          <execution>
-            <id>install node and npm</id>
-            <goals>
-              <goal>install-node-and-npm</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <nodeVersion>v18.12.0</nodeVersion>
-            </configuration>
-          </execution>
-          <execution>
-            <id>npm install</id>
-            <goals>
-              <goal>npm</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <arguments>install</arguments>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -201,7 +184,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.directory}/${project.artifactId}/js</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/webapp/js/prism</outputDirectory>
               <resources>
                 <resource>
                   <directory>${project.basedir}/node_modules/prismjs/components</directory>
@@ -224,7 +207,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.directory}/${project.artifactId}/css</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/webapp/css/prism</outputDirectory>
               <resources>
                 <resource>
                   <directory>${project.basedir}/node_modules/prismjs/themes</directory>
