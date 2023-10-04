@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>analysis-pom</artifactId>
-    <version>6.10.0</version>
+    <version>6.12.0</version>
     <relativePath />
   </parent>
 
@@ -18,13 +18,13 @@
   <url>https://github.com/jenkinsci/prism-api-plugin</url>
 
   <properties>
-    <revision>1.29.0-7</revision>
+    <revision>1.29.0-9</revision>
     <changelist>-SNAPSHOT</changelist>
     <jenkins.version>2.421</jenkins.version>
 
     <module.name>${project.groupId}.prism</module.name>
 
-    <testcontainers.version>1.18.3</testcontainers.version>
+    <testcontainers.version>1.19.0</testcontainers.version>
     <jsoup.version>1.16.1</jsoup.version>
 
   </properties>
@@ -161,35 +161,15 @@
                 <include>**/*</include>
               </includes>
             </fileset>
+            <fileset>
+              <directory>${project.basedir}/src/main/webapp</directory>
+              <includes>
+                <include>css/prism/**/*</include>
+                <include>js/prism/**/*</include>
+              </includes>
+            </fileset>
           </filesets>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <version>1.13.3</version>
-        <executions>
-          <execution>
-            <id>install node and npm</id>
-            <goals>
-              <goal>install-node-and-npm</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <nodeVersion>v18.12.0</nodeVersion>
-            </configuration>
-          </execution>
-          <execution>
-            <id>npm install</id>
-            <goals>
-              <goal>npm</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <arguments>install</arguments>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -202,7 +182,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.directory}/${project.artifactId}/js</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/webapp/js/prism</outputDirectory>
               <resources>
                 <resource>
                   <directory>${project.basedir}/node_modules/prismjs/components</directory>
@@ -225,7 +205,7 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.build.directory}/${project.artifactId}/css</outputDirectory>
+              <outputDirectory>${project.basedir}/src/main/webapp/css/prism</outputDirectory>
               <resources>
                 <resource>
                   <directory>${project.basedir}/node_modules/prismjs/themes</directory>
