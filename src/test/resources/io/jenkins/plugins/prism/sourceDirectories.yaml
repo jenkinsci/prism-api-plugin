@@ -1,4 +1,4 @@
-appearance:
+security:
   prism:
     sourceDirectories:
     - path: "C:\\Windows"

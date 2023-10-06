@@ -57,7 +57,7 @@ class PrismConfigurationTest {
     @Test
     void shouldSaveConfigurationIfFoldersAreAdded() {
         GlobalConfigurationFacade facade = mock(GlobalConfigurationFacade.class);
-        PrismConfiguration configuration = new PrismConfiguration(facade, mock(JenkinsFacade.class));
+        PrismConfiguration configuration = new PrismConfiguration(facade);
 
         configuration.setSourceDirectories(SOURCE_ROOTS);
 
@@ -103,20 +103,6 @@ class PrismConfigurationTest {
         assertThat(log.getErrorMessages()).isEmpty();
     }
 
-    @Test
-    void shouldInitializeThemes() {
-        PrismConfiguration configuration = createConfiguration();
-
-        assertThat(configuration.getTheme())
-                .isEqualTo(PrismTheme.PRISM)
-                .extracting(PrismTheme::getFileName)
-                .isEqualTo("prism.css");
-        configuration.setTheme(PrismTheme.COY);
-        assertThat(configuration.getTheme()).isEqualTo(PrismTheme.COY);
-
-        assertThat(configuration.doFillThemeItems()).extracting(o -> o.value).contains(PrismTheme.PRISM.name());
-    }
-
     private String getWorkspaceChild(final String expected) {
         return PATH_UTIL.createAbsolutePath(NORMALIZED, expected);
     }
@@ -143,8 +129,6 @@ class PrismConfigurationTest {
     }
 
     private PrismConfiguration createConfiguration() {
-        JenkinsFacade jenkins = mock(JenkinsFacade.class);
-        when(jenkins.hasPermission(Jenkins.ADMINISTER)).thenReturn(true);
-        return new PrismConfiguration(mock(GlobalConfigurationFacade.class), jenkins);
+        return new PrismConfiguration(mock(GlobalConfigurationFacade.class));
     }
 }

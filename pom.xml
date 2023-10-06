@@ -18,7 +18,7 @@
   <url>https://github.com/jenkinsci/prism-api-plugin</url>
 
   <properties>
-    <revision>1.29.0-9</revision>
+    <revision>1.30.0-1</revision>
     <changelist>-SNAPSHOT</changelist>
     <jenkins.version>2.421</jenkins.version>
 
@@ -26,7 +26,7 @@
 
     <testcontainers.version>1.19.0</testcontainers.version>
     <jsoup.version>1.16.1</jsoup.version>
-
+    <hpi.compatibleSinceVersion>1.30.0-1</hpi.compatibleSinceVersion>
   </properties>
 
   <licenses>
