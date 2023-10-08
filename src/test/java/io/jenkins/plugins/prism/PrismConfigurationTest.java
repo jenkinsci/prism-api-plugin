@@ -1,23 +1,18 @@
 package io.jenkins.plugins.prism;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import edu.hm.hafner.util.FilteredLog;
+import edu.hm.hafner.util.PathUtil;
+import io.jenkins.plugins.util.GlobalConfigurationFacade;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.Test;
-
-import edu.hm.hafner.util.FilteredLog;
-import edu.hm.hafner.util.PathUtil;
-
-import jenkins.model.Jenkins;
-
-import io.jenkins.plugins.util.GlobalConfigurationFacade;
-import io.jenkins.plugins.util.JenkinsFacade;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Tests the class {@link PrismConfiguration}.

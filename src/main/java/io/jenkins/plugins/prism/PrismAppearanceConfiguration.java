@@ -1,6 +1,5 @@
 package io.jenkins.plugins.prism;
 
-import edu.hm.hafner.util.PathUtil;
 import edu.hm.hafner.util.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -8,11 +7,6 @@ import hudson.util.ListBoxModel;
 import io.jenkins.plugins.util.GlobalConfigurationFacade;
 import io.jenkins.plugins.util.GlobalConfigurationItem;
 import io.jenkins.plugins.util.JenkinsFacade;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 import jenkins.appearance.AppearanceCategory;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.GlobalConfigurationCategory;

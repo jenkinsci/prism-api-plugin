@@ -46,7 +46,7 @@ public class PrismConfiguration extends GlobalConfigurationItem {
     private Set<String> normalizedSourceDirectories = Collections.emptySet();
 
     /**
-     * Moved to {@link PrismAppearanceConfiguration}
+     * Moved to {@link PrismAppearanceConfiguration}.
      */
     private transient PrismTheme theme;
 
@@ -115,7 +115,10 @@ public class PrismConfiguration extends GlobalConfigurationItem {
     }
 
     /**
-     * For maintaining compatibility after the move to {@link PrismAppearanceConfiguration}
+     * For maintaining compatibility after the move to {@link PrismAppearanceConfiguration}.
+     *
+     * @deprecated use {@link PrismAppearanceConfiguration} instead
+     * @return a model with the currently selected theme
      */
     @Deprecated
     public PrismTheme getTheme() {
