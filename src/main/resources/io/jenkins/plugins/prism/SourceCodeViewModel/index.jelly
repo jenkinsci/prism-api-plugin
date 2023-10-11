@@ -19,7 +19,7 @@
        * Scroll to the warning.
        */
       jQuery3.fn.scrollView = function () {
-        return this.each(function () {
+        return this.forEach(function () {
           jQuery3('html, body').animate({
             scrollTop: jQuery3(this).offset().top - (jQuery3(window).height() / 2)
           }, 1000);
