@@ -3,7 +3,7 @@ package io.jenkins.plugins.prism;
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
-import org.jvnet.hudson.test.Issue;
+import org.junitpioneer.jupiter.Issue;
 
 import hudson.markup.MarkupFormatter;
 
