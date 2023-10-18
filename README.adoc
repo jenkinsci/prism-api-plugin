@@ -3,7 +3,7 @@
 = Prism Jenkins Plugin
 
 image:https://ci.jenkins.io/job/Plugins/job/prism-api-plugin/job/main/badge/icon?subject=Jenkins%20CI[Jenkins, link=https://ci.jenkins.io/job/Plugins/job/prism-api-plugin/job/main/]
-image:https://github.com/jenkinsci/prism-api-plugin/workflows/GitHub%20CI/badge.svg?branch=main[GitHub Actions, link=https://github.com/jenkinsci/prism-api-plugin/actions]
+image:https://github.com/jenkinsci/prism-api-plugin/workflows/GitHub%20CI/badge.svg[GitHub Actions, link=https://github.com/jenkinsci/prism-api-plugin/actions]
 image:https://img.shields.io/github/issues-pr/jenkinsci/prism-api-plugin.svg[GitHub pull requests, link=https://github.com/jenkinsci/prism-api-plugin/pulls]
 
 Provides https://prismjs.com/[Prism] for Jenkins Plugins. Prism is a lightweight, extensible syntax highlighter,
