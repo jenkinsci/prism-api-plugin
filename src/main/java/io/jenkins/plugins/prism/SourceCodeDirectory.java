@@ -81,7 +81,7 @@ public final class SourceCodeDirectory extends AbstractDescribableImpl<SourceCod
         }
 
         /**
-         * Performs on-the-fly validation  on the source code directory.
+         * Performs on-the-fly validation of the source code directory.
          *
          * @param project
          *         the project that is configured
