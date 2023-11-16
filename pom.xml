@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>analysis-pom</artifactId>
-    <version>6.12.0</version>
+    <version>6.14.0</version>
     <relativePath />
   </parent>
 
@@ -23,9 +23,8 @@
     <jenkins.version>2.421</jenkins.version>
 
     <module.name>${project.groupId}.prism</module.name>
-
-    <testcontainers.version>1.19.0</testcontainers.version>
-    <jsoup.version>1.16.1</jsoup.version>
+    <testcontainers.version>1.19.2</testcontainers.version>
+    <jsoup.version>1.16.2</jsoup.version>
     <hpi.compatibleSinceVersion>1.30.0-1</hpi.compatibleSinceVersion>
   </properties>
 
