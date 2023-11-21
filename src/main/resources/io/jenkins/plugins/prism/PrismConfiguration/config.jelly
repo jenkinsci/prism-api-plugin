@@ -1,7 +1,7 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
 
-  <f:section title="${%Prism Syntax Highlighting Configuration}">
+  <f:section title="${%Prism syntax highlighting}">
     <f:entry title="${%sourceDirectories.title}" description="${%sourceDirectories.description}"
              help="${descriptor.getHelpFile('sourceDirectories')}">
       <div id="sourceDirectories">
@@ -13,9 +13,6 @@
           </f:entry>
         </f:repeatableProperty>
       </div>
-    </f:entry>
-    <f:entry title="${%Theme}" field="theme">
-      <f:select default="PRISM"/>
     </f:entry>
 
   </f:section>

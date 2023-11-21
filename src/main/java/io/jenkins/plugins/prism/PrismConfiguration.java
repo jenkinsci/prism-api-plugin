@@ -1,25 +1,20 @@
 package io.jenkins.plugins.prism;
 
+import edu.hm.hafner.util.PathUtil;
+import edu.hm.hafner.util.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Extension;
+import io.jenkins.plugins.util.GlobalConfigurationFacade;
+import io.jenkins.plugins.util.GlobalConfigurationItem;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import edu.hm.hafner.util.PathUtil;
-import edu.hm.hafner.util.VisibleForTesting;
-
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.verb.POST;
-import org.jenkinsci.Symbol;
-import hudson.Extension;
-import hudson.util.ListBoxModel;
 import jenkins.model.GlobalConfiguration;
-import jenkins.model.Jenkins;
-
-import io.jenkins.plugins.util.GlobalConfigurationFacade;
-import io.jenkins.plugins.util.GlobalConfigurationItem;
-import io.jenkins.plugins.util.JenkinsFacade;
+import jenkins.model.GlobalConfigurationCategory;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Global system configuration for Prism. These configuration options are used globally for all jobs and require
@@ -37,24 +32,23 @@ import io.jenkins.plugins.util.JenkinsFacade;
  *      that are allowed to be shown in Jenkins user interface here. Note, that such a directory must be an absolute path
  *      on the agent that executes the build.
  *     </li>
- *     <li>
- *      <b>Theme</b>: Prism supports several themes that can be used to adapt the look and feel. You can configure the
- *      default theme that is used for all Jenkins jobs.
- *     </li>
  * </ul>
  *
  * @author Ullrich Hafner
  */
 @Extension
-@Symbol("prismConfiguration")
+@Symbol("prism")
 @SuppressWarnings("PMD.DataClass")
 public class PrismConfiguration extends GlobalConfigurationItem {
     private static final PathUtil PATH_UTIL = new PathUtil();
 
     private List<PermittedSourceCodeDirectory> sourceDirectories = Collections.emptyList();
     private Set<String> normalizedSourceDirectories = Collections.emptySet();
-    private PrismTheme theme = PrismTheme.PRISM;
-    private final JenkinsFacade jenkins;
+
+    /**
+     * Moved to {@link PrismAppearanceConfiguration}.
+     */
+    private transient PrismTheme theme;
 
     /**
      * Creates the global configuration of source code directories and loads the initial values from the corresponding
@@ -63,18 +57,20 @@ public class PrismConfiguration extends GlobalConfigurationItem {
     public PrismConfiguration() {
         super();
 
-        jenkins =  new JenkinsFacade();
-
         load();
     }
 
     @VisibleForTesting
-    PrismConfiguration(final GlobalConfigurationFacade facade, final JenkinsFacade jenkins) {
+    PrismConfiguration(final GlobalConfigurationFacade facade) {
         super(facade);
 
-        this.jenkins = jenkins;
-
         load();
+    }
+
+    @NonNull
+    @Override
+    public GlobalConfigurationCategory getCategory() {
+        return GlobalConfigurationCategory.get(GlobalConfigurationCategory.Security.class);
     }
 
     @Override
@@ -119,6 +115,17 @@ public class PrismConfiguration extends GlobalConfigurationItem {
     }
 
     /**
+     * For maintaining compatibility after the move to {@link PrismAppearanceConfiguration}.
+     *
+     * @deprecated use {@link PrismAppearanceConfiguration} instead
+     * @return a model with the currently selected theme
+     */
+    @Deprecated
+    public PrismTheme getTheme() {
+        return PrismAppearanceConfiguration.getInstance().getTheme();
+    }
+
+    /**
      * Returns whether the specified director is registered as permitted source code directory.
      *
      * @param sourceDirectory
@@ -128,34 +135,5 @@ public class PrismConfiguration extends GlobalConfigurationItem {
      */
     public boolean isAllowedSourceDirectory(final String sourceDirectory) {
         return normalizedSourceDirectories.contains(PATH_UTIL.getAbsolutePath(sourceDirectory));
-    }
-
-    /**
-     * Sets the active theme to be used when rendering the source code with prism.
-     *
-     * @param theme
-     *         the theme to use
-     */
-    @DataBoundSetter
-    public void setTheme(final PrismTheme theme) {
-        this.theme = theme;
-    }
-
-    public PrismTheme getTheme() {
-        return theme;
-    }
-
-    /**
-     * Returns all available themes.
-     *
-     * @return a model with all available themes
-     */
-    @POST
-    public ListBoxModel doFillThemeItems() {
-        ListBoxModel options = new ListBoxModel();
-        if (jenkins.hasPermission(Jenkins.ADMINISTER)) {
-            options.addAll(PrismTheme.getAllDisplayNames());
-        }
-        return options;
     }
 }

@@ -34,7 +34,7 @@ class ConfigurationAsCodeITest extends IntegrationTestWithJenkinsPerTest {
     void shouldImportTheme() {
         configureJenkins("theme.yaml");
 
-        assertThat(PrismConfiguration.getInstance().getTheme()).isEqualTo(PrismTheme.DARK);
+        assertThat(PrismAppearanceConfiguration.getInstance().getTheme()).isEqualTo(PrismTheme.DARK);
     }
 
     private void configureJenkins(final String fileName) {
