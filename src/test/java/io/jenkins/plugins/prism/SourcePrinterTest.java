@@ -155,7 +155,6 @@ class SourcePrinterTest extends ResourceTest {
                         + "std::cout &lt;&lt; \"Hello, World!\" &lt;&lt; argc &lt;&lt; std::endl;\n"
                         + "  return 0;\n"
                         + "}");
-
     }
 
     @Test
@@ -186,7 +185,6 @@ class SourcePrinterTest extends ResourceTest {
                         + "}\n"
                         + "</code>"
         );
-
     }
 
     @Test
@@ -208,7 +206,7 @@ class SourcePrinterTest extends ResourceTest {
     }
 
     @Test
-    @org.jvnet.hudson.test.Issue("JENKINS-55679")
+    @org.junitpioneer.jupiter.Issue("JENKINS-55679")
     void shouldRenderXmlFiles() {
         MarkerBuilder builder = new MarkerBuilder();
         SourcePrinter printer = new SourcePrinter();
