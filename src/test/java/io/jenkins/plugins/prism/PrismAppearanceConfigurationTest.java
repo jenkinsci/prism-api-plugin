@@ -1,13 +1,14 @@
 package io.jenkins.plugins.prism;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.Test;
+
+import jenkins.model.Jenkins;
 
 import io.jenkins.plugins.util.GlobalConfigurationFacade;
 import io.jenkins.plugins.util.JenkinsFacade;
-import jenkins.model.Jenkins;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Tests the class {@link PrismAppearanceConfiguration}.
@@ -15,7 +16,6 @@ import org.junit.jupiter.api.Test;
  * @author Ullrich Hafner
  */
 class PrismAppearanceConfigurationTest {
-
     @Test
     void shouldInitializeThemes() {
         PrismAppearanceConfiguration configuration = createConfiguration();
