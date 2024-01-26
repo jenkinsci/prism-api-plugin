@@ -26,7 +26,7 @@
     <jenkins.version>2.426.1</jenkins.version>
     <hpi.compatibleSinceVersion>1.29.0-9</hpi.compatibleSinceVersion>
 
-    <testcontainers.version>1.19.3</testcontainers.version>
+    <testcontainers.version>1.19.4</testcontainers.version>
     <jsoup.version>1.17.2</jsoup.version>
   </properties>
 
