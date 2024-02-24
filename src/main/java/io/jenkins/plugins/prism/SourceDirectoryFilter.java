@@ -55,7 +55,7 @@ public class SourceDirectoryFilter {
         Set<String> filteredDirectories = new HashSet<>();
         for (String sourceDirectory : requestedSourceDirectories) {
             if (isValidDirectory(sourceDirectory)) {
-                if (PATH_UTIL.isAbsolute(sourceDirectory)) {
+                if (PATH_UTIL.isAbsolute(sourceDirectory) && containsNoPathMatcherPattern(sourceDirectory)) {
                     verifyAbsoluteDirectory(normalizedWorkspacePath, allowedSourceDirectories, filteredDirectories,
                             PATH_UTIL.getAbsolutePath(sourceDirectory), log);
                 }
@@ -104,7 +104,7 @@ public class SourceDirectoryFilter {
      * @see FileSystem#getPathMatcher(String)
      */
     private List<String> findRelative(final String directory, final String pattern, final FilteredLog log) {
-        if (!pattern.startsWith("glob:") && !pattern.startsWith("regex:")) {
+        if (containsNoPathMatcherPattern(pattern)) {
             return List.of(PATH_UTIL.createAbsolutePath(directory, pattern));
         }
 
@@ -123,6 +123,10 @@ public class SourceDirectoryFilter {
         }
 
         return new ArrayList<>();
+    }
+
+    private boolean containsNoPathMatcherPattern(final String pattern) {
+        return !pattern.startsWith("glob:") && !pattern.startsWith("regex:");
     }
 
     private static class PathMatcherFileVisitor extends SimpleFileVisitor<Path> {
