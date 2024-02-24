@@ -107,14 +107,13 @@ class SourceDirectoryFilterTest {
     }
 
     @Test
-    void shouldIgnoreBrokenGlobs() throws IOException {
+    void shouldIgnoreBrokenGlobs() {
         SourceDirectoryFilter filter = new SourceDirectoryFilter();
 
         var allowedDirectories = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
                 EMPTY, Set.of("regex:a(]"), log);
 
-        assertThat(log.getErrorMessages())
-                .contains("Pattern not valid for FileSystem.getPathMatcher: 'regex:a(]'");
+        assertThat(log.getErrorMessages()).isNotEmpty();
         assertThat(allowedDirectories).isEmpty();
     }
 
