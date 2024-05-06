@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setTheme() {
     const themeElement = document.getElementById('prism-theme-loader')
-    let themeCss = themeElement.dataset.selectedTheme || "prism.css"
+    let themeCss = themeElement.dataset.selectedTheme || "default.css"
 
     // if default theme is in use then use theme manager API to get light / dark version
     if (themeCss === 'prism.css' && window.getThemeManagerProperty) {
@@ -21,13 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
       activeTheme.remove()
     }
 
+    let baseUrl = `${resUrl}/plugin/prism-api/css/`
+
+    if (themeCss !== 'default.css') {
+      baseUrl += 'prism/'
+    }
+
     head.insertAdjacentHTML(
         'beforeend',
-        `<link id="prism-active-theme" rel="stylesheet" href="${resUrl}/plugin/prism-api/css/prismtest.css" />`);
-
-    // head.insertAdjacentHTML(
-    //   'beforeend',
-    //   `<link id="prism-active-theme" rel="stylesheet" href="${resUrl}/plugin/prism-api/css/prism/${themeCss}" />`);
+        `<link id="prism-active-theme" rel="stylesheet" href="${baseUrl}/${themeCss}.css" />`)
   }
 
   if (window.getThemeManagerProperty && window.isSystemRespectingTheme) {

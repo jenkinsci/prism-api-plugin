@@ -1,7 +1,5 @@
 /**
- * prism.js default theme for JavaScript, CSS and HTML
- * Based on dabblet (http://dabblet.com)
- * @author Lea Verou
+ * Based on the default prism.js theme
  */
 
 code[class*="language-"],
@@ -16,27 +14,8 @@ pre[class*="language-"] {
     word-break: normal;
     word-wrap: normal;
     line-height: 1.5;
-
-    -moz-tab-size: 4;
-    -o-tab-size: 4;
     tab-size: 4;
-
-    -webkit-hyphens: none;
-    -moz-hyphens: none;
-    -ms-hyphens: none;
     hyphens: none;
-}
-
-pre[class*="language-"]::-moz-selection, pre[class*="language-"] ::-moz-selection,
-code[class*="language-"]::-moz-selection, code[class*="language-"] ::-moz-selection {
-    text-shadow: none;
-    background: #b3d4fc;
-}
-
-pre[class*="language-"]::selection, pre[class*="language-"] ::selection,
-code[class*="language-"]::selection, code[class*="language-"] ::selection {
-    text-shadow: none;
-    background: #b3d4fc;
 }
 
 @media print {
@@ -55,7 +34,7 @@ pre[class*="language-"] {
 
 :not(pre) > code[class*="language-"],
 pre[class*="language-"] {
-    background: color-mix(in srgb, var(--text-color) 2.5%, transparent);
+    background: color-mix(in srgb, var(--text-color) 2%, var(--background));
 }
 
 /* Inline code */
@@ -73,7 +52,7 @@ pre[class*="language-"] {
 }
 
 .token.punctuation {
-    color: #999;
+    color: var(--text-color-secondary);
 }
 
 .token.namespace {
@@ -104,7 +83,7 @@ pre[class*="language-"] {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-    color: #9a6e3a;
+    color: var(--brown);
     /* This background color was intended by the author of this theme. */
     background: hsla(0, 0%, 100%, .5);
 }

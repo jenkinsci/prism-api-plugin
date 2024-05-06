@@ -8,7 +8,7 @@ import hudson.util.ListBoxModel;
  * @author Ullrich Hafner
  */
 public enum PrismTheme {
-    PRISM("Default (light and dark mode)", "prismtest.css"),
+    PRISM("Default (light and dark mode)", "default.css"),
     COY("Coy", "prism-coy.css"),
     DARK("Dark", "prism-dark.css"),
     FUNKY("Funky", "prism-funky.css"),
