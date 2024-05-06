@@ -59,8 +59,13 @@ pre[class*="language-"] {
 .token.number,
 .token.constant,
 .token.symbol,
-.token.deleted {
+.token.function,
+.token.class-name {
     color: var(--pink);
+}
+
+.token.deleted {
+    color: var(--red);
 }
 
 .token.selector,
@@ -84,11 +89,6 @@ pre[class*="language-"] {
 .token.attr-value,
 .token.keyword {
     color: var(--blue);
-}
-
-.token.function,
-.token.class-name {
-    color: var(--pink);
 }
 
 .token.regex,
