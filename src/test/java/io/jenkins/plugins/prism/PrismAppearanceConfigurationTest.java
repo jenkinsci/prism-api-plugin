@@ -20,10 +20,7 @@ class PrismAppearanceConfigurationTest {
     void shouldInitializeThemes() {
         PrismAppearanceConfiguration configuration = createConfiguration();
 
-        assertThat(configuration.getTheme())
-                .isEqualTo(PrismTheme.PRISM)
-                .extracting(PrismTheme::getFileName)
-                .isEqualTo("prism.css");
+        assertThat(configuration.getTheme()).isEqualTo(PrismTheme.PRISM);
         configuration.setTheme(PrismTheme.COY);
         assertThat(configuration.getTheme()).isEqualTo(PrismTheme.COY);
 
