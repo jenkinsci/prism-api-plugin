@@ -1,0 +1,110 @@
+/**
+ * Based on the default prism.js theme
+ * Modified to use the Jenkins color palette
+ */
+
+code[class*="language-"],
+pre[class*="language-"] {
+    color: var(--text-color);
+    background: none;
+    font-family: var(--font-family-mono);
+    font-size: 1em;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    word-wrap: normal;
+    line-height: 1.5;
+    tab-size: 4;
+    hyphens: none;
+}
+
+/* Code blocks */
+pre[class*="language-"] {
+    padding: 1em;
+    margin: .5em 0;
+    overflow: auto;
+}
+
+:not(pre) > code[class*="language-"],
+pre[class*="language-"] {
+    background: color-mix(in srgb, var(--text-color) 2%, var(--background));
+}
+
+/* Inline code */
+:not(pre) > code[class*="language-"] {
+    padding: .1em;
+    border-radius: .3em;
+    white-space: normal;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: var(--text-color-secondary);
+}
+
+.token.punctuation {
+    color: var(--text-color-secondary);
+}
+
+.token.namespace {
+    opacity: .7;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.function,
+.token.class-name {
+    color: var(--pink);
+}
+
+.token.deleted {
+    color: var(--red);
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+    color: var(--green);
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+    color: var(--brown);
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+    color: var(--blue);
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+    color: var(--orange);
+}
+
+.token.important,
+.token.bold {
+    font-weight: bold;
+}
+.token.italic {
+    font-style: italic;
+}
+
+.token.entity {
+    cursor: help;
+}
