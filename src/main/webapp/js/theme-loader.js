@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     head.insertAdjacentHTML(
       'beforeend',
-      `<link id="prism-active-theme" rel="stylesheet" href="${baseUrl}/${themeCss}" />`)
+      `<link id="prism-active-theme" rel="stylesheet" href="${baseUrl}${themeCss}" />`)
   }
 
   if (window.getThemeManagerProperty && window.isSystemRespectingTheme) {
