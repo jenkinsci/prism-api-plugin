@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import edu.hm.hafner.util.FilteredLog;
 import edu.hm.hafner.util.PathUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Filters source code directories that are not approved in Jenkins' global configuration. A directory is considered
@@ -103,6 +104,7 @@ public class SourceDirectoryFilter {
      * @return the matching paths
      * @see FileSystem#getPathMatcher(String)
      */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "We are selecting relative files based on a pattern")
     private List<String> findRelative(final String directory, final String pattern, final FilteredLog log) {
         if (containsNoPathMatcherPattern(pattern)) {
             return List.of(PATH_UTIL.createAbsolutePath(directory, pattern));

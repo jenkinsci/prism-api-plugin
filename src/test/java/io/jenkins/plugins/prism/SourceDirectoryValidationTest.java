@@ -4,6 +4,8 @@ import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.FilePath;
 import hudson.model.FreeStyleProject;
 import hudson.util.FormValidation;
@@ -20,6 +22,7 @@ import static org.mockito.Mockito.*;
  * @author Stephan Plöderl
  * @author Ullrich Hafner
  */
+@SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "In tests we need to use fake absolute paths")
 class SourceDirectoryValidationTest {
     @Test
     void shouldValidateRelativeWithoutWorkspace() {
