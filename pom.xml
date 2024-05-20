@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>analysis-pom</artifactId>
-    <version>7.4.0</version>
+    <version>8.4.0</version>
     <relativePath />
   </parent>
 
@@ -138,6 +138,15 @@
 
   <build>
     <plugins>
+      <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-pmd-plugin</artifactId>
+      <configuration>
+        <excludeRoots combine.children="append">
+          <excludeRoot>src/main/webapp/js</excludeRoot>
+        </excludeRoots>
+      </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-clean-plugin</artifactId>

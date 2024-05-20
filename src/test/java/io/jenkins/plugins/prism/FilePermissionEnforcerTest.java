@@ -5,6 +5,8 @@ import java.io.File;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.Issue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.FilePath;
 
 import static hudson.Functions.*;
@@ -16,6 +18,7 @@ import static org.assertj.core.api.Assumptions.*;
  *
  * @author Ullrich Hafner
  */
+@SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "In tests we need to use fake absolute paths")
 class FilePermissionEnforcerTest {
     private static final FilePath WORKSPACE_UNIX = new FilePath(new File("/workspace"));
     private static final FilePath WORKSPACE_WINDOWS = new FilePath(new File("C:\\workspace"));

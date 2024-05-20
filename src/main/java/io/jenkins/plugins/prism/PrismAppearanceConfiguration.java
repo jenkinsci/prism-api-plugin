@@ -2,18 +2,19 @@ package io.jenkins.plugins.prism;
 
 import edu.hm.hafner.util.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
+
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.verb.POST;
+import org.jenkinsci.Symbol;
 import hudson.Extension;
 import hudson.util.ListBoxModel;
+import jenkins.appearance.AppearanceCategory;
+import jenkins.model.GlobalConfigurationCategory;
+import jenkins.model.Jenkins;
+
 import io.jenkins.plugins.util.GlobalConfigurationFacade;
 import io.jenkins.plugins.util.GlobalConfigurationItem;
 import io.jenkins.plugins.util.JenkinsFacade;
-import jenkins.appearance.AppearanceCategory;
-import jenkins.model.GlobalConfiguration;
-import jenkins.model.GlobalConfigurationCategory;
-import jenkins.model.Jenkins;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.verb.POST;
 
 /**
  * Global system configuration for Prism. These configuration options are used globally for all jobs and require
@@ -71,7 +72,7 @@ public class PrismAppearanceConfiguration extends GlobalConfigurationItem {
      * @return the singleton instance
      */
     public static PrismAppearanceConfiguration getInstance() {
-        return GlobalConfiguration.all().get(PrismAppearanceConfiguration.class);
+        return all().get(PrismAppearanceConfiguration.class);
     }
 
     /**
