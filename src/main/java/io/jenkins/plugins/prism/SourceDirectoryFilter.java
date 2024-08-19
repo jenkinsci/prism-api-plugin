@@ -111,8 +111,9 @@ public class SourceDirectoryFilter {
         }
 
         try {
-            PathMatcherFileVisitor visitor = new PathMatcherFileVisitor(pattern);
-            Files.walkFileTree(Paths.get(directory), visitor);
+            var workspace = Paths.get(directory);
+            PathMatcherFileVisitor visitor = new PathMatcherFileVisitor(workspace, pattern);
+            Files.walkFileTree(workspace, visitor);
             return visitor.getMatches();
         }
         catch (IllegalArgumentException exception) {
@@ -132,12 +133,14 @@ public class SourceDirectoryFilter {
     }
 
     private static class PathMatcherFileVisitor extends SimpleFileVisitor<Path> {
+        private final Path workspace;
         private final PathMatcher pathMatcher;
         private final List<String> matches = new ArrayList<>();
 
-        PathMatcherFileVisitor(final String syntaxAndPattern) {
+        PathMatcherFileVisitor(final Path workspace, final String syntaxAndPattern) {
             super();
 
+            this.workspace = workspace;
             pathMatcher = FileSystems.getDefault().getPathMatcher(syntaxAndPattern);
         }
 
@@ -147,7 +150,7 @@ public class SourceDirectoryFilter {
 
         @Override
         public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
-            if (pathMatcher.matches(dir)) {
+            if (pathMatcher.matches(dir) || pathMatcher.matches(workspace.relativize(dir))) {
                 matches.add(PATH_UTIL.getAbsolutePath(dir));
             }
             return FileVisitResult.CONTINUE;
