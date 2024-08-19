@@ -104,6 +104,12 @@ class SourceDirectoryFilterTest {
 
         assertThat(allowedDirectories).map(s -> StringUtils.substringAfterLast(s, "/"))
                 .containsExactlyInAnyOrder("ok-1", "ok-2", "ok-3");
+
+        var singleGlob = filter.getPermittedSourceDirectories(absoluteWorkspacePath(),
+                EMPTY, Set.of("glob:sub-folder/ok-*"), log);
+
+        assertThat(singleGlob).map(s -> StringUtils.substringAfterLast(s, "/"))
+                .containsExactlyInAnyOrder("ok-1", "ok-2", "ok-3");
     }
 
     @Test
