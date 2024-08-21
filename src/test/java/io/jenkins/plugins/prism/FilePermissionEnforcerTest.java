@@ -1,6 +1,9 @@
 package io.jenkins.plugins.prism;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.Issue;
@@ -33,6 +36,23 @@ class FilePermissionEnforcerTest {
 
         assertThat(validator.isInWorkspace("/a/b.c", WORKSPACE_UNIX, "/a/b")).isFalse();
         assertThat(validator.isInWorkspace("/b/a/b.c", WORKSPACE_UNIX, "/a")).isFalse();
+    }
+
+    @Test @Issue("JENKINS-72628")
+    void shouldFollowSymbolicLinks() throws IOException {
+        var workspace = Files.createTempDirectory("workspace");
+        workspace.toFile().deleteOnExit();
+        var link = Files.createSymbolicLink(workspace.resolve("link"), workspace);
+
+        FilePermissionEnforcer validator = new FilePermissionEnforcer();
+        assertThat(validator.resolveWorkspace(new FilePath(link.toFile())))
+                .isEqualTo(workspace.toString());
+        assertThat(validator.isInWorkspace(workspace + "/something.txt",
+                new FilePath(workspace.toFile()), Set.of()))
+                .isTrue();
+        assertThat(validator.isInWorkspace(workspace + "/something.txt",
+                new FilePath(link.toFile()), Set.of()))
+                .isTrue();
     }
 
     @Test

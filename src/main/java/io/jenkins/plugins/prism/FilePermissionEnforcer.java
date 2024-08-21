@@ -1,5 +1,6 @@
 package io.jenkins.plugins.prism;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -7,6 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import edu.hm.hafner.util.PathUtil;
+import edu.hm.hafner.util.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.FilePath;
@@ -59,9 +61,24 @@ public class FilePermissionEnforcer {
                 .map(PATH_UTIL::getAbsolutePath)
                 .collect(Collectors.toSet());
         permittedAbsolutePaths.add(workspace.getRemote());
+        permittedAbsolutePaths.add(resolveWorkspace(workspace));
 
         return permittedAbsolutePaths.stream()
                 .map(Paths::get)
                 .anyMatch(prefix -> Paths.get(sourceFile).startsWith(prefix));
+    }
+
+    @VisibleForTesting
+    String resolveWorkspace(final FilePath workspace) {
+        try {
+            var resolved = workspace.readLink();
+            if (resolved != null) {
+                return resolved;
+            }
+        }
+        catch (IOException | InterruptedException ignore) {
+            // ignore
+        }
+        return workspace.getRemote();
     }
 }
