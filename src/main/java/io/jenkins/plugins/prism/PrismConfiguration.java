@@ -22,6 +22,7 @@ import io.jenkins.plugins.util.GlobalConfigurationItem;
 /**
  * Global system configuration for Prism. These configuration options are used globally for all jobs and require
  * administrator permissions.
+ *
  * <p>
  * The following settings can be configured:
  * </p>
