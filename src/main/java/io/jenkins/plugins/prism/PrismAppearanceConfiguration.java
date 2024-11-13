@@ -27,7 +27,7 @@ import io.jenkins.plugins.util.JenkinsFacade;
  * <ul>
  *     <li>
  *      <b>Theme</b>: Prism supports several themes that can be used to adapt the look and feel. You can configure the
- *      default theme that is used for all Jenkins jobs.
+ *      default theme used for all Jenkins jobs.
  *     </li>
  * </ul>
  *

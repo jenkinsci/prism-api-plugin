@@ -31,7 +31,7 @@ import io.jenkins.plugins.util.GlobalConfigurationItem;
  *     <li>
  *      <b>Allowed source code directories</b>: some plugins copy source code files to Jenkins' build folder so that these
  *      files can be rendered in the user interface together with build results (coverage, warnings, etc.).
- *      If these files are not part of the workspace of a build then Jenkins will not show them by default:
+ *      If these files are not part of the workspace of a build, then Jenkins will not show them by default:
  *      otherwise sensitive files could be shown by accident. You can provide a list of additional source code directories
  *      that are allowed to be shown in Jenkins user interface here. Note, that such a directory must be an absolute path
  *      on the agent that executes the build.
