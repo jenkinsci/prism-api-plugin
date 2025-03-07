@@ -50,6 +50,11 @@ pre > code.highlight {
     transition: background-color .2s ease;
 }
 
+.analysis-detail > p {
+    color: black;
+    background-color: white;
+}
+
 .analysis-detail > pre {
     padding: 9.5px;
     margin: 1em 0 10px;
