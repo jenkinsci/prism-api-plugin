@@ -36,6 +36,8 @@ pre > code.highlight {
 }
 
 .analysis-detail {
+    background-color: var(--background);
+    color: var(--text-color);
     margin:0;
     white-space: normal;
     padding:10px;
@@ -48,11 +50,6 @@ pre > code.highlight {
     background: #FFF9C4;
     font-weight: normal;
     transition: background-color .2s ease;
-}
-
-.analysis-detail > p {
-    color: black;
-    background-color: white;
 }
 
 .analysis-detail > pre {
