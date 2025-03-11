@@ -18,7 +18,7 @@
   <url>https://github.com/jenkinsci/prism-api-plugin</url>
 
   <properties>
-    <revision>1.29.0-20</revision>
+    <revision>1.30.0-1</revision>
     <changelist>-SNAPSHOT</changelist>
 
     <module.name>${project.groupId}.prism</module.name>
