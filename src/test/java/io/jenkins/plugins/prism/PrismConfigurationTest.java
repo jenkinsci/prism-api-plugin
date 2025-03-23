@@ -1,16 +1,15 @@
 package io.jenkins.plugins.prism;
 
+import org.junit.jupiter.api.Test;
+
+import edu.hm.hafner.util.FilteredLog;
+import edu.hm.hafner.util.PathUtil;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.junit.jupiter.api.Test;
-
-import edu.hm.hafner.util.FilteredLog;
-import edu.hm.hafner.util.PathUtil;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import io.jenkins.plugins.util.GlobalConfigurationFacade;
 
@@ -22,7 +21,6 @@ import static org.mockito.Mockito.*;
  *
  * @author Ullrich Hafner
  */
-@SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "In tests we need to use fake absolute paths")
 class PrismConfigurationTest {
     private static final PathUtil PATH_UTIL = new PathUtil();
 
