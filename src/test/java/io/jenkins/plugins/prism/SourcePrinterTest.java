@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import edu.hm.hafner.util.ResourceTest;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import io.jenkins.plugins.prism.Marker.MarkerBuilder;
 import io.jenkins.plugins.util.JenkinsFacade;
@@ -229,7 +228,6 @@ class SourcePrinterTest extends ResourceTest {
     }
 
     @Nested
-    @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")
     class ColumnMarkerTest {
         @Test
         void withColumnStartZeroThenDontMark() {
