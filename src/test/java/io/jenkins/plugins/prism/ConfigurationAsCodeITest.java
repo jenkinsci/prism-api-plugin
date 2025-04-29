@@ -1,8 +1,8 @@
 package io.jenkins.plugins.prism;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import io.jenkins.plugins.casc.ConfigurationAsCode;
 import io.jenkins.plugins.casc.ConfiguratorException;
@@ -11,7 +11,7 @@ import io.jenkins.plugins.util.IntegrationTestWithJenkinsPerTest;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * Checks whether all parser can be imported using the configuration-as-code plug-in.
+ * Checks whether all source directories can be imported using the configuration-as-code plug-in.
  *
  * @author Ullrich Hafner
  */
