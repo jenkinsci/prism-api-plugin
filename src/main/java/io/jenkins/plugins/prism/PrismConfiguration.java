@@ -1,15 +1,15 @@
 package io.jenkins.plugins.prism;
 
+import edu.hm.hafner.util.PathUtil;
+import edu.hm.hafner.util.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import edu.hm.hafner.util.PathUtil;
-import edu.hm.hafner.util.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.kohsuke.stapler.DataBoundSetter;
 import org.jenkinsci.Symbol;
@@ -42,7 +42,6 @@ import io.jenkins.plugins.util.GlobalConfigurationItem;
  */
 @Extension
 @Symbol("prism")
-@SuppressWarnings("PMD.DataClass")
 public class PrismConfiguration extends GlobalConfigurationItem {
     private static final PathUtil PATH_UTIL = new PathUtil();
 

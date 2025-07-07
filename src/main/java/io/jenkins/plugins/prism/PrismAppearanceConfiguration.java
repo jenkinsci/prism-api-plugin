@@ -35,7 +35,6 @@ import io.jenkins.plugins.util.JenkinsFacade;
  */
 @Extension
 @Symbol("prism")
-@SuppressWarnings("PMD.DataClass")
 public class PrismAppearanceConfiguration extends GlobalConfigurationItem {
     private PrismTheme theme = PrismTheme.PRISM;
     private final JenkinsFacade jenkins;
