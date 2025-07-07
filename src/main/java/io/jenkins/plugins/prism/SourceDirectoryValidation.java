@@ -1,10 +1,10 @@
 package io.jenkins.plugins.prism;
 
-import java.io.IOException;
-
 import edu.hm.hafner.util.PathUtil;
 import edu.hm.hafner.util.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+
+import java.io.IOException;
 
 import hudson.FilePath;
 import hudson.model.AbstractProject;
@@ -15,7 +15,6 @@ import hudson.util.FormValidation;
  *
  * @author Ullrich Hafner
  */
-@SuppressWarnings("PMD.GodClass")
 class SourceDirectoryValidation {
     static final String DIRECTORY_NOT_REGISTERED = "This source directory is not approved yet. Please register this directory in Jenkins' global configuration.";
 

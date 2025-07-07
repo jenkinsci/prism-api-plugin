@@ -1,10 +1,10 @@
 package io.jenkins.plugins.prism;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import hudson.model.ModelObject;
 import hudson.model.Run;
@@ -15,7 +15,6 @@ import hudson.model.Run;
  *
  * @author Ullrich Hafner
  */
-@SuppressWarnings("PMD.CyclomaticComplexity")
 public class SourceCodeViewModel implements ModelObject {
     private final Run<?, ?> owner;
     private final String fileName;
