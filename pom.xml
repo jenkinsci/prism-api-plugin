@@ -12,14 +12,14 @@
   <groupId>io.jenkins.plugins</groupId>
   <packaging>hpi</packaging>
   <name>Prism API Plugin</name>
-  <version>${revision}${changelist}</version>
+  <version>${revision}-${changelist}</version>
 
   <description>Provides Prism JS Source Code Highlighting for Jenkins plugins.</description>
   <url>https://github.com/jenkinsci/prism-api-plugin</url>
 
   <properties>
-    <revision>1.30.0-2</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <revision>1.30.0</revision>
+    <changelist>999999-SNAPSHOT</changelist>
 
     <module.name>${project.groupId}.prism</module.name>
 
