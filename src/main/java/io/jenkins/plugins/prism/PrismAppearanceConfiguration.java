@@ -3,6 +3,7 @@ package io.jenkins.plugins.prism;
 import edu.hm.hafner.util.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.verb.POST;
 import org.jenkinsci.Symbol;
@@ -36,13 +37,24 @@ import io.jenkins.plugins.util.JenkinsFacade;
 @Extension
 @Symbol("prism")
 public class PrismAppearanceConfiguration extends GlobalConfigurationItem {
+    /**
+     * Returns the singleton instance of this {@link PrismAppearanceConfiguration}.
+     *
+     * @return the singleton instance
+     */
+    public static PrismAppearanceConfiguration getInstance() {
+        return all().get(PrismAppearanceConfiguration.class);
+    }
+
     private PrismTheme theme = PrismTheme.PRISM;
+
     private final JenkinsFacade jenkins;
 
     /**
      * Creates the global configuration and loads the initial values from the corresponding
      * XML file.
      */
+    @DataBoundConstructor
     public PrismAppearanceConfiguration() {
         super();
 
@@ -64,15 +76,6 @@ public class PrismAppearanceConfiguration extends GlobalConfigurationItem {
     @Override
     public GlobalConfigurationCategory getCategory() {
         return GlobalConfigurationCategory.get(AppearanceCategory.class);
-    }
-
-    /**
-     * Returns the singleton instance of this {@link PrismAppearanceConfiguration}.
-     *
-     * @return the singleton instance
-     */
-    public static PrismAppearanceConfiguration getInstance() {
-        return all().get(PrismAppearanceConfiguration.class);
     }
 
     /**

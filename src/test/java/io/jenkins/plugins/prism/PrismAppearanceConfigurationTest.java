@@ -18,7 +18,7 @@ import static org.mockito.Mockito.*;
 class PrismAppearanceConfigurationTest {
     @Test
     void shouldInitializeThemes() {
-        PrismAppearanceConfiguration configuration = createConfiguration();
+        var configuration = createConfiguration();
 
         assertThat(configuration.getTheme()).isEqualTo(PrismTheme.PRISM);
         configuration.setTheme(PrismTheme.COY);

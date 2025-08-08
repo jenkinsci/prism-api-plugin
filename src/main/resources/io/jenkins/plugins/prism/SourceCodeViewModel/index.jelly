@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:bs="/bootstrap5" xmlns:p="/prism">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:bs="/bootstrap5" xmlns:p="/prism" xmlns:l="/lib/layout">
 
   <st:header name="Content-Type" value="text/html;charset=UTF-8"/>
 
@@ -7,7 +7,8 @@
 
   <p:prism configuration="${it.prismConfiguration}"/>
     <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/custom-prism.css"/>
-    <h1>${%sourcedetail.header(it.displayName)}</h1>
+
+    <l:app-bar title="${%sourcedetail.header(it.displayName)}"/>
 
     <j:out value="${it.sourceCode}"/>
 
