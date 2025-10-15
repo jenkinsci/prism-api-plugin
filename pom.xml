@@ -25,7 +25,7 @@
 
     <hpi.compatibleSinceVersion>1.29.0-9</hpi.compatibleSinceVersion>
 
-    <testcontainers.version>1.21.3</testcontainers.version>
+    <testcontainers.version>2.0.0</testcontainers.version>
     <jsoup.version>1.21.2</jsoup.version>
   </properties>
 
