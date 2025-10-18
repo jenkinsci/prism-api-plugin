@@ -10,7 +10,6 @@ pom.xml.releaseBackup
 release.properties
 .DS_Store
 .idea
-/package-lock.json
 work/
 
 src/main/webapp/css/prism/**
