@@ -43,6 +43,7 @@ public class PrismAppearanceConfiguration extends GlobalConfigurationItem {
      * Creates the global configuration and loads the initial values from the corresponding
      * XML file.
      */
+    @SuppressWarnings("this-escape")
     public PrismAppearanceConfiguration() {
         super();
 
@@ -52,6 +53,7 @@ public class PrismAppearanceConfiguration extends GlobalConfigurationItem {
     }
 
     @VisibleForTesting
+    @SuppressWarnings("this-escape")
     PrismAppearanceConfiguration(final GlobalConfigurationFacade facade, final JenkinsFacade jenkins) {
         super(facade);
 

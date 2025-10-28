@@ -1,19 +1,20 @@
 package io.jenkins.plugins.prism;
 
-import java.io.Serializable;
-import java.util.Objects;
-
 import org.apache.commons.lang3.StringUtils;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Objects;
 
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 import hudson.Extension;
-import hudson.model.AbstractDescribableImpl;
 import hudson.model.AbstractProject;
+import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.util.FormValidation;
@@ -25,8 +26,9 @@ import io.jenkins.plugins.util.JenkinsFacade;
  *
  * @author Ullrich Hafner
  */
-public final class SourceCodeDirectory extends AbstractDescribableImpl<SourceCodeDirectory> implements Serializable {
-    private static final long serialVersionUID = -3864564528382064924L;
+public final class SourceCodeDirectory implements Describable<SourceCodeDirectory>, Serializable {
+    @Serial
+    private static final long serialVersionUID = -9108340338391937915L;
 
     private final String path;
 

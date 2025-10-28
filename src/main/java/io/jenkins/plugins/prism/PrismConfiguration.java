@@ -58,6 +58,7 @@ public class PrismConfiguration extends GlobalConfigurationItem {
      * Creates the global configuration of source code directories and loads the initial values from the corresponding
      * XML file.
      */
+    @SuppressWarnings("this-escape")
     public PrismConfiguration() {
         super();
 
@@ -65,6 +66,7 @@ public class PrismConfiguration extends GlobalConfigurationItem {
     }
 
     @VisibleForTesting
+    @SuppressWarnings("this-escape")
     PrismConfiguration(final GlobalConfigurationFacade facade) {
         super(facade);
 
