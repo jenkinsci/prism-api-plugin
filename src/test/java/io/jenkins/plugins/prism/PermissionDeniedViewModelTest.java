@@ -15,11 +15,10 @@ import static org.assertj.core.api.Assertions.*;
  * @author Akash Manna
  */
 class PermissionDeniedViewModelTest extends IntegrationTestWithJenkinsPerTest {
-
     @Test
     void shouldReturnCorrectDisplayName() {
         FreeStyleProject project = createFreeStyleProject();
-        Run<?,?> build = buildSuccessfully(project);
+        Run<?, ?> build = buildSuccessfully(project);
 
         String fileName = "restricted/source/File.java";
         PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, fileName);
@@ -30,7 +29,7 @@ class PermissionDeniedViewModelTest extends IntegrationTestWithJenkinsPerTest {
     @Test
     void shouldReturnCorrectOwner() {
         FreeStyleProject project = createFreeStyleProject();
-        Run<?,?> build = buildSuccessfully(project);
+        Run<?, ?> build = buildSuccessfully(project);
 
         PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, "Test.java");
 
@@ -40,7 +39,7 @@ class PermissionDeniedViewModelTest extends IntegrationTestWithJenkinsPerTest {
     @Test
     void shouldReturnCorrectFileName() {
         FreeStyleProject project = createFreeStyleProject();
-        Run<?,?> build = buildSuccessfully(project);
+        Run<?, ?> build = buildSuccessfully(project);
 
         String fileName = "src/main/java/Test.java";
         PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, fileName);
@@ -51,7 +50,7 @@ class PermissionDeniedViewModelTest extends IntegrationTestWithJenkinsPerTest {
     @Test
     void shouldReturnCorrectPermissionId() {
         FreeStyleProject project = createFreeStyleProject();
-        Run<?,?> build = buildSuccessfully(project);
+        Run<?, ?> build = buildSuccessfully(project);
 
         PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, "Test.java");
 
@@ -64,7 +63,7 @@ class PermissionDeniedViewModelTest extends IntegrationTestWithJenkinsPerTest {
     @Test
     void shouldHandleEmptyFileName() {
         FreeStyleProject project = createFreeStyleProject();
-        Run<?,?> build = buildSuccessfully(project);
+        Run<?, ?> build = buildSuccessfully(project);
 
         PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, "");
 
@@ -75,7 +74,7 @@ class PermissionDeniedViewModelTest extends IntegrationTestWithJenkinsPerTest {
     @Test
     void shouldHandleSpecialCharactersInFileName() {
         FreeStyleProject project = createFreeStyleProject();
-        Run<?,?> build = buildSuccessfully(project);
+        Run<?, ?> build = buildSuccessfully(project);
 
         String fileName = "src/test/resources/file with spaces & special-chars.txt";
         PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, fileName);

@@ -18,7 +18,6 @@ import static org.assertj.core.api.Assertions.*;
  * @author Akash Manna
  */
 class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
-    
     @Test
     void shouldHavePermissionGroupAndPermission() {
         PermissionGroup group = PrismPermissions.GROUP;
@@ -37,6 +36,7 @@ class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
     }
 
     @Test
+    @SuppressWarnings("try")
     void shouldAllowAccessForSystemUser() {
         FreeStyleProject project = createFreeStyleProject();
         
@@ -46,6 +46,7 @@ class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
     }
 
     @Test
+    @SuppressWarnings("try")
     void shouldAllowAccessWithReadPermission() {
         FreeStyleProject project = createFreeStyleProject();
         
@@ -71,6 +72,7 @@ class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
     }
 
     @Test
+    @SuppressWarnings("try")
     void shouldHandleMultiplePermissionChecks() {
         FreeStyleProject project1 = createFreeStyleProject();
         FreeStyleProject project2 = createFreeStyleProject();

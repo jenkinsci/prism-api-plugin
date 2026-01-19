@@ -21,11 +21,11 @@ import static org.assertj.core.api.Assertions.*;
  * @author Akash Manna
  */
 class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTest {
-
     private static final String TEST_FILE_NAME = "Test.java";
     private static final String TEST_SOURCE_CODE = "public class Test {\n    public static void main(String[] args) {\n        System.out.println(\"Hello\");\n    }\n}";
 
     @Test
+    @SuppressWarnings({"try", "PMD.CloseResource"})
     void shouldCreateSourceCodeViewModelWhenPermissionGranted() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
@@ -57,6 +57,7 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
     }
 
     @Test
+    @SuppressWarnings({"try", "PMD.CloseResource"})
     void shouldAllowSystemUserToViewSourceCode() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
@@ -72,6 +73,7 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
     }
 
     @Test
+    @SuppressWarnings("PMD.CloseResource")
     void shouldHandleDirectConstructorCall() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
@@ -87,6 +89,7 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
     }
 
     @Test
+    @SuppressWarnings("PMD.CloseResource")
     void shouldRenderSourceCodeWithPrismConfiguration() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
@@ -100,8 +103,8 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
         assertThat(viewModel.getPrismConfiguration()).isEqualTo(PrismConfiguration.getInstance());
     }
 
-
     @Test
+    @SuppressWarnings({"try", "PMD.CloseResource"})
     void shouldCreateViewModelWithSystemUser() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
@@ -122,6 +125,7 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
     }
 
     @Test
+    @SuppressWarnings("PMD.CloseResource")
     void shouldHandleEmptySourceCode() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
