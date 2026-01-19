@@ -1,0 +1,25 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:st="jelly:stapler">
+  <l:layout title="${it.displayName}" type="two-column">
+    <st:include it="${it.owner}" page="sidepanel.jelly"/>
+    <l:main-panel>
+      <h1>
+        <l:icon class="icon-error icon-xlg"/>
+        ${%Permission Denied}
+      </h1>
+      <p>
+        ${%You do not have permission to view the source code for this file.}
+      </p>
+      <p>
+        <strong>${%File:}</strong> ${it.fileName}
+      </p>
+      <p>
+        ${%To view source code, you need the following permission:}
+        <code>${it.requiredPermission}</code>
+      </p>
+      <p>
+        ${%Please contact your Jenkins administrator to request access.}
+      </p>
+    </l:main-panel>
+  </l:layout>
+</j:jelly>

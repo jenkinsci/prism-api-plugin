@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 
+import hudson.model.Item;
 import hudson.model.ModelObject;
 import hudson.model.Run;
 
@@ -19,6 +20,31 @@ public class SourceCodeViewModel implements ModelObject {
     private final Run<?, ?> owner;
     private final String fileName;
     private final String sourceCode;
+
+    /**
+     * Creates a source code view model or a permission denied view model based on the user's permissions.
+     * This is the recommended way to create a view model as it checks permissions before rendering source code.
+     *
+     * @param owner
+     *         the current build as owner of this view
+     * @param fileName
+     *         the file name of the shown content
+     * @param sourceCodeReader
+     *         the source code file to show, provided by a {@link Reader} instance
+     * @param marker
+     *         a block of lines (or a part of a line) to mark in the source code view
+     * @return a {@link SourceCodeViewModel} if permission is granted, or a {@link PermissionDeniedViewModel} otherwise
+     */
+    public static ModelObject create(final Run<?, ?> owner, final String fileName,
+            final Reader sourceCodeReader, final Marker marker) {
+        Item item = owner.getParent();
+        if (PrismPermissions.hasViewSourceCodePermission(item)) {
+            return new SourceCodeViewModel(owner, fileName, sourceCodeReader, marker);
+        }
+        else {
+            return new PermissionDeniedViewModel(owner, fileName);
+        }
+    }
 
     /**
      * Creates a new source code view model instance.
