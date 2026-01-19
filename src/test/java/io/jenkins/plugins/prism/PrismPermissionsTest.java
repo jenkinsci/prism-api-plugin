@@ -40,6 +40,7 @@ class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
         FreeStyleProject project = createFreeStyleProject();
         
         try (ACLContext context = ACL.as2(ACL.SYSTEM2)) {
+            assertThat(context).isNotNull();
             assertThat(project.hasPermission(PrismPermissions.VIEW_SOURCE_CODE)).isTrue();
         }
     }
@@ -49,6 +50,7 @@ class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
         FreeStyleProject project = createFreeStyleProject();
         
         try (ACLContext context = ACL.as2(ACL.SYSTEM2)) {
+            assertThat(context).isNotNull();
             assertThat(PrismPermissions.hasViewSourceCodePermission(project)).isTrue();
         }
     }
@@ -75,6 +77,7 @@ class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
         FreeStyleProject project2 = createFreeStyleProject();
         
         try (ACLContext context = ACL.as2(ACL.SYSTEM2)) {
+            assertThat(context).isNotNull();
             assertThat(PrismPermissions.hasViewSourceCodePermission(project1)).isTrue();
             assertThat(PrismPermissions.hasViewSourceCodePermission(project2)).isTrue();
         }
