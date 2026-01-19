@@ -32,7 +32,8 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
         try (ACLContext context = ACL.as2(ACL.SYSTEM2);
-             StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
+                StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
+            assertThat(context).isNotNull();
             ModelObject viewModel = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker);
 
             assertThat(viewModel).isInstanceOf(SourceCodeViewModel.class);
