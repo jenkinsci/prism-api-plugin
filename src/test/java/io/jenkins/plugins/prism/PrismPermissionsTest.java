@@ -36,21 +36,19 @@ class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
     }
 
     @Test
-    @SuppressWarnings("try")
     void shouldAllowAccessForSystemUser() {
         FreeStyleProject project = createFreeStyleProject();
         
-        try (ACLContext ignored = ACL.as2(ACL.SYSTEM2)) {
+        try (ACLContext context = ACL.as2(ACL.SYSTEM2)) {
             assertThat(project.hasPermission(PrismPermissions.VIEW_SOURCE_CODE)).isTrue();
         }
     }
 
     @Test
-    @SuppressWarnings("try")
     void shouldAllowAccessWithReadPermission() {
         FreeStyleProject project = createFreeStyleProject();
         
-        try (ACLContext ignored = ACL.as2(ACL.SYSTEM2)) {
+        try (ACLContext context = ACL.as2(ACL.SYSTEM2)) {
             assertThat(PrismPermissions.hasViewSourceCodePermission(project)).isTrue();
         }
     }
@@ -72,12 +70,11 @@ class PrismPermissionsTest extends IntegrationTestWithJenkinsPerTest {
     }
 
     @Test
-    @SuppressWarnings("try")
     void shouldHandleMultiplePermissionChecks() {
         FreeStyleProject project1 = createFreeStyleProject();
         FreeStyleProject project2 = createFreeStyleProject();
         
-        try (ACLContext ignored = ACL.as2(ACL.SYSTEM2)) {
+        try (ACLContext context = ACL.as2(ACL.SYSTEM2)) {
             assertThat(PrismPermissions.hasViewSourceCodePermission(project1)).isTrue();
             assertThat(PrismPermissions.hasViewSourceCodePermission(project2)).isTrue();
         }

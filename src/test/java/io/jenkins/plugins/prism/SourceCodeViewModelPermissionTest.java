@@ -25,15 +25,14 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
     private static final String TEST_SOURCE_CODE = "public class Test {\n    public static void main(String[] args) {\n        System.out.println(\"Hello\");\n    }\n}";
 
     @Test
-    @SuppressWarnings({"try", "PMD.CloseResource"})
     void shouldCreateSourceCodeViewModelWhenPermissionGranted() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
 
-        StringReader reader = new StringReader(TEST_SOURCE_CODE);
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        try (ACLContext ignored = ACL.as2(ACL.SYSTEM2)) {
+        try (ACLContext context = ACL.as2(ACL.SYSTEM2);
+             StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
             ModelObject viewModel = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker);
 
             assertThat(viewModel).isInstanceOf(SourceCodeViewModel.class);
@@ -57,15 +56,14 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
     }
 
     @Test
-    @SuppressWarnings({"try", "PMD.CloseResource"})
     void shouldAllowSystemUserToViewSourceCode() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
 
-        StringReader reader = new StringReader(TEST_SOURCE_CODE);
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        try (ACLContext ignored = ACL.as2(ACL.SYSTEM2)) {
+        try (ACLContext context = ACL.as2(ACL.SYSTEM2);
+             StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
             ModelObject viewModel = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker);
 
             assertThat(viewModel).isInstanceOf(SourceCodeViewModel.class);
@@ -73,68 +71,67 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
     }
 
     @Test
-    @SuppressWarnings("PMD.CloseResource")
     void shouldHandleDirectConstructorCall() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
 
-        StringReader reader = new StringReader(TEST_SOURCE_CODE);
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        SourceCodeViewModel viewModel = new SourceCodeViewModel(build, TEST_FILE_NAME, reader, marker);
+        try (StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
+            SourceCodeViewModel viewModel = new SourceCodeViewModel(build, TEST_FILE_NAME, reader, marker);
 
-        assertThat(viewModel.getDisplayName()).isEqualTo(TEST_FILE_NAME);
-        assertThat(viewModel.getOwner()).isEqualTo(build);
-        assertThat(viewModel.getSourceCode()).contains("public class Test");
+            assertThat(viewModel.getDisplayName()).isEqualTo(TEST_FILE_NAME);
+            assertThat(viewModel.getOwner()).isEqualTo(build);
+            assertThat(viewModel.getSourceCode()).contains("public class Test");
+        }
     }
 
     @Test
-    @SuppressWarnings("PMD.CloseResource")
     void shouldRenderSourceCodeWithPrismConfiguration() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
 
-        StringReader reader = new StringReader(TEST_SOURCE_CODE);
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        SourceCodeViewModel viewModel = new SourceCodeViewModel(build, TEST_FILE_NAME, reader, marker);
+        try (StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
+            SourceCodeViewModel viewModel = new SourceCodeViewModel(build, TEST_FILE_NAME, reader, marker);
 
-        assertThat(viewModel.getPrismConfiguration()).isNotNull();
-        assertThat(viewModel.getPrismConfiguration()).isEqualTo(PrismConfiguration.getInstance());
+            assertThat(viewModel.getPrismConfiguration()).isNotNull();
+            assertThat(viewModel.getPrismConfiguration()).isEqualTo(PrismConfiguration.getInstance());
+        }
     }
 
     @Test
-    @SuppressWarnings({"try", "PMD.CloseResource"})
     void shouldCreateViewModelWithSystemUser() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
 
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        try (ACLContext ignored = ACL.as2(ACL.SYSTEM2)) {
-            StringReader reader1 = new StringReader(TEST_SOURCE_CODE);
+        try (ACLContext context = ACL.as2(ACL.SYSTEM2);
+             StringReader reader1 = new StringReader(TEST_SOURCE_CODE)) {
             ModelObject viewModel1 = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader1, marker);
             assertThat(viewModel1).isInstanceOf(SourceCodeViewModel.class);
         }
 
-        try (ACLContext ignored = ACL.as2(ACL.SYSTEM2)) {
-            StringReader reader2 = new StringReader(TEST_SOURCE_CODE);
+        try (ACLContext context = ACL.as2(ACL.SYSTEM2);
+             StringReader reader2 = new StringReader(TEST_SOURCE_CODE)) {
             ModelObject viewModel2 = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader2, marker);
             assertThat(viewModel2).isInstanceOf(SourceCodeViewModel.class);
         }
     }
 
     @Test
-    @SuppressWarnings("PMD.CloseResource")
     void shouldHandleEmptySourceCode() {
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
 
-        StringReader reader = new StringReader("");
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        SourceCodeViewModel viewModel = new SourceCodeViewModel(build, "Empty.java", reader, marker);
+        try (StringReader reader = new StringReader("")) {
+            SourceCodeViewModel viewModel = new SourceCodeViewModel(build, "Empty.java", reader, marker);
 
-        assertThat(viewModel.getSourceCode()).isNotNull();
+            assertThat(viewModel.getSourceCode()).isNotNull();
+        }
     }
 }
