@@ -55,8 +55,8 @@ class PermissionDeniedViewModelTest extends IntegrationTestWithJenkinsPerTest {
         PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, "Test.java");
 
         assertThat(viewModel.getRequiredPermission())
-                .isEqualTo(PrismPermissions.VIEW_SOURCE_CODE.getId())
-                .contains("Prism")
+                .isEqualTo(SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId())
+                .contains("SourceCodeViewer")
                 .contains("ViewSourceCode");
     }
 

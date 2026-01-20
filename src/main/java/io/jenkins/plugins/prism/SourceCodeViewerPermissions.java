@@ -8,36 +8,36 @@ import hudson.security.PermissionGroup;
 import hudson.security.PermissionScope;
 
 /**
- * Defines permissions for the Prism plugin related to source code viewing.
+ * Defines permissions related to source code viewing.
  * This permission is opt-out by default, meaning users have permission by default,
  * and administrators can explicitly restrict it.
  *
  * @author Akash Manna
  */
-public final class PrismPermissions {
+final class SourceCodeViewerPermissions {
     /**
-     * Permission group for Prism-related permissions.
+     * Permission group for source code viewer permissions.
      */
-    public static final PermissionGroup GROUP = new PermissionGroup(
-            PrismPermissions.class,
-            Messages._PrismPermissions_GroupTitle()
+    static final PermissionGroup GROUP = new PermissionGroup(
+            SourceCodeViewerPermissions.class,
+            Messages._SourceCodeViewerPermissions_GroupTitle()
     );
 
     /**
-     * Permission to view source code in the Prism viewer.
+     * Permission to view source code.
      * This is an opt-out permission: by default, users have this permission,
      * and administrators can explicitly restrict it via Jenkins security configuration.
      */
-    public static final Permission VIEW_SOURCE_CODE = new Permission(
+    static final Permission VIEW_SOURCE_CODE = new Permission(
             GROUP,
             "ViewSourceCode",
-            Messages._PrismPermissions_ViewSourceCode_Description(),
+            Messages._SourceCodeViewerPermissions_ViewSourceCode_Description(),
             Item.READ,
             true, // opt-out: enabled by default
             new PermissionScope[]{PermissionScope.ITEM}
     );
 
-    private PrismPermissions() {
+    private SourceCodeViewerPermissions() {
         // utility class
     }
 
@@ -47,7 +47,7 @@ public final class PrismPermissions {
      * @param item the Jenkins item (job, build, etc.) to check permission for
      * @return {@code true} if the user has permission to view source code, {@code false} otherwise
      */
-    public static boolean hasViewSourceCodePermission(@NonNull final Item item) {
+    static boolean hasViewSourceCodePermission(@NonNull final Item item) {
         return item.hasPermission(VIEW_SOURCE_CODE);
     }
 }

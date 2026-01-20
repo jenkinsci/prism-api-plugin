@@ -5,20 +5,20 @@
     <l:main-panel>
       <h1>
         <l:icon class="icon-error icon-xlg"/>
-        ${%Permission Denied}
+        ${%permission.title}
       </h1>
       <p>
-        ${%You do not have permission to view the source code for this file.}
+        ${%permission.message}
       </p>
       <p>
-        <strong>${%File:}</strong> ${it.fileName}
+        <strong>${%permission.file}:</strong> ${it.fileName}
       </p>
       <p>
-        ${%To view source code, you need the following permission:}
+        ${%permission.required}:
         <code>${it.requiredPermission}</code>
       </p>
       <p>
-        ${%Please contact your Jenkins administrator to request access.}
+        ${%permission.contact}
       </p>
     </l:main-panel>
   </l:layout>

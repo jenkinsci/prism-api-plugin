@@ -38,7 +38,7 @@ public class SourceCodeViewModel implements ModelObject {
     public static ModelObject create(final Run<?, ?> owner, final String fileName,
             final Reader sourceCodeReader, final Marker marker) {
         Item item = owner.getParent();
-        if (PrismPermissions.hasViewSourceCodePermission(item)) {
+        if (SourceCodeViewerPermissions.hasViewSourceCodePermission(item)) {
             return new SourceCodeViewModel(owner, fileName, sourceCodeReader, marker);
         }
         else {

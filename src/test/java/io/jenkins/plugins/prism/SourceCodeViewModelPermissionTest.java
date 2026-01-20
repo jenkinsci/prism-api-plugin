@@ -53,7 +53,7 @@ class SourceCodeViewModelPermissionTest extends IntegrationTestWithJenkinsPerTes
         assertThat(deniedView.getDisplayName()).isEqualTo(TEST_FILE_NAME);
         assertThat(deniedView.getFileName()).isEqualTo(TEST_FILE_NAME);
         assertThat(deniedView.getOwner()).isEqualTo(build);
-        assertThat(deniedView.getRequiredPermission()).isEqualTo(PrismPermissions.VIEW_SOURCE_CODE.getId());
+        assertThat(deniedView.getRequiredPermission()).isEqualTo(SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId());
     }
 
     @Test

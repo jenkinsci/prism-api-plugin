@@ -54,6 +54,6 @@ public class PermissionDeniedViewModel implements ModelObject {
      * @return the permission name
      */
     public String getRequiredPermission() {
-        return PrismPermissions.VIEW_SOURCE_CODE.getId();
+        return SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId();
     }
 }
