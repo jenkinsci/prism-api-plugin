@@ -4,7 +4,7 @@ import hudson.model.ModelObject;
 import hudson.model.Run;
 
 /**
- * View model that is shown when a user does not have permission to view source code.
+ * View model shown when a user does not have permission to view source code.
  *
  * @author Akash Manna
  */
@@ -16,7 +16,7 @@ public class PermissionDeniedViewModel implements ModelObject {
      * Creates a new instance of {@link PermissionDeniedViewModel}.
      *
      * @param owner
-     *         the current build as owner of this view
+     *         the current build as the owner of this view
      * @param fileName
      *         the file name that was requested
      */
@@ -31,7 +31,7 @@ public class PermissionDeniedViewModel implements ModelObject {
     }
 
     /**
-     * Returns the build as owner of this view.
+     * Returns the build as the owner of this view.
      *
      * @return the build
      */

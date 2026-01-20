@@ -1,8 +1,9 @@
 package io.jenkins.plugins.prism;
 
-import java.io.StringReader;
-
 import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
+
+import java.io.StringReader;
 
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
@@ -14,8 +15,6 @@ import jenkins.model.Jenkins;
 
 import io.jenkins.plugins.prism.Marker.MarkerBuilder;
 import io.jenkins.plugins.util.IntegrationTestWithJenkinsPerTest;
-
-import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -35,9 +34,7 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
 
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        try (ACLContext context = ACL.as2(ACL.SYSTEM2);
-                StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
-            assertThat(context).isNotNull();
+        try (StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
             ModelObject viewModel = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker);
 
             assertThat(viewModel).isInstanceOf(SourceCodeViewModel.class);
@@ -67,9 +64,7 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
 
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        try (ACLContext context = ACL.as2(ACL.SYSTEM2);
-                StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
-            assertThat(context).isNotNull();
+        try (StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
             ModelObject viewModel = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker);
 
             assertThat(viewModel).isInstanceOf(SourceCodeViewModel.class);
@@ -116,14 +111,12 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
 
         try (ACLContext context = ACL.as2(ACL.SYSTEM2);
                 StringReader reader1 = new StringReader(TEST_SOURCE_CODE)) {
-            assertThat(context).isNotNull();
             ModelObject viewModel1 = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader1, marker);
             assertThat(viewModel1).isInstanceOf(SourceCodeViewModel.class);
         }
 
         try (ACLContext context = ACL.as2(ACL.SYSTEM2);
                 StringReader reader2 = new StringReader(TEST_SOURCE_CODE)) {
-            assertThat(context).isNotNull();
             ModelObject viewModel2 = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader2, marker);
             assertThat(viewModel2).isInstanceOf(SourceCodeViewModel.class);
         }

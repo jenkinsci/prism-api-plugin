@@ -22,11 +22,11 @@ public class SourceCodeViewModel implements ModelObject {
     private final String sourceCode;
 
     /**
-     * Creates a source code view model or a permission denied view model based on the user's permissions.
+     * Creates a source code view model or a permission-denied view model based on the user's permissions.
      * This is the recommended way to create a view model as it checks permissions before rendering source code.
      *
      * @param owner
-     *         the current build as owner of this view
+     *         the current build as the owner of this view
      * @param fileName
      *         the file name of the shown content
      * @param sourceCodeReader
@@ -85,7 +85,7 @@ public class SourceCodeViewModel implements ModelObject {
     }
 
     /**
-     * Returns the build as owner of this view.
+     * Returns the build as the owner of this view.
      *
      * @return the build
      */

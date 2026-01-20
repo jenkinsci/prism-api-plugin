@@ -15,9 +15,9 @@ import hudson.security.PermissionScope;
  * @author Akash Manna
  */
 final class SourceCodeViewerPermissions {
-    /**
-     * Permission group for source code viewer permissions.
-     */
+    static final String ID = "ViewSourceCode";
+
+    /** Permission group for source code viewer permissions. */
     static final PermissionGroup GROUP = new PermissionGroup(
             SourceCodeViewerPermissions.class,
             Messages._SourceCodeViewerPermissions_GroupTitle()
@@ -30,16 +30,12 @@ final class SourceCodeViewerPermissions {
      */
     static final Permission VIEW_SOURCE_CODE = new Permission(
             GROUP,
-            "ViewSourceCode",
+            ID,
             Messages._SourceCodeViewerPermissions_ViewSourceCode_Description(),
             Item.READ,
             true, // opt-out: enabled by default
             new PermissionScope[]{PermissionScope.ITEM}
     );
-
-    private SourceCodeViewerPermissions() {
-        // utility class
-    }
 
     /**
      * Checks if the current user has permission to view source code for the given item.
@@ -49,5 +45,9 @@ final class SourceCodeViewerPermissions {
      */
     static boolean hasViewSourceCodePermission(@NonNull final Item item) {
         return item.hasPermission(VIEW_SOURCE_CODE);
+    }
+
+    private SourceCodeViewerPermissions() {
+        // utility class
     }
 }

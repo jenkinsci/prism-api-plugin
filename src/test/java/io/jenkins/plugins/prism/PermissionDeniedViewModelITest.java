@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import hudson.model.FreeStyleProject;
 import hudson.model.Run;
 
-import io.jenkins.plugins.util.IntegrationTestWithJenkinsPerTest;
+import io.jenkins.plugins.util.IntegrationTestWithJenkinsPerSuite;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.*;
  *
  * @author Akash Manna
  */
-class PermissionDeniedViewModelITest extends IntegrationTestWithJenkinsPerTest {
+class PermissionDeniedViewModelITest extends IntegrationTestWithJenkinsPerSuite {
     @Test
     void shouldReturnCorrectDisplayName() {
         FreeStyleProject project = createFreeStyleProject();
@@ -24,26 +24,7 @@ class PermissionDeniedViewModelITest extends IntegrationTestWithJenkinsPerTest {
         PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, fileName);
 
         assertThat(viewModel.getDisplayName()).isEqualTo(fileName);
-    }
-
-    @Test
-    void shouldReturnCorrectOwner() {
-        FreeStyleProject project = createFreeStyleProject();
-        Run<?, ?> build = buildSuccessfully(project);
-
-        PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, "Test.java");
-
         assertThat(viewModel.getOwner()).isEqualTo(build);
-    }
-
-    @Test
-    void shouldReturnCorrectFileName() {
-        FreeStyleProject project = createFreeStyleProject();
-        Run<?, ?> build = buildSuccessfully(project);
-
-        String fileName = "src/main/java/Test.java";
-        PermissionDeniedViewModel viewModel = new PermissionDeniedViewModel(build, fileName);
-
         assertThat(viewModel.getFileName()).isEqualTo(fileName);
     }
 
@@ -56,8 +37,7 @@ class PermissionDeniedViewModelITest extends IntegrationTestWithJenkinsPerTest {
 
         assertThat(viewModel.getRequiredPermission())
                 .isEqualTo(SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId())
-                .contains("SourceCodeViewer")
-                .contains("ViewSourceCode");
+                .endsWith(SourceCodeViewerPermissions.ID);
     }
 
     @Test
