@@ -17,12 +17,14 @@ import static org.assertj.core.api.Assertions.*;
  */
 class SourceCodeViewerPermissionsTest extends IntegrationTestWithJenkinsPerTest {
     @Test
-    void shouldAllowAccessForSystemUser() {
-        FreeStyleProject project = createFreeStyleProject();
-        
+    void shouldHandleMultiplePermissionChecks() {
+        FreeStyleProject project1 = createFreeStyleProject();
+        FreeStyleProject project2 = createFreeStyleProject();
+
         try (ACLContext context = ACL.as2(ACL.SYSTEM2)) {
             assertThat(context).isNotNull();
-            assertThat(SourceCodeViewerPermissions.hasViewSourceCodePermission(project)).isTrue();
+            assertThat(SourceCodeViewerPermissions.hasViewSourceCodePermission(project1)).isTrue();
+            assertThat(SourceCodeViewerPermissions.hasViewSourceCodePermission(project2)).isTrue();
         }
     }
 }
