@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.*;
  *
  * @author Akash Manna
  */
-class PermissionDeniedViewModelTest extends IntegrationTestWithJenkinsPerTest {
+class PermissionDeniedViewModelITest extends IntegrationTestWithJenkinsPerTest {
     @Test
     void shouldReturnCorrectDisplayName() {
         FreeStyleProject project = createFreeStyleProject();

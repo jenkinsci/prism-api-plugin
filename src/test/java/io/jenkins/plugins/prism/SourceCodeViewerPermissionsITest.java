@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.*;
  *
  * @author Akash Manna
  */
-class SourceCodeViewerPermissionsTest extends IntegrationTestWithJenkinsPerTest {
+class SourceCodeViewerPermissionsITest extends IntegrationTestWithJenkinsPerTest {
     @Test
     void shouldHandleMultiplePermissionChecks() {
         FreeStyleProject project1 = createFreeStyleProject();

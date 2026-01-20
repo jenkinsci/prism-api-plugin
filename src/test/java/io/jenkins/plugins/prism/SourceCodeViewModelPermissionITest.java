@@ -145,13 +145,15 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
 
     @Test
     void shouldReturnPermissionDeniedViewModelWhenPermissionDenied() {
-        // Set up security with MockAuthorizationStrategy where alice has no VIEW_SOURCE_CODE permission
-        getJenkins().setSecurityRealm(createDummySecurityRealm());
+        // Set up security with MockAuthorizationStrategy where alice has no
+        // VIEW_SOURCE_CODE permission
+        getJenkins().jenkins.setSecurityRealm(getJenkins().createDummySecurityRealm());
         MockAuthorizationStrategy authStrategy = new MockAuthorizationStrategy();
         authStrategy.grant(Jenkins.READ).everywhere().toEveryone();
         authStrategy.grant(Item.READ).everywhere().toEveryone();
-        // Do not grant VIEW_SOURCE_CODE to alice - the permission is opt-out, so we need to explicitly deny it
-        getJenkins().setAuthorizationStrategy(authStrategy);
+        // Do not grant VIEW_SOURCE_CODE to alice - the permission is opt-out, so we
+        // need to explicitly deny it
+        getJenkins().jenkins.setAuthorizationStrategy(authStrategy);
 
         FreeStyleProject project = createFreeStyleProject();
         Run<?, ?> build = buildSuccessfully(project);
@@ -159,7 +161,7 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
         // Test with alice who doesn't have VIEW_SOURCE_CODE permission
-        try (ACLContext context = ACL.as2(hudson.model.User.getOrCreate("alice").impersonate2());
+        try (ACLContext context = ACL.as2(hudson.model.User.getById("alice", true).impersonate2());
                 StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
             assertThat(context).isNotNull();
             ModelObject viewModel = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker);
@@ -167,7 +169,8 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
             assertThat(viewModel).isInstanceOf(PermissionDeniedViewModel.class);
             PermissionDeniedViewModel deniedView = (PermissionDeniedViewModel) viewModel;
             assertThat(deniedView.getFileName()).isEqualTo(TEST_FILE_NAME);
-            assertThat(deniedView.getRequiredPermission()).isEqualTo(SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId());
+            assertThat(deniedView.getRequiredPermission())
+                    .isEqualTo(SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId());
         }
     }
 }
