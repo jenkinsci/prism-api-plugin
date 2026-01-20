@@ -145,14 +145,12 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
 
     @Test
     void shouldReturnPermissionDeniedViewModelWhenPermissionDenied() {
-        // Set up security with MockAuthorizationStrategy where alice has no
-        // VIEW_SOURCE_CODE permission
+        // Set up security with MockAuthorizationStrategy where alice has no VIEW_SOURCE_CODE permission
         getJenkins().jenkins.setSecurityRealm(getJenkins().createDummySecurityRealm());
         MockAuthorizationStrategy authStrategy = new MockAuthorizationStrategy();
         authStrategy.grant(Jenkins.READ).everywhere().toEveryone();
         authStrategy.grant(Item.READ).everywhere().toEveryone();
-        // Do not grant VIEW_SOURCE_CODE to alice - the permission is opt-out, so we
-        // need to explicitly deny it
+        // Do not grant VIEW_SOURCE_CODE to alice - the permission is opt-out, so we need to explicitly deny it
         getJenkins().jenkins.setAuthorizationStrategy(authStrategy);
 
         FreeStyleProject project = createFreeStyleProject();
