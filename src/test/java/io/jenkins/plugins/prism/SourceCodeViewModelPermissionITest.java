@@ -44,8 +44,7 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
         Run<?, ?> build = buildSuccessfully(project);
 
         var alice = Objects.requireNonNull(User.getById("alice", true));
-        try (ACLContext context = ACL.as2(alice.impersonate2());
-                StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
+        try (ACLContext context = ACL.as2(alice.impersonate2())) {
             assertThat(context).isNotNull();
 
             // By default, alice has no WORKSPACE permission, but the global Prism configuration allows viewing source code without permission
