@@ -1,5 +1,6 @@
 package io.jenkins.plugins.prism;
 
+import hudson.model.Job;
 import hudson.model.ModelObject;
 import hudson.model.Run;
 
@@ -54,6 +55,6 @@ public class PermissionDeniedViewModel implements ModelObject {
      * @return the permission name
      */
     public String getRequiredPermission() {
-        return SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId();
+        return Job.WORKSPACE.getId();
     }
 }

@@ -4,11 +4,14 @@ import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 import java.io.StringReader;
+import java.util.Objects;
 
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
+import hudson.model.Job;
 import hudson.model.ModelObject;
 import hudson.model.Run;
+import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import jenkins.model.Jenkins;
@@ -54,7 +57,6 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
         assertThat(deniedView.getDisplayName()).isEqualTo(TEST_FILE_NAME);
         assertThat(deniedView.getFileName()).isEqualTo(TEST_FILE_NAME);
         assertThat(deniedView.getOwner()).isEqualTo(build);
-        assertThat(deniedView.getRequiredPermission()).isEqualTo(SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId());
     }
 
     @Test
@@ -138,12 +140,12 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
 
     @Test
     void shouldReturnPermissionDeniedViewModelWhenPermissionDenied() {
-        // Set up security with MockAuthorizationStrategy where alice has no VIEW_SOURCE_CODE permission
         getJenkins().jenkins.setSecurityRealm(getJenkins().createDummySecurityRealm());
+
         MockAuthorizationStrategy authStrategy = new MockAuthorizationStrategy();
         authStrategy.grant(Jenkins.READ).everywhere().toEveryone();
         authStrategy.grant(Item.READ).everywhere().toEveryone();
-        // Do not grant VIEW_SOURCE_CODE to alice - the permission is opt-out, so we need to explicitly deny it
+
         getJenkins().jenkins.setAuthorizationStrategy(authStrategy);
 
         FreeStyleProject project = createFreeStyleProject();
@@ -151,17 +153,16 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
 
         Marker marker = new MarkerBuilder().withLineStart(1).build();
 
-        // Test with alice who doesn't have VIEW_SOURCE_CODE permission
-        try (ACLContext context = ACL.as2(hudson.model.User.getById("alice", true).impersonate2());
+        var alice = Objects.requireNonNull(User.getById("alice", true));
+        try (ACLContext context = ACL.as2(alice.impersonate2());
                 StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
             assertThat(context).isNotNull();
-            ModelObject viewModel = SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker);
 
-            assertThat(viewModel).isInstanceOf(PermissionDeniedViewModel.class);
-            PermissionDeniedViewModel deniedView = (PermissionDeniedViewModel) viewModel;
-            assertThat(deniedView.getFileName()).isEqualTo(TEST_FILE_NAME);
-            assertThat(deniedView.getRequiredPermission())
-                    .isEqualTo(SourceCodeViewerPermissions.VIEW_SOURCE_CODE.getId());
+            assertThat(SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker)).isInstanceOf(PermissionDeniedViewModel.class);
+
+            authStrategy.grant(Job.WORKSPACE).everywhere().to(alice);
+
+            assertThat(SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, marker)).isInstanceOf(SourceCodeViewModel.class);
         }
     }
 }
