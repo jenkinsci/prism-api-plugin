@@ -19,10 +19,6 @@ import io.jenkins.plugins.util.JenkinsFacade;
  * @author Ullrich Hafner
  */
 public class SourceCodeViewModel implements ModelObject {
-    private final Run<?, ?> owner;
-    private final String fileName;
-    private final String sourceCode;
-
     /**
      * Creates a source code view model or a permission-denied view model based on the user's permissions.
      * This is the recommended way to create a view model as it checks permissions before rendering source code.
@@ -46,6 +42,10 @@ public class SourceCodeViewModel implements ModelObject {
             return new PermissionDeniedViewModel(owner, fileName);
         }
     }
+
+    private final Run<?, ?> owner;
+    private final String fileName;
+    private final String sourceCode;
 
     /**
      * Creates a new source code view model instance.
