@@ -35,7 +35,8 @@ public class SourceCodeViewModel implements ModelObject {
      */
     public static ModelObject create(final Run<?, ?> owner, final String fileName,
             final Reader sourceCodeReader, final Marker marker) {
-        if (new JenkinsFacade().hasPermission(Job.WORKSPACE, owner.getParent())) {
+        if (new JenkinsFacade().hasPermission(Job.WORKSPACE, owner.getParent())
+                || !PrismConfiguration.getInstance().isProtectSourceCodeByPermission()) {
             return new SourceCodeViewModel(owner, fileName, sourceCodeReader, marker);
         }
         else {

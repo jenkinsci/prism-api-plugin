@@ -53,6 +53,7 @@ public class PrismConfiguration extends GlobalConfigurationItem {
      */
     @SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "Kept for compatibility")
     private transient PrismTheme theme;
+    private boolean protectSourceCodeByPermission;
 
     /**
      * Creates the global configuration of source code directories and loads the initial values from the corresponding
@@ -141,5 +142,27 @@ public class PrismConfiguration extends GlobalConfigurationItem {
      */
     public boolean isAllowedSourceDirectory(final String sourceDirectory) {
         return normalizedSourceDirectories.contains(PATH_UTIL.getAbsolutePath(sourceDirectory));
+    }
+
+    /**
+     * Returns whether the source code view should be protected by the {@code Item.WORKSPACE} permission.
+     *
+     * @return {@code true} the source code view should be protected, {@code false} otherwise
+     */
+    public boolean isProtectSourceCodeByPermission() {
+        return protectSourceCodeByPermission;
+    }
+
+    /**
+     * Enables or disables the protection of the source code view by the {@code Item.WORKSPACE} permission.
+     *
+     * @param protectSourceCodeByPermission
+     *         {@code true} to enable the protection, {@code false} to disable it
+     */
+    @DataBoundSetter
+    public void setProtectSourceCodeByPermission(final boolean protectSourceCodeByPermission) {
+        this.protectSourceCodeByPermission = protectSourceCodeByPermission;
+
+        save();
     }
 }

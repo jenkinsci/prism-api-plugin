@@ -5,6 +5,9 @@
     <f:entry title="${%Theme}" field="theme">
       <f:select default="PRISM"/>
     </f:entry>
+    <f:entry title="${%title.protectSourceCodeByPermission}" field="protectSourceCodeByPermission">
+      <f:checkbox/>
+    </f:entry>
   </f:section>
 
 </j:jelly>
