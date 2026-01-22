@@ -1,0 +1,25 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:st="jelly:stapler">
+  <l:layout title="${it.displayName}" type="two-column">
+    <st:include it="${it.owner}" page="sidepanel.jelly"/>
+    <l:main-panel>
+      <h1>
+        <l:icon class="icon-error icon-xlg"/>
+        ${%permission.title}
+      </h1>
+      <p>
+        ${%permission.message}
+      </p>
+      <p>
+        <strong>${%permission.file}:</strong> ${it.fileName}
+      </p>
+      <p>
+        ${%permission.required}:
+        <code>${it.requiredPermission}</code>
+      </p>
+      <p>
+        ${%permission.contact}
+      </p>
+    </l:main-panel>
+  </l:layout>
+</j:jelly>
