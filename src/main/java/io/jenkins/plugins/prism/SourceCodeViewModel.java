@@ -20,6 +20,37 @@ import io.jenkins.plugins.util.JenkinsFacade;
  */
 public class SourceCodeViewModel implements ModelObject {
     /**
+     * Checks if the current user has permission to view source code.
+     *
+     * @param owner
+     *         the current build as the owner of the view
+     * @return {@code true} if the user has permission, {@code false} otherwise
+     */
+    public static boolean hasPermissionToViewSourceCode(final Run<?, ?> owner) {
+        return new JenkinsFacade().hasPermission(Job.WORKSPACE, owner.getParent())
+                || !PrismConfiguration.getInstance().isProtectSourceCodeByPermission();
+    }
+
+    /**
+     * Protects a source code view by checking permissions.
+     *
+     * @param view
+     *         the source code view to protect
+     * @param owner
+     *         the current build as the owner of the view
+     * @param fileName
+     *         the name of the file being viewed
+     * @return the protected view (either original view or {@link PermissionDeniedViewModel})
+     */
+    public static ModelObject protectedSourceCodeView(final ModelObject view, final Run<?, ?> owner,
+            final String fileName) {
+        if (hasPermissionToViewSourceCode(owner)) {
+            return view;
+        }
+        return new PermissionDeniedViewModel(owner, fileName);
+    }
+
+    /**
      * Creates a source code view model or a permission-denied view model based on the user's permissions.
      * This is the recommended way to create a view model as it checks permissions before rendering source code.
      *
@@ -35,13 +66,10 @@ public class SourceCodeViewModel implements ModelObject {
      */
     public static ModelObject create(final Run<?, ?> owner, final String fileName,
             final Reader sourceCodeReader, final Marker marker) {
-        if (new JenkinsFacade().hasPermission(Job.WORKSPACE, owner.getParent())
-                || !PrismConfiguration.getInstance().isProtectSourceCodeByPermission()) {
-            return new SourceCodeViewModel(owner, fileName, sourceCodeReader, marker);
-        }
-        else {
-            return new PermissionDeniedViewModel(owner, fileName);
-        }
+        return protectedSourceCodeView(
+                new SourceCodeViewModel(owner, fileName, sourceCodeReader, marker),
+                owner,
+                fileName);
     }
 
     private final Run<?, ?> owner;
