@@ -1,14 +1,15 @@
 package io.jenkins.plugins.prism;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Set;
-
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.Issue;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystemException;
+import java.nio.file.Files;
+import java.util.Set;
 
 import hudson.FilePath;
 
@@ -40,19 +41,24 @@ class FilePermissionEnforcerTest {
 
     @Test @Issue("JENKINS-72628")
     void shouldFollowSymbolicLinks() throws IOException {
-        var workspace = Files.createTempDirectory("workspace");
-        workspace.toFile().deleteOnExit();
-        var link = Files.createSymbolicLink(workspace.resolve("link"), workspace);
+        try {
+            var workspace = Files.createTempDirectory("workspace");
+            workspace.toFile().deleteOnExit();
+            var link = Files.createSymbolicLink(workspace.resolve("link"), workspace);
 
-        FilePermissionEnforcer validator = new FilePermissionEnforcer();
-        assertThat(validator.resolveWorkspace(new FilePath(link.toFile())))
-                .isEqualTo(workspace.toString());
-        assertThat(validator.isInWorkspace(workspace + "/something.txt",
-                new FilePath(workspace.toFile()), Set.of()))
-                .isTrue();
-        assertThat(validator.isInWorkspace(workspace + "/something.txt",
-                new FilePath(link.toFile()), Set.of()))
-                .isTrue();
+            FilePermissionEnforcer validator = new FilePermissionEnforcer();
+            assertThat(validator.resolveWorkspace(new FilePath(link.toFile())))
+                    .isEqualTo(workspace.toString());
+            assertThat(validator.isInWorkspace(workspace + "/something.txt",
+                    new FilePath(workspace.toFile()), Set.of()))
+                    .isTrue();
+            assertThat(validator.isInWorkspace(workspace + "/something.txt",
+                    new FilePath(link.toFile()), Set.of()))
+                    .isTrue();
+        }
+        catch (FileSystemException e) {
+            // Symbolic links are not supported on this platform
+        }
     }
 
     @Test
