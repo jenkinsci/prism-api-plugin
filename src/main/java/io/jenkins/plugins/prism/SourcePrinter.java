@@ -1,7 +1,5 @@
 package io.jenkins.plugins.prism;
 
-import java.util.stream.Stream;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jenkins.ui.symbol.Symbol;
@@ -14,6 +12,7 @@ import edu.hm.hafner.util.VisibleForTesting;
 import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
+import java.util.stream.Stream;
 
 import io.jenkins.plugins.util.JenkinsFacade;
 
@@ -61,7 +60,7 @@ class SourcePrinter {
      *
      * @return the source code as colorized HTML
      */
-    public String render(final String fileName, final Stream<String> lines, final Marker marker) {
+    String render(final String fileName, final Stream<String> lines, final Marker marker) {
         try (LookaheadStream stream = new LookaheadStream(lines)) {
             int start = marker.getLineStart();
             int end = marker.getLineEnd();
@@ -152,65 +151,33 @@ class SourcePrinter {
 
     @SuppressWarnings({"javancss", "PMD.CyclomaticComplexity"})
     private String selectLanguageClass(final String fileName) {
-        switch (StringUtils.substringAfterLast(fileName, ".")) {
-            case "htm":
-            case "html":
-            case "xml":
-            case "xsd":
-                return "language-markup";
-            case "css":
-                return "language-css";
-            case "js":
-                return "language-javascript";
-            case "c":
-                return "language-c";
-            case "cs":
-                return "language-csharp";
-            case "cpp":
-                return "language-cpp";
-            case "Dockerfile":
-                return "language-docker";
-            case "go":
-                return "language-go";
-            case "groovy":
-                return "language-groovy";
-            case "json":
-                return "language-json";
-            case "md":
-                return "language-markdown";
-            case "erb":
-            case "jsp":
-            case "tag":
-                return "language-erb";
-            case "jav":
-            case "java":
-                return "language-java";
-            case "rb":
-                return "language-ruby";
-            case "kt":
-                return "language-kotlin";
-            case "vb":
-                return "language-vbnet";
-            case "pl":
-                return "language-perl";
-            case "php":
-                return "language-php";
-            case "py":
-                return "language-python";
-            case "sql":
-                return "language-sql";
-            case "scala":
-            case "sc":
-                return "language-scala";
-            case "swift":
-                return "language-swift";
-            case "ts":
-                return "language-typescript";
-            case "yaml":
-                return "language-yaml";
-            default:
-                return "language-clike"; // Best effort for unknown extensions
-        }
+        return switch (StringUtils.substringAfterLast(fileName, ".")) {
+            case "htm", "html", "xml", "xsd" -> "language-markup";
+            case "css" -> "language-css";
+            case "js" -> "language-javascript";
+            case "c" -> "language-c";
+            case "cs" -> "language-csharp";
+            case "cpp" -> "language-cpp";
+            case "Dockerfile" -> "language-docker";
+            case "go" -> "language-go";
+            case "groovy" -> "language-groovy";
+            case "json" -> "language-json";
+            case "md" -> "language-markdown";
+            case "erb", "jsp", "tag" -> "language-erb";
+            case "jav", "java" -> "language-java";
+            case "rb" -> "language-ruby";
+            case "kt" -> "language-kotlin";
+            case "vb" -> "language-vbnet";
+            case "pl" -> "language-perl";
+            case "php" -> "language-php";
+            case "py" -> "language-python";
+            case "sql" -> "language-sql";
+            case "scala", "sc" -> "language-scala";
+            case "swift" -> "language-swift";
+            case "ts" -> "language-typescript";
+            case "yaml" -> "language-yaml";
+            default -> "language-clike"; // Best effort for unknown extensions
+        };
     }
 
     private String asMarkedCode(final StringBuilder text, final Marker marker, final String... classes) {
@@ -266,10 +233,10 @@ class SourcePrinter {
          * @param end
          *         the last column in text, that needs to be marked
          *
-         * @return StringBuilder containing the text with the added html tag "mark"
+         * @return StringBuilder containing the text with the added HTML tag "mark"
          */
-        public StringBuilder markColumns(final String text, final int start, final int end) {
-            if (start < 1 || text.length() == 0 || end > text.length()) {
+        StringBuilder markColumns(final String text, final int start, final int end) {
+            if (start < 1 || text.isEmpty() || end > text.length()) {
                 return new StringBuilder(text);
             }
             final int realStart = start - 1;
@@ -300,7 +267,7 @@ class SourcePrinter {
          *
          * @return String containing the text with the added html tag
          */
-        public String replacePlaceHolderWithHtmlTag(final String text) {
+        String replacePlaceHolderWithHtmlTag(final String text) {
             return text.replaceAll(openingTagPlaceHolder, OPENING_TAG)
                     .replaceAll(closingTagPlaceHolder, CLOSING_TAG);
         }
