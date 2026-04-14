@@ -11,6 +11,8 @@ import edu.hm.hafner.util.ResourceTest;
 import io.jenkins.plugins.prism.Marker.MarkerBuilder;
 import io.jenkins.plugins.util.JenkinsFacade;
 
+import java.util.stream.Stream;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -219,6 +221,36 @@ class SourcePrinterTest extends ResourceTest {
 
         Elements pre = document.getElementsByTag("pre");
         assertThat(pre.text()).isEqualToIgnoringWhitespace(expectedFile);
+    }
+
+    @Test
+    @org.junitpioneer.jupiter.Issue("JENKINS-64584")
+    void shouldRenderTypeScriptFileAsTypeScript() {
+        Marker issue = new MarkerBuilder().build();
+        SourcePrinter printer = new SourcePrinter();
+
+        Document document = Jsoup.parse(printer.render("sample.ts", Stream.of("const answer: number = 42;"), issue));
+
+        assertThat(document.getElementsByTag("code").first())
+                .isNotNull();
+        assertThat(document.getElementsByTag("code").first().classNames())
+                .contains("language-typescript");
+    }
+
+    @Test
+    @org.junitpioneer.jupiter.Issue("JENKINS-64584")
+    void shouldRenderQtTranslationFileAsMarkup() {
+        Marker issue = new MarkerBuilder().build();
+        SourcePrinter printer = new SourcePrinter();
+
+        Document document = Jsoup.parse(printer.render("sample.ts", Stream.of(
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
+                "<TS version=\"2.1\"><context><name>MainWindow</name></context></TS>"), issue));
+
+        assertThat(document.getElementsByTag("code").first())
+                .isNotNull();
+        assertThat(document.getElementsByTag("code").first().classNames())
+                .contains("language-markup");
     }
 
     private JenkinsFacade createJenkinsFacade() {

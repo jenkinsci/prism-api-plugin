@@ -69,7 +69,7 @@ class SourcePrinter {
             StringBuilder marked = readBlockUntilLine(stream, end);
             StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
 
-            String language = selectLanguageClass(fileName);
+            String language = selectLanguageClass(fileName, before, marked, after);
             String code = asCode(before, language, LINE_NUMBERS, MATCH_BRACES)
                     + asMarkedCode(marked, marker, language, LINE_NUMBERS, "highlight", MATCH_BRACES)
                     + createInfoPanel(marker)
@@ -150,8 +150,15 @@ class SourcePrinter {
     }
 
     @SuppressWarnings({"javancss", "PMD.CyclomaticComplexity"})
-    private String selectLanguageClass(final String fileName) {
-        return switch (StringUtils.substringAfterLast(fileName, ".")) {
+    private String selectLanguageClass(final String fileName,
+            final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
+        String extension = StringUtils.substringAfterLast(fileName, ".");
+
+        if ("ts".equals(extension) && looksLikeMarkup(before, marked, after)) {
+            return "language-markup";
+        }
+
+        return switch (extension) {
             case "htm", "html", "xml", "xsd" -> "language-markup";
             case "css" -> "language-css";
             case "js" -> "language-javascript";
@@ -178,6 +185,14 @@ class SourcePrinter {
             case "yaml" -> "language-yaml";
             default -> "language-clike"; // Best effort for unknown extensions
         };
+    }
+
+    private boolean looksLikeMarkup(
+            final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
+        String content = before.toString() + marked + after;
+        String trimmed = StringUtils.stripStart(content, null);
+
+        return trimmed.startsWith("<") || trimmed.startsWith("<?xml");
     }
 
     private String asMarkedCode(final StringBuilder text, final Marker marker, final String... classes) {
