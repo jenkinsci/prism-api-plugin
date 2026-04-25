@@ -5,6 +5,7 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
 import org.jenkins.ui.symbol.SymbolRequest.Builder;
+import org.apache.commons.lang3.Strings;
 
 import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
@@ -154,7 +155,7 @@ class SourcePrinter {
     private String selectLanguageClass(final String fileName, final StringBuilder before) {
         String extension = StringUtils.substringAfterLast(fileName, ".");
 
-        if ("ts".equals(extension) && StringUtils.contains(before, QT_LINGUIST_PATTERN)) {
+        if ("ts".equals(extension) && Strings.CS.contains(before, QT_LINGUIST_PATTERN)) {
             return "language-markup";
         }
 
