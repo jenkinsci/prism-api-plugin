@@ -240,12 +240,25 @@ class SourcePrinterTest extends ResourceTest {
     @Test
     @org.junitpioneer.jupiter.Issue("JENKINS-64584")
     void shouldRenderQtTranslationFileAsMarkup() {
-        Marker issue = new MarkerBuilder().build();
+        Marker issue = new MarkerBuilder().withLineStart(7).build();
         SourcePrinter printer = new SourcePrinter();
 
         Document document = Jsoup.parse(printer.render("sample.ts", Stream.of(
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
-                "<TS version=\"2.1\"><context><name>MainWindow</name></context></TS>"), issue));
+                "<!DOCTYPE TS>",
+                "<TS version=\"2.1\" language=\"en_US\">",
+                "  <context>",
+                "    <name>MainWindow</name>",
+                "    <message>",
+                "      <source>Hello, world!</source>",
+                "      <translation>Hello, world!</translation>",
+                "    </message>",
+                "    <message>",
+                "      <source>File not found</source>",
+                "      <translation>File not found</translation>",
+                "    </message>",
+                "  </context>",
+                "</TS>"), issue));
 
         assertThat(document.getElementsByTag("code").first())
                 .isNotNull();

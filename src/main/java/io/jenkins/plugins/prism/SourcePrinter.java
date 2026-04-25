@@ -29,6 +29,7 @@ class SourcePrinter {
     private static final Sanitizer SANITIZER = new Sanitizer();
 
     private static final ColumnMarker COLUMN_MARKER = new ColumnMarker("-n/a-");
+    private static final String QT_LINGUIST_PATTERN = "<!DOCTYPE TS>";
     private static final String LINE_NUMBERS = "line-numbers";
     private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
@@ -69,7 +70,7 @@ class SourcePrinter {
             StringBuilder marked = readBlockUntilLine(stream, end);
             StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
 
-            String language = selectLanguageClass(fileName, before, marked, after);
+            String language = selectLanguageClass(fileName, before);
             String code = asCode(before, language, LINE_NUMBERS, MATCH_BRACES)
                     + asMarkedCode(marked, marker, language, LINE_NUMBERS, "highlight", MATCH_BRACES)
                     + createInfoPanel(marker)
@@ -150,11 +151,10 @@ class SourcePrinter {
     }
 
     @SuppressWarnings({"javancss", "PMD.CyclomaticComplexity"})
-    private String selectLanguageClass(final String fileName,
-            final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
+    private String selectLanguageClass(final String fileName, final StringBuilder before) {
         String extension = StringUtils.substringAfterLast(fileName, ".");
 
-        if ("ts".equals(extension) && looksLikeMarkup(before, marked, after)) {
+        if ("ts".equals(extension) && StringUtils.contains(before, QT_LINGUIST_PATTERN)) {
             return "language-markup";
         }
 
@@ -185,14 +185,6 @@ class SourcePrinter {
             case "yaml" -> "language-yaml";
             default -> "language-clike"; // Best effort for unknown extensions
         };
-    }
-
-    private boolean looksLikeMarkup(
-            final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
-        String content = before.toString() + marked + after;
-        String trimmed = StringUtils.stripStart(content, null);
-
-        return trimmed.startsWith("<") || trimmed.startsWith("<?xml");
     }
 
     private String asMarkedCode(final StringBuilder text, final Marker marker, final String... classes) {
