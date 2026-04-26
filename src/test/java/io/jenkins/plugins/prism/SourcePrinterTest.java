@@ -266,6 +266,38 @@ class SourcePrinterTest extends ResourceTest {
                 .contains("language-markup");
     }
 
+    @Test
+    @org.junitpioneer.jupiter.Issue("JENKINS-73298")
+    void shouldSkipSyntaxHighlightingForLargeFiles() {
+        Marker issue = new MarkerBuilder().withLineStart(2_500).build();
+        SourcePrinter printer = new SourcePrinter();
+
+        Document document = Jsoup.parse(printer.render("sample.xml",
+                Stream.generate(() -> "line").limit(5_001), issue));
+
+        assertThat(document.getElementsByTag("code").first())
+                .isNotNull();
+        assertThat(document.getElementsByTag("code").first().classNames())
+                .doesNotContain("language-markup", "line-numbers", "match-braces");
+        assertThat(document.getElementsByTag("code").get(1).classNames())
+                .containsExactly("highlight");
+    }
+
+    @Test
+    @org.junitpioneer.jupiter.Issue("JENKINS-73298")
+    void shouldKeepSyntaxHighlightingForFilesWithinLimit() {
+        Marker issue = new MarkerBuilder().withLineStart(2_500).build();
+        SourcePrinter printer = new SourcePrinter();
+
+        Document document = Jsoup.parse(printer.render("sample.xml",
+                Stream.generate(() -> "line").limit(5_000), issue));
+
+        assertThat(document.getElementsByTag("code").first())
+                .isNotNull();
+        assertThat(document.getElementsByTag("code").first().classNames())
+                .contains("language-markup", "line-numbers", "match-braces");
+    }
+
     private JenkinsFacade createJenkinsFacade() {
         JenkinsFacade jenkinsFacade = mock(JenkinsFacade.class);
         when(jenkinsFacade.getImagePath(anyString())).thenReturn("/path/to/icon");
