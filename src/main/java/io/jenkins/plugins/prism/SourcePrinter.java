@@ -36,6 +36,7 @@ class SourcePrinter {
     private static final String LINE_NUMBERS = "line-numbers";
     private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
+    private static final char NEW_LINE = '\n';
 
     private final JenkinsFacade jenkinsFacade;
 
@@ -96,7 +97,7 @@ class SourcePrinter {
 
         int lines = 0;
         for (int i = 0; i < text.length(); i++) {
-            if (text.charAt(i) == '\n') {
+            if (text.charAt(i) == NEW_LINE) {
                 lines++;
             }
         }
