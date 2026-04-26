@@ -5,6 +5,7 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
 import org.jenkins.ui.symbol.SymbolRequest.Builder;
+import org.apache.commons.lang3.Strings;
 
 import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
@@ -29,6 +30,7 @@ class SourcePrinter {
     private static final Sanitizer SANITIZER = new Sanitizer();
 
     private static final ColumnMarker COLUMN_MARKER = new ColumnMarker("-n/a-");
+    private static final String QT_LINGUIST_PATTERN = "<!DOCTYPE TS>";
     private static final String LINE_NUMBERS = "line-numbers";
     private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
@@ -69,7 +71,7 @@ class SourcePrinter {
             StringBuilder marked = readBlockUntilLine(stream, end);
             StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
 
-            String language = selectLanguageClass(fileName);
+            String language = selectLanguageClass(fileName, before);
             String code = asCode(before, language, LINE_NUMBERS, MATCH_BRACES)
                     + asMarkedCode(marked, marker, language, LINE_NUMBERS, "highlight", MATCH_BRACES)
                     + createInfoPanel(marker)
@@ -150,8 +152,14 @@ class SourcePrinter {
     }
 
     @SuppressWarnings({"javancss", "PMD.CyclomaticComplexity"})
-    private String selectLanguageClass(final String fileName) {
-        return switch (StringUtils.substringAfterLast(fileName, ".")) {
+    private String selectLanguageClass(final String fileName, final StringBuilder before) {
+        String extension = StringUtils.substringAfterLast(fileName, ".");
+
+        if ("ts".equals(extension) && Strings.CS.contains(before, QT_LINGUIST_PATTERN)) {
+            return "language-markup";
+        }
+
+        return switch (extension) {
             case "htm", "html", "xml", "xsd" -> "language-markup";
             case "css" -> "language-css";
             case "js" -> "language-javascript";
