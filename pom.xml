@@ -67,9 +67,8 @@
       <artifactId>antisamy-markup-formatter</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jsoup</groupId>
+      <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jsoup</artifactId>
-      <version>${jsoup.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
