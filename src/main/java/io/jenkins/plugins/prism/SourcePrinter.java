@@ -31,9 +31,11 @@ class SourcePrinter {
 
     private static final ColumnMarker COLUMN_MARKER = new ColumnMarker("-n/a-");
     private static final String QT_LINGUIST_PATTERN = "<!DOCTYPE TS>";
+    private static final int MAX_LINES_FOR_SYNTAX_HIGHLIGHTING = 5_000;
     private static final String LINE_NUMBERS = "line-numbers";
     private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
+    private static final char NEW_LINE = '\n';
 
     private final JenkinsFacade jenkinsFacade;
 
@@ -72,20 +74,47 @@ class SourcePrinter {
             StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
 
             String language = selectLanguageClass(fileName, before);
-            String code = asCode(before, language, LINE_NUMBERS, MATCH_BRACES)
-                    + asMarkedCode(marked, marker, language, LINE_NUMBERS, "highlight", MATCH_BRACES)
+            boolean enableSyntaxHighlighting = shouldEnableSyntaxHighlighting(before, marked, after);
+            String code = asCode(before, getCodeClasses(language, enableSyntaxHighlighting))
+                    + asMarkedCode(marked, marker, getMarkedCodeClasses(language, enableSyntaxHighlighting))
                     + createInfoPanel(marker)
-                    + asCode(after, language, LINE_NUMBERS, MATCH_BRACES);
+                    + asCode(after, getCodeClasses(language, enableSyntaxHighlighting));
 
             return pre().with(new UnescapedText(code)).renderFormatted();
         }
+    }
+
+    private boolean shouldEnableSyntaxHighlighting(
+            final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
+        return countLines(before) + countLines(marked) + countLines(after) <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
+    }
+
+    private int countLines(final StringBuilder text) {
+        if (text.isEmpty()) {
+            return 0;
+        }
+        return (int) text.chars().filter(c -> c == NEW_LINE).count();
+    }
+
+    private String[] getCodeClasses(final String language, final boolean enableSyntaxHighlighting) {
+        if (enableSyntaxHighlighting) {
+            return new String[] {language, LINE_NUMBERS, MATCH_BRACES};
+        }
+        return new String[0];
+    }
+
+    private String[] getMarkedCodeClasses(final String language, final boolean enableSyntaxHighlighting) {
+        if (enableSyntaxHighlighting) {
+            return new String[] {language, LINE_NUMBERS, "highlight", MATCH_BRACES};
+        }
+        return new String[] {"highlight"};
     }
 
     private StringBuilder readBlockUntilLine(final LookaheadStream stream, final int end) {
         StringBuilder marked = new StringBuilder();
         while (stream.hasNext() && stream.getLine() < end) {
             marked.append(stream.next());
-            marked.append("\n");
+            marked.append(NEW_LINE);
         }
         return marked;
     }
