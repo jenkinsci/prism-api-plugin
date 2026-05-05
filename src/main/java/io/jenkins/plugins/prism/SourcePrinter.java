@@ -31,8 +31,7 @@ class SourcePrinter {
 
     private static final ColumnMarker COLUMN_MARKER = new ColumnMarker("-n/a-");
     private static final String QT_LINGUIST_PATTERN = "<!DOCTYPE TS>";
-    private static final int MAX_LINES_FOR_SYNTAX_HIGHLIGHTING = Integer.getInteger(
-            SourcePrinter.class.getName() + ".maxLinesForSyntaxHighlighting", 5_000);
+    private static final int MAX_LINES_FOR_SYNTAX_HIGHLIGHTING = 5_000;
     private static final String LINE_NUMBERS = "line-numbers";
     private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
@@ -94,14 +93,7 @@ class SourcePrinter {
         if (text.isEmpty()) {
             return 0;
         }
-
-        int lines = 0;
-        for (int i = 0; i < text.length(); i++) {
-            if (text.charAt(i) == NEW_LINE) {
-                lines++;
-            }
-        }
-        return lines;
+        return (int) text.chars().filter(c -> c == NEW_LINE).count();
     }
 
     private String[] getCodeClasses(final String language, final boolean enableSyntaxHighlighting) {
@@ -122,7 +114,7 @@ class SourcePrinter {
         StringBuilder marked = new StringBuilder();
         while (stream.hasNext() && stream.getLine() < end) {
             marked.append(stream.next());
-            marked.append("\n");
+            marked.append(NEW_LINE);
         }
         return marked;
     }
