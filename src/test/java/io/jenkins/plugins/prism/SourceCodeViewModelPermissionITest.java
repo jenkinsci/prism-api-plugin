@@ -57,7 +57,7 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
                         assertThat(sourceCodeView.getOwner()).isEqualTo(build);
                     });
 
-            PrismConfiguration.getInstance().setProtectSourceCodeByPermission(true);
+            PrismAppearanceConfiguration.getInstance().setProtectSourceCodeByPermission(true);
 
             // Now, alice does not have permission to view source code
             assertThat(createView(build)).isInstanceOf(PermissionDeniedViewModel.class);

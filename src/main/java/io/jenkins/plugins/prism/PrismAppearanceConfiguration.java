@@ -29,6 +29,9 @@ import io.jenkins.plugins.util.JenkinsFacade;
  *      <b>Theme</b>: Prism supports several themes that can be used to adapt the look and feel. You can configure the
  *      default theme used for all Jenkins jobs.
  *     </li>
+ *     <li>
+ *      <b>Source code protection</b>: you can require {@code Item.WORKSPACE} permission to view rendered source code.
+ *     </li>
  * </ul>
  *
  * @author Ullrich Hafner
@@ -92,6 +95,26 @@ public class PrismAppearanceConfiguration extends GlobalConfigurationItem {
 
     public PrismTheme getTheme() {
         return theme;
+    }
+
+    /**
+     * Returns whether the source code view should be protected by the {@code Item.WORKSPACE} permission.
+     *
+     * @return {@code true} the source code view should be protected, {@code false} otherwise
+     */
+    public boolean isProtectSourceCodeByPermission() {
+        return PrismConfiguration.getInstance().isProtectSourceCodeByPermission();
+    }
+
+    /**
+     * Enables or disables the protection of the source code view by the {@code Item.WORKSPACE} permission.
+     *
+     * @param protectSourceCodeByPermission
+     *         {@code true} to enable the protection, {@code false} to disable it
+     */
+    @DataBoundSetter
+    public void setProtectSourceCodeByPermission(final boolean protectSourceCodeByPermission) {
+        PrismConfiguration.getInstance().setProtectSourceCodeByPermission(protectSourceCodeByPermission);
     }
 
     /**
