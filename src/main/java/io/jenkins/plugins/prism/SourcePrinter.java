@@ -13,6 +13,9 @@ import edu.hm.hafner.util.VisibleForTesting;
 import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Stream;
 
 import io.jenkins.plugins.util.JenkinsFacade;
@@ -65,22 +68,98 @@ class SourcePrinter {
      * @return the source code as colorized HTML
      */
     String render(final String fileName, final Stream<String> lines, final Marker marker) {
+        return render(fileName, lines, List.of(marker));
+    }
+
+    /**
+     * Creates a colorized HTML snippet with the specified source code. Highlights all specified markers and provides
+     * clickable and collapsible elements that show the details for each marker.
+     *
+     * @param fileName
+     *         the file name of the source code file
+     * @param lines
+     *         the lines of the source code
+     * @param markers
+     *         the list of markers to show; if empty, the source code is rendered without any highlights
+     *
+     * @return the source code as colorized HTML
+     */
+    String render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
         try (LookaheadStream stream = new LookaheadStream(lines)) {
-            int start = marker.getLineStart();
-            int end = marker.getLineEnd();
+            if (markers.isEmpty()) {
+                StringBuilder all = readBlockUntilLine(stream, Integer.MAX_VALUE);
+                String language = selectLanguageClass(fileName, all);
+                boolean enableSyntaxHighlighting = shouldEnableSyntaxHighlighting(all, new StringBuilder(), new StringBuilder());
+                String code = asCode(all, getCodeClasses(language, enableSyntaxHighlighting));
+                return pre().with(new UnescapedText(code)).renderFormatted();
+            }
 
-            StringBuilder before = readBlockUntilLine(stream, start - 1);
-            StringBuilder marked = readBlockUntilLine(stream, end);
+            List<Marker> sortedMarkers = new ArrayList<>(markers);
+            sortedMarkers.sort(Comparator.comparingInt(Marker::getLineStart));
+
+            int firstStart = sortedMarkers.get(0).getLineStart();
+            StringBuilder firstBefore = readBlockUntilLine(stream, firstStart - 1);
+            String language = selectLanguageClass(fileName, firstBefore);
+
+            List<StringBuilder> allBlocks = new ArrayList<>();
+            List<Marker> blockMarkers = new ArrayList<>();
+            List<Boolean> isMarkedBlock = new ArrayList<>();
+
+            allBlocks.add(firstBefore);
+            isMarkedBlock.add(false);
+            blockMarkers.add(null);
+
+            int currentLine = firstStart - 1;
+            for (int i = 0; i < sortedMarkers.size(); i++) {
+                Marker m = sortedMarkers.get(i);
+                int mStart = m.getLineStart();
+                int mEnd = m.getLineEnd();
+
+                if (mStart <= currentLine) {
+                    StringBuilder marked = readBlockUntilLine(stream, mEnd);
+                    allBlocks.add(marked);
+                    isMarkedBlock.add(true);
+                    blockMarkers.add(m);
+                    currentLine = mEnd;
+                }
+                else {
+                    StringBuilder gap = readBlockUntilLine(stream, mStart - 1);
+                    if (gap.length() > 0) {
+                        allBlocks.add(gap);
+                        isMarkedBlock.add(false);
+                        blockMarkers.add(null);
+                    }
+                    StringBuilder marked = readBlockUntilLine(stream, mEnd);
+                    allBlocks.add(marked);
+                    isMarkedBlock.add(true);
+                    blockMarkers.add(m);
+                    currentLine = mEnd;
+                }
+            }
+
             StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
+            if (after.length() > 0) {
+                allBlocks.add(after);
+                isMarkedBlock.add(false);
+                blockMarkers.add(null);
+            }
 
-            String language = selectLanguageClass(fileName, before);
-            boolean enableSyntaxHighlighting = shouldEnableSyntaxHighlighting(before, marked, after);
-            String code = asCode(before, getCodeClasses(language, enableSyntaxHighlighting))
-                    + asMarkedCode(marked, marker, getMarkedCodeClasses(language, enableSyntaxHighlighting))
-                    + createInfoPanel(marker)
-                    + asCode(after, getCodeClasses(language, enableSyntaxHighlighting));
+            int totalLines = allBlocks.stream().mapToInt(this::countLines).sum();
+            boolean enableSyntaxHighlighting = totalLines <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
 
-            return pre().with(new UnescapedText(code)).renderFormatted();
+            StringBuilder code = new StringBuilder();
+            for (int i = 0; i < allBlocks.size(); i++) {
+                if (isMarkedBlock.get(i)) {
+                    Marker m = blockMarkers.get(i);
+                    code.append(asMarkedCode(allBlocks.get(i), m, getMarkedCodeClasses(language, enableSyntaxHighlighting)));
+                    code.append(createInfoPanel(m));
+                }
+                else {
+                    code.append(asCode(allBlocks.get(i), getCodeClasses(language, enableSyntaxHighlighting)));
+                }
+            }
+
+            return pre().with(new UnescapedText(code.toString())).renderFormatted();
         }
     }
 

@@ -11,6 +11,7 @@ import edu.hm.hafner.util.ResourceTest;
 import io.jenkins.plugins.prism.Marker.MarkerBuilder;
 import io.jenkins.plugins.util.JenkinsFacade;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
@@ -302,6 +303,120 @@ class SourcePrinterTest extends ResourceTest {
         JenkinsFacade jenkinsFacade = mock(JenkinsFacade.class);
         when(jenkinsFacade.getImagePath(anyString())).thenReturn("/path/to/icon");
         return jenkinsFacade;
+    }
+
+    @Nested
+    @org.junitpioneer.jupiter.Issue("JENKINS-35255")
+    class MultipleMarkersTest {
+        @Test
+        void shouldRenderSourceWithEmptyMarkerList() {
+            SourcePrinter printer = new SourcePrinter();
+
+            Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), List.of()));
+            String expectedFile = SourcePrinterTest.this.toString("format-java.txt");
+
+            assertThat(document.text()).isEqualToIgnoringWhitespace(expectedFile);
+            Elements pre = document.getElementsByTag("pre");
+            assertThat(pre.text()).isEqualToIgnoringWhitespace(expectedFile);
+            assertThat(document.getElementsByClass("highlight")).isEmpty();
+        }
+
+        @Test
+        void shouldRenderSingleMarkerViaList() {
+            Marker marker = new MarkerBuilder().withLineStart(7).withTitle(MESSAGE).withDescription(DESCRIPTION).build();
+            SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
+
+            Document documentViaList = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), List.of(marker)));
+            Document documentViaSingle = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), marker));
+
+            assertThat(documentViaList.getElementsByTag("code").toString())
+                    .isEqualTo(documentViaSingle.getElementsByTag("code").toString());
+            assertThat(documentViaList.getElementsByClass("analysis-warning-title").text())
+                    .isEqualTo(MESSAGE);
+        }
+
+        @Test
+        void shouldRenderTwoSeparateMarkersWithBothHighlighted() {
+            Marker firstMarker = new MarkerBuilder().withLineStart(3).withTitle("First warning").build();
+            Marker secondMarker = new MarkerBuilder().withLineStart(7).withTitle("Second warning").build();
+            SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
+
+            Document document = Jsoup.parse(
+                    printer.render(FILE_NAME, asStream("format-java.txt"), List.of(firstMarker, secondMarker)));
+
+            Elements warningTitles = document.getElementsByClass("analysis-warning-title");
+            assertThat(warningTitles).hasSize(2);
+            assertThat(warningTitles.get(0).text()).isEqualTo("First warning");
+            assertThat(warningTitles.get(1).text()).isEqualTo("Second warning");
+
+            Elements codeBlocks = document.getElementsByTag("code");
+            long highlightedBlocks = codeBlocks.stream()
+                    .filter(e -> e.classNames().contains("highlight"))
+                    .count();
+            assertThat(highlightedBlocks).isEqualTo(2);
+
+            assertThat(document.getElementsByTag("code").text()).isEqualToIgnoringWhitespace(SourcePrinterTest.this.toString("format-java.txt"));
+        }
+
+        @Test
+        void shouldRenderMarkersInLineOrderWhenProvidedOutOfOrder() {
+            Marker laterMarker = new MarkerBuilder().withLineStart(7).withTitle("Second").build();
+            Marker earlierMarker = new MarkerBuilder().withLineStart(3).withTitle("First").build();
+            SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
+
+            Document document = Jsoup.parse(
+                    printer.render(FILE_NAME, asStream("format-java.txt"), List.of(laterMarker, earlierMarker)));
+
+            Elements warningTitles = document.getElementsByClass("analysis-warning-title");
+            assertThat(warningTitles).hasSize(2);
+            assertThat(warningTitles.get(0).text()).isEqualTo("First");
+            assertThat(warningTitles.get(1).text()).isEqualTo("Second");
+        }
+
+        @Test
+        void shouldRenderTwoMarkersWithDescriptions() {
+            Marker firstMarker = new MarkerBuilder()
+                    .withLineStart(5)
+                    .withTitle("First warning")
+                    .withDescription("First description")
+                    .build();
+            Marker secondMarker = new MarkerBuilder()
+                    .withLineStart(7)
+                    .withTitle("Second warning")
+                    .withDescription("Second description")
+                    .build();
+            SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
+
+            Document document = Jsoup.parse(
+                    printer.render(FILE_NAME, asStream("format-java.txt"), List.of(firstMarker, secondMarker)));
+
+            Elements warningTitles = document.getElementsByClass("analysis-warning-title");
+            assertThat(warningTitles).hasSize(2);
+            assertThat(warningTitles.get(0).text()).contains("First warning");
+            assertThat(warningTitles.get(1).text()).contains("Second warning");
+
+            Elements details = document.getElementsByClass("analysis-detail");
+            assertThat(details).hasSize(2);
+            assertThat(details.get(0).text()).contains("First description");
+            assertThat(details.get(1).text()).contains("Second description");
+        }
+
+        @Test
+        void shouldRenderMultipleMarkersOnCppFile() {
+            Marker firstMarker = new MarkerBuilder().withLineStart(1).withTitle("Include warning").build();
+            Marker secondMarker = new MarkerBuilder().withLineStart(5).withTitle("Move warning").build();
+            SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
+
+            Document document = Jsoup.parse(
+                    printer.render("sample.cpp", asStream("format-cpp.txt"), List.of(firstMarker, secondMarker)));
+
+            Elements warningTitles = document.getElementsByClass("analysis-warning-title");
+            assertThat(warningTitles).hasSize(2);
+            assertThat(warningTitles.get(0).text()).isEqualTo("Include warning");
+            assertThat(warningTitles.get(1).text()).isEqualTo("Move warning");
+
+            assertThat(document.getElementsByTag("code").text()).isEqualToIgnoringWhitespace(SourcePrinterTest.this.toString("format-cpp.txt"));
+        }
     }
 
     @Nested
