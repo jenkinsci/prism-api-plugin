@@ -1,11 +1,16 @@
 package io.jenkins.plugins.prism;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
 import org.jenkins.ui.symbol.SymbolRequest.Builder;
-import org.apache.commons.lang3.Strings;
 
 import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
@@ -13,10 +18,6 @@ import edu.hm.hafner.util.VisibleForTesting;
 import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Stream;
 
 import io.jenkins.plugins.util.JenkinsFacade;
 
@@ -101,67 +102,63 @@ class SourcePrinter {
             StringBuilder firstBefore = readBlockUntilLine(stream, firstStart - 1);
             String language = selectLanguageClass(fileName, firstBefore);
 
-            List<StringBuilder> allBlocks = new ArrayList<>();
-            List<Marker> blockMarkers = new ArrayList<>();
-            List<Boolean> isMarkedBlock = new ArrayList<>();
+            List<SourceBlock> blocks = collectBlocks(stream, sortedMarkers, firstBefore);
 
-            allBlocks.add(firstBefore);
-            isMarkedBlock.add(false);
-            blockMarkers.add(null);
-
-            int currentLine = firstStart - 1;
-            for (int i = 0; i < sortedMarkers.size(); i++) {
-                Marker m = sortedMarkers.get(i);
-                int mStart = m.getLineStart();
-                int mEnd = m.getLineEnd();
-
-                if (mStart <= currentLine) {
-                    StringBuilder marked = readBlockUntilLine(stream, mEnd);
-                    allBlocks.add(marked);
-                    isMarkedBlock.add(true);
-                    blockMarkers.add(m);
-                    currentLine = mEnd;
-                }
-                else {
-                    StringBuilder gap = readBlockUntilLine(stream, mStart - 1);
-                    if (gap.length() > 0) {
-                        allBlocks.add(gap);
-                        isMarkedBlock.add(false);
-                        blockMarkers.add(null);
-                    }
-                    StringBuilder marked = readBlockUntilLine(stream, mEnd);
-                    allBlocks.add(marked);
-                    isMarkedBlock.add(true);
-                    blockMarkers.add(m);
-                    currentLine = mEnd;
-                }
-            }
-
-            StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
-            if (after.length() > 0) {
-                allBlocks.add(after);
-                isMarkedBlock.add(false);
-                blockMarkers.add(null);
-            }
-
-            int totalLines = allBlocks.stream().mapToInt(this::countLines).sum();
+            int totalLines = blocks.stream().mapToInt(b -> countLines(b.content())).sum();
             boolean enableSyntaxHighlighting = totalLines <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
 
-            StringBuilder code = new StringBuilder();
-            for (int i = 0; i < allBlocks.size(); i++) {
-                if (isMarkedBlock.get(i)) {
-                    Marker m = blockMarkers.get(i);
-                    code.append(asMarkedCode(allBlocks.get(i), m, getMarkedCodeClasses(language, enableSyntaxHighlighting)));
-                    code.append(createInfoPanel(m));
-                }
-                else {
-                    code.append(asCode(allBlocks.get(i), getCodeClasses(language, enableSyntaxHighlighting)));
-                }
-            }
-
-            return pre().with(new UnescapedText(code.toString())).renderFormatted();
+            return pre().with(new UnescapedText(renderBlocks(blocks, language, enableSyntaxHighlighting))).renderFormatted();
         }
     }
+
+    private List<SourceBlock> collectBlocks(final LookaheadStream stream,
+            final List<Marker> sortedMarkers, final StringBuilder firstBefore) {
+        List<SourceBlock> blocks = new ArrayList<>();
+        blocks.add(new SourceBlock(firstBefore, null));
+
+        int currentLine = sortedMarkers.get(0).getLineStart() - 1;
+        for (Marker m : sortedMarkers) {
+            int mStart = m.getLineStart();
+            int mEnd = m.getLineEnd();
+
+            if (mStart > currentLine) {
+                StringBuilder gap = readBlockUntilLine(stream, mStart - 1);
+                if (gap.length() > 0) {
+                    blocks.add(new SourceBlock(gap, null));
+                }
+            }
+            blocks.add(new SourceBlock(readBlockUntilLine(stream, mEnd), m));
+            currentLine = mEnd;
+        }
+
+        StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
+        if (after.length() > 0) {
+            blocks.add(new SourceBlock(after, null));
+        }
+        return blocks;
+    }
+
+    private String renderBlocks(final List<SourceBlock> blocks,
+            final String language, final boolean enableSyntaxHighlighting) {
+        StringBuilder code = new StringBuilder();
+        for (SourceBlock block : blocks) {
+            if (block.marker() != null) {
+                code.append(asMarkedCode(block.content(), block.marker(),
+                        getMarkedCodeClasses(language, enableSyntaxHighlighting)));
+                code.append(createInfoPanel(block.marker()));
+            }
+            else {
+                code.append(asCode(block.content(), getCodeClasses(language, enableSyntaxHighlighting)));
+            }
+        }
+        return code.toString();
+    }
+
+    /**
+     * Represents a contiguous block of source code, optionally associated with a marker.
+     * A {@code null} marker indicates a plain (non-highlighted) code segment.
+     */
+    private record SourceBlock(StringBuilder content, Marker marker) {}
 
     private boolean shouldEnableSyntaxHighlighting(
             final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
