@@ -154,12 +154,6 @@ class SourcePrinter {
         return code.toString();
     }
 
-    /**
-     * Represents a contiguous block of source code, optionally associated with a marker.
-     * A {@code null} marker indicates a plain (non-highlighted) code segment.
-     */
-    private record SourceBlock(StringBuilder content, Marker marker) {}
-
     private boolean shouldEnableSyntaxHighlighting(
             final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
         return countLines(before) + countLines(marked) + countLines(after) <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
@@ -310,6 +304,18 @@ class SourcePrinter {
     private String asCode(final StringBuilder text, final String... classes) {
         return code().withClasses(classes).with(unescape(StringEscapeUtils.escapeHtml4(text.toString()))).render();
     }
+
+    /**
+     * Represents a contiguous block of source code, optionally associated with a marker.
+     * A {@code null} marker indicates a plain (non-highlighted) code segment.
+     *
+     * @param content
+     *         the source code lines contained in this block
+     * @param marker
+     *         the marker to highlight within this block, or {@code null} if this block should be rendered as
+     *         plain, non-highlighted code
+     */
+    private record SourceBlock(StringBuilder content, Marker marker) {}
 
     /**
      * Encloses columns between {@code start} and {@code end} with an HTML tag (see {@code openingTag} and
