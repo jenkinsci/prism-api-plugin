@@ -315,7 +315,7 @@ class SourcePrinter {
      *         the marker to highlight within this block, or {@code null} if this block should be rendered as
      *         plain, non-highlighted code
      */
-    private record SourceBlock(StringBuilder content, Marker marker) {}
+    private record SourceBlock(StringBuilder content, Marker marker) { }
 
     /**
      * Encloses columns between {@code start} and {@code end} with an HTML tag (see {@code openingTag} and
