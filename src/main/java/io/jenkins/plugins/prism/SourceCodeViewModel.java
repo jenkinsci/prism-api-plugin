@@ -5,6 +5,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.List;
 
 import hudson.model.Job;
 import hudson.model.ModelObject;
@@ -72,6 +73,28 @@ public class SourceCodeViewModel implements ModelObject {
                 fileName);
     }
 
+    /**
+     * Creates a source code view model or a permission-denied view model based on the user's permissions.
+     * This is the recommended way to create a view model when showing multiple markers at once.
+     *
+     * @param owner
+     *         the current build as the owner of this view
+     * @param fileName
+     *         the file name of the shown content
+     * @param sourceCodeReader
+     *         the source code file to show, provided by a {@link Reader} instance
+     * @param markers
+     *         a list of blocks of lines (or parts of lines) to mark in the source code view
+     * @return a {@link SourceCodeViewModel} if permission is granted, or a {@link PermissionDeniedViewModel} otherwise
+     */
+    public static ModelObject create(final Run<?, ?> owner, final String fileName,
+            final Reader sourceCodeReader, final List<Marker> markers) {
+        return protectedSourceCodeView(
+                new SourceCodeViewModel(owner, fileName, sourceCodeReader, markers),
+                owner,
+                fileName);
+    }
+
     private final Run<?, ?> owner;
     private final String fileName;
     private final String sourceCode;
@@ -95,17 +118,36 @@ public class SourceCodeViewModel implements ModelObject {
             final Marker marker) {
         this.owner = owner;
         this.fileName = fileName;
-        sourceCode = render(sourceCodeReader, marker);
+        sourceCode = render(sourceCodeReader, List.of(marker));
+    }
+
+    /**
+     * Creates a new source code view model instance with multiple markers.
+     *
+     * @param owner
+     *         the current build as the owner of this view
+     * @param fileName
+     *         the file name of the shown content
+     * @param sourceCodeReader
+     *         the source code file to show, provided by a {@link Reader} instance
+     * @param markers
+     *         a list of blocks of lines (or parts of lines) to mark in the source code view
+     */
+    public SourceCodeViewModel(final Run<?, ?> owner, final String fileName, final Reader sourceCodeReader,
+            final List<Marker> markers) {
+        this.owner = owner;
+        this.fileName = fileName;
+        sourceCode = render(sourceCodeReader, markers);
     }
 
     public PrismConfiguration getPrismConfiguration() {
         return PrismConfiguration.getInstance();
     }
 
-    private String render(final Reader affectedFile, final Marker marker) {
+    private String render(final Reader affectedFile, final List<Marker> markers) {
         try (BufferedReader reader = new BufferedReader(affectedFile)) {
             SourcePrinter sourcePrinter = new SourcePrinter();
-            return sourcePrinter.render(fileName, reader.lines(), marker);
+            return sourcePrinter.render(fileName, reader.lines(), markers);
         }
         catch (IOException e) {
             return String.format("%s%n%s", ExceptionUtils.getMessage(e), ExceptionUtils.getStackTrace(e));
