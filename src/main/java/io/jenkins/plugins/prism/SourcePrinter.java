@@ -1,11 +1,16 @@
 package io.jenkins.plugins.prism;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
 import org.jenkins.ui.symbol.SymbolRequest.Builder;
-import org.apache.commons.lang3.Strings;
 
 import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
@@ -13,7 +18,6 @@ import edu.hm.hafner.util.VisibleForTesting;
 import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
-import java.util.stream.Stream;
 
 import io.jenkins.plugins.util.JenkinsFacade;
 
@@ -65,23 +69,89 @@ class SourcePrinter {
      * @return the source code as colorized HTML
      */
     String render(final String fileName, final Stream<String> lines, final Marker marker) {
+        return render(fileName, lines, List.of(marker));
+    }
+
+    /**
+     * Creates a colorized HTML snippet with the specified source code. Highlights all specified markers and provides
+     * clickable and collapsible elements that show the details for each marker.
+     *
+     * @param fileName
+     *         the file name of the source code file
+     * @param lines
+     *         the lines of the source code
+     * @param markers
+     *         the list of markers to show; if empty, the source code is rendered without any highlights
+     *
+     * @return the source code as colorized HTML
+     */
+    String render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
         try (LookaheadStream stream = new LookaheadStream(lines)) {
-            int start = marker.getLineStart();
-            int end = marker.getLineEnd();
+            if (markers.isEmpty()) {
+                StringBuilder all = readBlockUntilLine(stream, Integer.MAX_VALUE);
+                String language = selectLanguageClass(fileName, all);
+                boolean enableSyntaxHighlighting = shouldEnableSyntaxHighlighting(all, new StringBuilder(), new StringBuilder());
+                String code = asCode(all, getCodeClasses(language, enableSyntaxHighlighting));
+                return pre().with(new UnescapedText(code)).renderFormatted();
+            }
 
-            StringBuilder before = readBlockUntilLine(stream, start - 1);
-            StringBuilder marked = readBlockUntilLine(stream, end);
-            StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
+            List<Marker> sortedMarkers = new ArrayList<>(markers);
+            sortedMarkers.sort(Comparator.comparingInt(Marker::getLineStart));
 
-            String language = selectLanguageClass(fileName, before);
-            boolean enableSyntaxHighlighting = shouldEnableSyntaxHighlighting(before, marked, after);
-            String code = asCode(before, getCodeClasses(language, enableSyntaxHighlighting))
-                    + asMarkedCode(marked, marker, getMarkedCodeClasses(language, enableSyntaxHighlighting))
-                    + createInfoPanel(marker)
-                    + asCode(after, getCodeClasses(language, enableSyntaxHighlighting));
+            int firstStart = sortedMarkers.get(0).getLineStart();
+            StringBuilder firstBefore = readBlockUntilLine(stream, firstStart - 1);
+            String language = selectLanguageClass(fileName, firstBefore);
 
-            return pre().with(new UnescapedText(code)).renderFormatted();
+            List<SourceBlock> blocks = collectBlocks(stream, sortedMarkers, firstBefore);
+
+            int totalLines = blocks.stream().mapToInt(b -> countLines(b.content())).sum();
+            boolean enableSyntaxHighlighting = totalLines <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
+
+            return pre().with(new UnescapedText(renderBlocks(blocks, language, enableSyntaxHighlighting))).renderFormatted();
         }
+    }
+
+    private List<SourceBlock> collectBlocks(final LookaheadStream stream,
+            final List<Marker> sortedMarkers, final StringBuilder firstBefore) {
+        List<SourceBlock> blocks = new ArrayList<>();
+        blocks.add(new SourceBlock(firstBefore, null));
+
+        int currentLine = sortedMarkers.get(0).getLineStart() - 1;
+        for (Marker m : sortedMarkers) {
+            int mStart = m.getLineStart();
+            int mEnd = m.getLineEnd();
+
+            if (mStart > currentLine) {
+                StringBuilder gap = readBlockUntilLine(stream, mStart - 1);
+                if (gap.length() > 0) {
+                    blocks.add(new SourceBlock(gap, null));
+                }
+            }
+            blocks.add(new SourceBlock(readBlockUntilLine(stream, mEnd), m));
+            currentLine = mEnd;
+        }
+
+        StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
+        if (after.length() > 0) {
+            blocks.add(new SourceBlock(after, null));
+        }
+        return blocks;
+    }
+
+    private String renderBlocks(final List<SourceBlock> blocks,
+            final String language, final boolean enableSyntaxHighlighting) {
+        StringBuilder code = new StringBuilder();
+        for (SourceBlock block : blocks) {
+            if (block.marker() != null) {
+                code.append(asMarkedCode(block.content(), block.marker(),
+                        getMarkedCodeClasses(language, enableSyntaxHighlighting)));
+                code.append(createInfoPanel(block.marker()));
+            }
+            else {
+                code.append(asCode(block.content(), getCodeClasses(language, enableSyntaxHighlighting)));
+            }
+        }
+        return code.toString();
     }
 
     private boolean shouldEnableSyntaxHighlighting(
@@ -234,6 +304,18 @@ class SourcePrinter {
     private String asCode(final StringBuilder text, final String... classes) {
         return code().withClasses(classes).with(unescape(StringEscapeUtils.escapeHtml4(text.toString()))).render();
     }
+
+    /**
+     * Represents a contiguous block of source code, optionally associated with a marker.
+     * A {@code null} marker indicates a plain (non-highlighted) code segment.
+     *
+     * @param content
+     *         the source code lines contained in this block
+     * @param marker
+     *         the marker to highlight within this block, or {@code null} if this block should be rendered as
+     *         plain, non-highlighted code
+     */
+    private record SourceBlock(StringBuilder content, Marker marker) { }
 
     /**
      * Encloses columns between {@code start} and {@code end} with an HTML tag (see {@code openingTag} and

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 import java.io.StringReader;
+import java.util.List;
 import java.util.Objects;
 
 import hudson.model.FreeStyleProject;
@@ -66,6 +67,53 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
             authStrategy.grant(Job.WORKSPACE).everywhere().to(alice);
 
             assertThat(createView(build)).isInstanceOf(SourceCodeViewModel.class);
+        }
+    }
+
+    @Test
+    @org.junitpioneer.jupiter.Issue("JENKINS-35255")
+    void shouldHandleMultipleMarkersInSourceCodeView() {
+        getJenkins().jenkins.setSecurityRealm(getJenkins().createDummySecurityRealm());
+
+        MockAuthorizationStrategy authStrategy = new MockAuthorizationStrategy();
+        authStrategy.grant(Jenkins.READ).everywhere().toEveryone();
+        authStrategy.grant(Item.READ).everywhere().toEveryone();
+
+        getJenkins().jenkins.setAuthorizationStrategy(authStrategy);
+
+        FreeStyleProject project = createFreeStyleProject();
+        Run<?, ?> build = buildSuccessfully(project);
+
+        var alice = Objects.requireNonNull(User.getById("alice", true));
+        try (ACLContext context = ACL.as2(alice.impersonate2())) {
+            assertThat(context).isNotNull();
+
+            // By default, alice has no WORKSPACE permission, but the global Prism configuration allows viewing source code without permission
+            var view = createViewWithMultipleMarkers(build);
+            assertThat(view).isInstanceOfSatisfying(SourceCodeViewModel.class,
+                    sourceCodeView -> {
+                        assertThat(sourceCodeView.getDisplayName()).isEqualTo(TEST_FILE_NAME);
+                        assertThat(sourceCodeView.getSourceCode()).contains("public class Test");
+                        assertThat(sourceCodeView.getOwner()).isEqualTo(build);
+                    });
+
+            // With permission protection enabled, alice (no WORKSPACE) should see permission denied
+            PrismConfiguration.getInstance().setProtectSourceCodeByPermission(true);
+            assertThat(createViewWithMultipleMarkers(build)).isInstanceOf(PermissionDeniedViewModel.class);
+
+            // Grant WORKSPACE permission to Alice, then she should be able to view source code
+            authStrategy.grant(Job.WORKSPACE).everywhere().to(alice);
+            assertThat(createViewWithMultipleMarkers(build)).isInstanceOf(SourceCodeViewModel.class);
+        }
+    }
+
+    private ModelObject createViewWithMultipleMarkers(final Run<?, ?> build) {
+        List<Marker> markers = List.of(
+                new MarkerBuilder().withLineStart(1).withTitle("Warning 1").build(),
+                new MarkerBuilder().withLineStart(3).withTitle("Warning 2").build()
+        );
+        try (StringReader reader = new StringReader(TEST_SOURCE_CODE)) {
+            return SourceCodeViewModel.create(build, TEST_FILE_NAME, reader, markers);
         }
     }
 
