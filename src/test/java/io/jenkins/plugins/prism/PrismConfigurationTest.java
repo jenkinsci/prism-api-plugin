@@ -1,20 +1,17 @@
 package io.jenkins.plugins.prism;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import edu.hm.hafner.util.FilteredLog;
 import edu.hm.hafner.util.PathUtil;
-
+import io.jenkins.plugins.util.GlobalConfigurationFacade;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import io.jenkins.plugins.util.GlobalConfigurationFacade;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests the class {@link PrismConfiguration}.
@@ -31,8 +28,8 @@ class PrismConfigurationTest {
 
     private static final String NORMALIZED = PATH_UTIL.getAbsolutePath("/workspace");
 
-    private static final List<PermittedSourceCodeDirectory> SOURCE_ROOTS
-            = Arrays.asList(new PermittedSourceCodeDirectory(FIRST), new PermittedSourceCodeDirectory(SECOND));
+    private static final List<PermittedSourceCodeDirectory> SOURCE_ROOTS =
+            Arrays.asList(new PermittedSourceCodeDirectory(FIRST), new PermittedSourceCodeDirectory(SECOND));
     private static final SourceDirectoryFilter FILTER = new SourceDirectoryFilter();
 
     @Test
@@ -66,7 +63,8 @@ class PrismConfigurationTest {
         assertThat(get(configuration, log, "-")).isEmpty();
         assertThat(get(configuration, log, FIRST)).containsExactly(FIRST);
         assertThat(get(configuration, log, RELATIVE)).containsExactly(getWorkspaceChild(RELATIVE));
-        assertThat(get(configuration, log, RELATIVE, FIRST)).containsExactlyInAnyOrder(FIRST, getWorkspaceChild(RELATIVE));
+        assertThat(get(configuration, log, RELATIVE, FIRST))
+                .containsExactlyInAnyOrder(FIRST, getWorkspaceChild(RELATIVE));
         assertThat(log.getErrorMessages()).isEmpty();
         assertThat(get(configuration, log, ABSOLUTE_NOT_EXISTING)).isEmpty();
         assertThat(log.getErrorMessages())
@@ -81,9 +79,9 @@ class PrismConfigurationTest {
     void shouldNormalizePath() {
         PrismConfiguration configuration = createConfiguration();
 
-        configuration.setSourceDirectories(
-                Arrays.asList(new PermittedSourceCodeDirectory("/absolute/unix"),
-                        new PermittedSourceCodeDirectory("C:\\absolute\\windows")));
+        configuration.setSourceDirectories(Arrays.asList(
+                new PermittedSourceCodeDirectory("/absolute/unix"),
+                new PermittedSourceCodeDirectory("C:\\absolute\\windows")));
 
         String relativeUnix = "relative/unix";
         String relativeWindows = "relative\\windows";
@@ -108,15 +106,13 @@ class PrismConfigurationTest {
         return PATH_UTIL.getAbsolutePath(remote);
     }
 
-    private List<String> get(final PrismConfiguration configuration, final FilteredLog log,
-            final String... absolutePaths) {
-        Set<String> sourceDirectories = configuration.getSourceDirectories()
-                .stream()
+    private List<String> get(
+            final PrismConfiguration configuration, final FilteredLog log, final String... absolutePaths) {
+        Set<String> sourceDirectories = configuration.getSourceDirectories().stream()
                 .map(PermittedSourceCodeDirectory::getPath)
                 .map(PATH_UTIL::getAbsolutePath)
                 .collect(Collectors.toSet());
-        return FILTER.getPermittedSourceDirectories(NORMALIZED, sourceDirectories, asSet(absolutePaths), log)
-                .stream()
+        return FILTER.getPermittedSourceDirectories(NORMALIZED, sourceDirectories, asSet(absolutePaths), log).stream()
                 .map(this::normalize)
                 .collect(Collectors.toList());
     }

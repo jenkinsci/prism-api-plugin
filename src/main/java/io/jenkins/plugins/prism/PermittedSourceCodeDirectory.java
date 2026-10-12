@@ -1,23 +1,19 @@
 package io.jenkins.plugins.prism;
 
-import org.apache.commons.lang3.StringUtils;
-
 import edu.hm.hafner.util.PathUtil;
 import edu.umd.cs.findbugs.annotations.NonNull;
-
-import java.io.Serial;
-import java.io.Serializable;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.verb.POST;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import jenkins.model.Jenkins;
-
 import io.jenkins.plugins.util.JenkinsFacade;
+import java.io.Serial;
+import java.io.Serializable;
+import jenkins.model.Jenkins;
+import org.apache.commons.lang3.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * Approved directory that contains source code files that can be shown in Jenkins´ user interface.
@@ -82,4 +78,3 @@ public class PermittedSourceCodeDirectory implements Describable<PermittedSource
         }
     }
 }
-

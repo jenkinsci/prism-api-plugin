@@ -3,12 +3,10 @@ package io.jenkins.plugins.prism;
 import edu.hm.hafner.util.PathUtil;
 import edu.hm.hafner.util.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-
-import java.io.IOException;
-
 import hudson.FilePath;
 import hudson.model.AbstractProject;
 import hudson.util.FormValidation;
+import java.io.IOException;
 
 /**
  * Validates the source directories configuration.
@@ -16,7 +14,8 @@ import hudson.util.FormValidation;
  * @author Ullrich Hafner
  */
 class SourceDirectoryValidation {
-    static final String DIRECTORY_NOT_REGISTERED = "This source directory is not approved yet. Please register this directory in Jenkins' global configuration.";
+    static final String DIRECTORY_NOT_REGISTERED =
+            "This source directory is not approved yet. Please register this directory in Jenkins' global configuration.";
 
     private final SourceDirectoryValidator sourceDirectoryValidator;
 
@@ -43,7 +42,8 @@ class SourceDirectoryValidation {
      *
      * @return the validation result
      */
-    FormValidation validateSourceDirectory(@CheckForNull final AbstractProject<?, ?> project, final String sourceDirectory) {
+    FormValidation validateSourceDirectory(
+            @CheckForNull final AbstractProject<?, ?> project, final String sourceDirectory) {
         PathUtil pathUtil = new PathUtil();
         if (pathUtil.isAbsolute(sourceDirectory)) {
             if (sourceDirectoryValidator.isAllowedSourceDirectory(sourceDirectory)) {
@@ -57,8 +57,7 @@ class SourceDirectoryValidation {
                 if (workspace != null && workspace.exists()) {
                     return workspace.validateRelativeDirectory(sourceDirectory);
                 }
-            }
-            catch (InterruptedException | IOException ignore) {
+            } catch (InterruptedException | IOException ignore) {
                 // ignore and return ok
             }
         }

@@ -1,15 +1,13 @@
 package io.jenkins.plugins.prism;
 
-import java.io.IOException;
-
-import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.Issue;
-
-import hudson.markup.MarkupFormatter;
-
 import static j2html.TagCreator.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import hudson.markup.MarkupFormatter;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.Issue;
 
 /**
  * Tests the class {@link Sanitizer}.
@@ -40,10 +38,8 @@ class SanitizerTest {
     void shouldEscapeDom() {
         Sanitizer sanitizer = new Sanitizer();
 
-        assertThat(sanitizer.render(div().withText("div")))
-                .isEqualTo("<div>div</div>");
-        assertThat(sanitizer.render(div().with(
-                button().withText("alert").attr("onclick", "alert (\"Evil Code\");"))))
+        assertThat(sanitizer.render(div().withText("div"))).isEqualTo("<div>div</div>");
+        assertThat(sanitizer.render(div().with(button().withText("alert").attr("onclick", "alert (\"Evil Code\");"))))
                 .isEqualTo("<div>alert</div>");
     }
 }

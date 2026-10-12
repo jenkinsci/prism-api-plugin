@@ -1,5 +1,8 @@
 package io.jenkins.plugins.prism;
 
+import edu.hm.hafner.util.FilteredLog;
+import edu.hm.hafner.util.PathUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -13,12 +16,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.commons.lang3.StringUtils;
-
-import edu.hm.hafner.util.FilteredLog;
-import edu.hm.hafner.util.PathUtil;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Filters source code directories that are not approved in Jenkins' global configuration. A directory is considered
@@ -57,10 +55,13 @@ public class SourceDirectoryFilter {
         for (String sourceDirectory : requestedSourceDirectories) {
             if (isValidDirectory(sourceDirectory)) {
                 if (PATH_UTIL.isAbsolute(sourceDirectory) && containsNoPathMatcherPattern(sourceDirectory)) {
-                    verifyAbsoluteDirectory(normalizedWorkspacePath, allowedSourceDirectories, filteredDirectories,
-                            PATH_UTIL.getAbsolutePath(sourceDirectory), log);
-                }
-                else { // relative workspace paths are always ok
+                    verifyAbsoluteDirectory(
+                            normalizedWorkspacePath,
+                            allowedSourceDirectories,
+                            filteredDirectories,
+                            PATH_UTIL.getAbsolutePath(sourceDirectory),
+                            log);
+                } else { // relative workspace paths are always ok
                     filteredDirectories.addAll(findRelative(normalizedWorkspacePath, sourceDirectory, log));
                 }
             }
@@ -68,22 +69,26 @@ public class SourceDirectoryFilter {
         return filteredDirectories;
     }
 
-    private void verifyAbsoluteDirectory(final String workspacePath, final Set<String> allowedSourceDirectories,
-            final Set<String> filteredDirectories, final String sourceDirectory, final FilteredLog log) {
+    private void verifyAbsoluteDirectory(
+            final String workspacePath,
+            final Set<String> allowedSourceDirectories,
+            final Set<String> filteredDirectories,
+            final String sourceDirectory,
+            final FilteredLog log) {
         var normalizedSourceDirectory = PATH_UTIL.getAbsolutePath(sourceDirectory);
         if (normalizedSourceDirectory.equals(workspacePath)) {
             return; // workspace will be checked automatically
         }
         if (normalizedSourceDirectory.startsWith(workspacePath)) {
-            filteredDirectories.add(PATH_UTIL.getRelativePath(workspacePath,
-                    normalizedSourceDirectory)); // make path relative to workspace
-        }
-        else if (allowedSourceDirectories.contains(normalizedSourceDirectory)) { // add only registered absolute paths
+            filteredDirectories.add(PATH_UTIL.getRelativePath(
+                    workspacePath, normalizedSourceDirectory)); // make path relative to workspace
+        } else if (allowedSourceDirectories.contains(normalizedSourceDirectory)) { // add only registered absolute paths
             filteredDirectories.add(normalizedSourceDirectory);
-        }
-        else {
-            log.logError("Removing non-workspace source directory '%s' - "
-                    + "it has not been approved in Jenkins' global configuration.", normalizedSourceDirectory);
+        } else {
+            log.logError(
+                    "Removing non-workspace source directory '%s' - "
+                            + "it has not been approved in Jenkins' global configuration.",
+                    normalizedSourceDirectory);
         }
     }
 
@@ -104,7 +109,9 @@ public class SourceDirectoryFilter {
      * @return the matching paths
      * @see FileSystem#getPathMatcher(String)
      */
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "We are selecting relative files based on a pattern")
+    @SuppressFBWarnings(
+            value = "PATH_TRAVERSAL_IN",
+            justification = "We are selecting relative files based on a pattern")
     private List<String> findRelative(final String directory, final String pattern, final FilteredLog log) {
         if (containsNoPathMatcherPattern(pattern)) {
             return List.of(PATH_UTIL.createAbsolutePath(directory, pattern));
@@ -115,14 +122,11 @@ public class SourceDirectoryFilter {
             PathMatcherFileVisitor visitor = new PathMatcherFileVisitor(workspace, pattern);
             Files.walkFileTree(workspace, visitor);
             return visitor.getMatches();
-        }
-        catch (IllegalArgumentException exception) {
-            log.logException(exception,
-                    "Pattern not valid for FileSystem.getPathMatcher: '%s'", pattern);
-        }
-        catch (IOException exception) {
-            log.logException(exception,
-                    "Cannot find subdirectories in '%s' for glob: pattern '%s'", directory, pattern);
+        } catch (IllegalArgumentException exception) {
+            log.logException(exception, "Pattern not valid for FileSystem.getPathMatcher: '%s'", pattern);
+        } catch (IOException exception) {
+            log.logException(
+                    exception, "Cannot find subdirectories in '%s' for glob: pattern '%s'", directory, pattern);
         }
 
         return new ArrayList<>();

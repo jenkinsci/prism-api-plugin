@@ -4,20 +4,17 @@ import edu.hm.hafner.util.PathUtil;
 import edu.hm.hafner.util.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import hudson.Extension;
+import io.jenkins.plugins.util.GlobalConfigurationFacade;
+import io.jenkins.plugins.util.GlobalConfigurationItem;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.kohsuke.stapler.DataBoundSetter;
-import org.jenkinsci.Symbol;
-import hudson.Extension;
 import jenkins.model.GlobalConfigurationCategory;
-
-import io.jenkins.plugins.util.GlobalConfigurationFacade;
-import io.jenkins.plugins.util.GlobalConfigurationItem;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Global system configuration for Prism. These configuration options are used globally for all jobs and require
@@ -53,6 +50,7 @@ public class PrismConfiguration extends GlobalConfigurationItem {
      */
     @SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "Kept for compatibility")
     private transient PrismTheme theme;
+
     private boolean protectSourceCodeByPermission;
 
     /**
