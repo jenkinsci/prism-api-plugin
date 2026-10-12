@@ -1,17 +1,15 @@
 package io.jenkins.plugins.prism;
 
+import edu.hm.hafner.util.PathUtil;
+import edu.hm.hafner.util.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.FilePath;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import edu.hm.hafner.util.PathUtil;
-import edu.hm.hafner.util.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import hudson.FilePath;
 
 /**
  * Enforces security restrictions for viewing files in Jenkins. Some plugins copy source code files to Jenkins' build
@@ -39,7 +37,8 @@ public class FilePermissionEnforcer {
      *
      * @return {@code true} if the file is in the workspace, {@code false} otherwise
      */
-    public boolean isInWorkspace(final String fileName, final FilePath workspace, final String... permittedDirectories) {
+    public boolean isInWorkspace(
+            final String fileName, final FilePath workspace, final String... permittedDirectories) {
         return isInWorkspace(fileName, workspace, new HashSet<>(Arrays.asList(permittedDirectories)));
     }
 
@@ -55,11 +54,11 @@ public class FilePermissionEnforcer {
      *
      * @return {@code true} if the file is in the workspace, {@code false} otherwise
      */
-    public boolean isInWorkspace(final String fileName, final FilePath workspace, final Set<String> permittedDirectories) {
+    public boolean isInWorkspace(
+            final String fileName, final FilePath workspace, final Set<String> permittedDirectories) {
         String sourceFile = PATH_UTIL.getAbsolutePath(fileName);
-        Set<String> permittedAbsolutePaths = permittedDirectories.stream()
-                .map(PATH_UTIL::getAbsolutePath)
-                .collect(Collectors.toSet());
+        Set<String> permittedAbsolutePaths =
+                permittedDirectories.stream().map(PATH_UTIL::getAbsolutePath).collect(Collectors.toSet());
         permittedAbsolutePaths.add(workspace.getRemote());
         permittedAbsolutePaths.add(resolveWorkspace(workspace));
 
@@ -75,8 +74,7 @@ public class FilePermissionEnforcer {
             if (resolved != null) {
                 return resolved;
             }
-        }
-        catch (IOException | InterruptedException ignore) {
+        } catch (IOException | InterruptedException ignore) {
             // ignore
         }
         return workspace.getRemote();

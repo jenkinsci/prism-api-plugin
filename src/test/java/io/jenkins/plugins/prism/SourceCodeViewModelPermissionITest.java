@@ -1,10 +1,6 @@
 package io.jenkins.plugins.prism;
 
-import org.junit.jupiter.api.Test;
-import org.jvnet.hudson.test.MockAuthorizationStrategy;
-
-import java.io.StringReader;
-import java.util.Objects;
+import static org.assertj.core.api.Assertions.*;
 
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
@@ -14,12 +10,13 @@ import hudson.model.Run;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
-import jenkins.model.Jenkins;
-
 import io.jenkins.plugins.prism.Marker.MarkerBuilder;
 import io.jenkins.plugins.util.IntegrationTestWithJenkinsPerTest;
-
-import static org.assertj.core.api.Assertions.*;
+import java.io.StringReader;
+import java.util.Objects;
+import jenkins.model.Jenkins;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
  * Tests the class {@link SourceCodeViewModel} with permission checks.
@@ -28,7 +25,8 @@ import static org.assertj.core.api.Assertions.*;
  */
 class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTest {
     private static final String TEST_FILE_NAME = "Test.java";
-    private static final String TEST_SOURCE_CODE = "public class Test {\n    public static void main(String[] args) {\n        System.out.println(\"Hello\");\n    }\n}";
+    private static final String TEST_SOURCE_CODE =
+            "public class Test {\n    public static void main(String[] args) {\n        System.out.println(\"Hello\");\n    }\n}";
 
     @Test
     void shouldHandleSourceCodeViewPermissions() {
@@ -47,15 +45,15 @@ class SourceCodeViewModelPermissionITest extends IntegrationTestWithJenkinsPerTe
         try (ACLContext context = ACL.as2(alice.impersonate2())) {
             assertThat(context).isNotNull();
 
-            // By default, alice has no WORKSPACE permission, but the global Prism configuration allows viewing source code without permission
+            // By default, alice has no WORKSPACE permission, but the global Prism configuration allows viewing source
+            // code without permission
             var view = createView(build);
 
-            assertThat(view).isInstanceOfSatisfying(SourceCodeViewModel.class,
-                    sourceCodeView -> {
-                        assertThat(sourceCodeView.getDisplayName()).isEqualTo(TEST_FILE_NAME);
-                        assertThat(sourceCodeView.getSourceCode()).contains("public class Test");
-                        assertThat(sourceCodeView.getOwner()).isEqualTo(build);
-                    });
+            assertThat(view).isInstanceOfSatisfying(SourceCodeViewModel.class, sourceCodeView -> {
+                assertThat(sourceCodeView.getDisplayName()).isEqualTo(TEST_FILE_NAME);
+                assertThat(sourceCodeView.getSourceCode()).contains("public class Test");
+                assertThat(sourceCodeView.getOwner()).isEqualTo(build);
+            });
 
             PrismConfiguration.getInstance().setProtectSourceCodeByPermission(true);
 

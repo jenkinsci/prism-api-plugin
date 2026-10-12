@@ -1,14 +1,12 @@
 package io.jenkins.plugins.prism;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import static org.assertj.core.api.Assertions.*;
 
 import io.jenkins.plugins.casc.ConfigurationAsCode;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.util.IntegrationTestWithJenkinsPerTest;
-
-import static org.assertj.core.api.Assertions.*;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 /**
  * Checks whether all source directories can be imported using the configuration-as-code plug-in.
@@ -23,7 +21,8 @@ class ConfigurationAsCodeITest extends IntegrationTestWithJenkinsPerTest {
     void shouldImportSourceDirectoriesFromYaml() {
         configureJenkins("sourceDirectories.yaml");
 
-        List<PermittedSourceCodeDirectory> folders = PrismConfiguration.getInstance().getSourceDirectories();
+        List<PermittedSourceCodeDirectory> folders =
+                PrismConfiguration.getInstance().getSourceDirectories();
         assertThat(folders.stream().map(PermittedSourceCodeDirectory::getPath))
                 .hasSize(2)
                 .containsExactlyInAnyOrder("C:\\Windows", "/absolute");
@@ -39,9 +38,9 @@ class ConfigurationAsCodeITest extends IntegrationTestWithJenkinsPerTest {
 
     private void configureJenkins(final String fileName) {
         try {
-            ConfigurationAsCode.get().configure(getResourceAsFile(fileName).toUri().toString());
-        }
-        catch (ConfiguratorException e) {
+            ConfigurationAsCode.get()
+                    .configure(getResourceAsFile(fileName).toUri().toString());
+        } catch (ConfiguratorException e) {
             throw new AssertionError(e);
         }
     }

@@ -1,21 +1,18 @@
 package io.jenkins.plugins.prism;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import edu.hm.hafner.util.ResourceTest;
+import io.jenkins.plugins.prism.Marker.MarkerBuilder;
+import io.jenkins.plugins.util.JenkinsFacade;
+import java.util.stream.Stream;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import edu.hm.hafner.util.ResourceTest;
-
-import io.jenkins.plugins.prism.Marker.MarkerBuilder;
-import io.jenkins.plugins.util.JenkinsFacade;
-
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Tests the class {@link SourcePrinter}.
@@ -47,7 +44,10 @@ class SourcePrinterTest extends ResourceTest {
     @Test
     void shouldCreateSourceWithLineNumber() {
         MarkerBuilder builder = new MarkerBuilder();
-        Marker issue = builder.withLineStart(7).withTitle(MESSAGE).withDescription(DESCRIPTION).build();
+        Marker issue = builder.withLineStart(7)
+                .withTitle(MESSAGE)
+                .withDescription(DESCRIPTION)
+                .build();
 
         SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
 
@@ -55,10 +55,8 @@ class SourcePrinterTest extends ResourceTest {
 
         assertThatCodeIsEqualToSourceText(document);
 
-        assertThat(document.getElementsByClass("analysis-warning-title").text())
-                .isEqualTo(MESSAGE);
-        assertThat(document.getElementsByClass("analysis-detail").text())
-                .isEqualTo(DESCRIPTION);
+        assertThat(document.getElementsByClass("analysis-warning-title").text()).isEqualTo(MESSAGE);
+        assertThat(document.getElementsByClass("analysis-detail").text()).isEqualTo(DESCRIPTION);
     }
 
     private void assertThatCodeIsEqualToSourceText(final Document document) {
@@ -77,8 +75,7 @@ class SourcePrinterTest extends ResourceTest {
 
         assertThatCodeIsEqualToSourceText(document);
 
-        assertThat(document.getElementsByClass("analysis-warning-title").text())
-                .isEqualTo(MESSAGE);
+        assertThat(document.getElementsByClass("analysis-warning-title").text()).isEqualTo(MESSAGE);
         assertThat(document.getElementsByClass("analysis-detail")).isEmpty();
         assertThat(document.getElementsByClass("collapse-panel")).isEmpty();
     }
@@ -86,7 +83,10 @@ class SourcePrinterTest extends ResourceTest {
     @Test
     void shouldCreateIcon() {
         MarkerBuilder builder = new MarkerBuilder();
-        Marker issue = builder.withLineStart(7).withTitle("Hello Message").withIcon(ICON).build();
+        Marker issue = builder.withLineStart(7)
+                .withTitle("Hello Message")
+                .withIcon(ICON)
+                .build();
 
         JenkinsFacade jenkins = mock(JenkinsFacade.class);
         when(jenkins.getImagePath(ICON)).thenReturn("/resolved");
@@ -96,7 +96,8 @@ class SourcePrinterTest extends ResourceTest {
 
         assertThatCodeIsEqualToSourceText(document);
 
-        assertThat(document.getElementsByClass("analysis-title").html()).contains("<td><img src=\"/resolved\" class=\"icon-md\"></td>");
+        assertThat(document.getElementsByClass("analysis-title").html())
+                .contains("<td><img src=\"/resolved\" class=\"icon-md\"></td>");
     }
 
     @Test
@@ -108,10 +109,9 @@ class SourcePrinterTest extends ResourceTest {
 
         Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-jelly.txt"), issue));
         assertThat(document.getElementsByTag("code").html())
-                .isEqualTo(
-                        "&lt;l:main-panel&gt;Before&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;\n"
-                                + "&lt;l:main-panel&gt;Warning&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;\n"
-                                + "&lt;l:main-panel&gt;After&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;");
+                .isEqualTo("&lt;l:main-panel&gt;Before&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;\n"
+                        + "&lt;l:main-panel&gt;Warning&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;\n"
+                        + "&lt;l:main-panel&gt;After&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;");
     }
 
     @Test
@@ -148,8 +148,8 @@ class SourcePrinterTest extends ResourceTest {
         SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
         Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-cpp.txt"), issue));
 
-        assertThat(document.getElementsByTag("code").html()).isEqualTo(
-                "#include &lt;iostream&gt;\n"
+        assertThat(document.getElementsByTag("code").html())
+                .isEqualTo("#include &lt;iostream&gt;\n"
                         + "\n"
                         + "int main(int argc, char**argv) {\n"
                         + "int b = <span class=\"code-mark\">std::move(argc)</span>;\n"
@@ -172,8 +172,8 @@ class SourcePrinterTest extends ResourceTest {
         SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
         Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-cpp.txt"), issue));
 
-        assertThat(document.getElementsByTag("code").toString()).isEqualTo(
-                "<code class=\"language-clike line-numbers match-braces\">#include &lt;iostream&gt;\n"
+        assertThat(document.getElementsByTag("code").toString())
+                .isEqualTo("<code class=\"language-clike line-numbers match-braces\">#include &lt;iostream&gt;\n"
                         + "</code>\n"
                         + "<code class=\"language-clike line-numbers highlight match-braces\">\n"
                         + "int main(int argc, char**argv) {\n"
@@ -184,15 +184,16 @@ class SourcePrinterTest extends ResourceTest {
                         + "  std::cout &lt;&lt; \"Hello, World!\" &lt;&lt; argc &lt;&lt; std::endl;\n"
                         + "  return 0;\n"
                         + "}\n"
-                        + "</code>"
-        );
+                        + "</code>");
     }
 
     @Test
     void shouldAddBreakOnNewLine() {
         MarkerBuilder builder = new MarkerBuilder();
 
-        Marker issue = builder.withLineStart(7).withTitle("Hello <b>MessageLine1\nLine2\nLine3</b>").build();
+        Marker issue = builder.withLineStart(7)
+                .withTitle("Hello <b>MessageLine1\nLine2\nLine3</b>")
+                .build();
 
         SourcePrinter printer = new SourcePrinter();
 
@@ -231,10 +232,8 @@ class SourcePrinterTest extends ResourceTest {
 
         Document document = Jsoup.parse(printer.render("sample.ts", Stream.of("const answer: number = 42;"), issue));
 
-        assertThat(document.getElementsByTag("code").first())
-                .isNotNull();
-        assertThat(document.getElementsByTag("code").first().classNames())
-                .contains("language-typescript");
+        assertThat(document.getElementsByTag("code").first()).isNotNull();
+        assertThat(document.getElementsByTag("code").first().classNames()).contains("language-typescript");
     }
 
     @Test
@@ -243,27 +242,28 @@ class SourcePrinterTest extends ResourceTest {
         Marker issue = new MarkerBuilder().withLineStart(7).build();
         SourcePrinter printer = new SourcePrinter();
 
-        Document document = Jsoup.parse(printer.render("sample.ts", Stream.of(
-                "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
-                "<!DOCTYPE TS>",
-                "<TS version=\"2.1\" language=\"en_US\">",
-                "  <context>",
-                "    <name>MainWindow</name>",
-                "    <message>",
-                "      <source>Hello, world!</source>",
-                "      <translation>Hello, world!</translation>",
-                "    </message>",
-                "    <message>",
-                "      <source>File not found</source>",
-                "      <translation>File not found</translation>",
-                "    </message>",
-                "  </context>",
-                "</TS>"), issue));
+        Document document = Jsoup.parse(printer.render(
+                "sample.ts",
+                Stream.of(
+                        "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
+                        "<!DOCTYPE TS>",
+                        "<TS version=\"2.1\" language=\"en_US\">",
+                        "  <context>",
+                        "    <name>MainWindow</name>",
+                        "    <message>",
+                        "      <source>Hello, world!</source>",
+                        "      <translation>Hello, world!</translation>",
+                        "    </message>",
+                        "    <message>",
+                        "      <source>File not found</source>",
+                        "      <translation>File not found</translation>",
+                        "    </message>",
+                        "  </context>",
+                        "</TS>"),
+                issue));
 
-        assertThat(document.getElementsByTag("code").first())
-                .isNotNull();
-        assertThat(document.getElementsByTag("code").first().classNames())
-                .contains("language-markup");
+        assertThat(document.getElementsByTag("code").first()).isNotNull();
+        assertThat(document.getElementsByTag("code").first().classNames()).contains("language-markup");
     }
 
     @Test
@@ -272,15 +272,13 @@ class SourcePrinterTest extends ResourceTest {
         Marker issue = new MarkerBuilder().withLineStart(2_500).build();
         SourcePrinter printer = new SourcePrinter();
 
-        Document document = Jsoup.parse(printer.render("sample.xml",
-                Stream.generate(() -> "line").limit(5_001), issue));
+        Document document = Jsoup.parse(
+                printer.render("sample.xml", Stream.generate(() -> "line").limit(5_001), issue));
 
-        assertThat(document.getElementsByTag("code").first())
-                .isNotNull();
+        assertThat(document.getElementsByTag("code").first()).isNotNull();
         assertThat(document.getElementsByTag("code").first().classNames())
                 .doesNotContain("language-markup", "line-numbers", "match-braces");
-        assertThat(document.getElementsByTag("code").get(1).classNames())
-                .containsExactly("highlight");
+        assertThat(document.getElementsByTag("code").get(1).classNames()).containsExactly("highlight");
     }
 
     @Test
@@ -289,11 +287,10 @@ class SourcePrinterTest extends ResourceTest {
         Marker issue = new MarkerBuilder().withLineStart(2_500).build();
         SourcePrinter printer = new SourcePrinter();
 
-        Document document = Jsoup.parse(printer.render("sample.xml",
-                Stream.generate(() -> "line").limit(5_000), issue));
+        Document document = Jsoup.parse(
+                printer.render("sample.xml", Stream.generate(() -> "line").limit(5_000), issue));
 
-        assertThat(document.getElementsByTag("code").first())
-                .isNotNull();
+        assertThat(document.getElementsByTag("code").first()).isNotNull();
         assertThat(document.getElementsByTag("code").first().classNames())
                 .contains("language-markup", "line-numbers", "match-braces");
     }
@@ -308,99 +305,85 @@ class SourcePrinterTest extends ResourceTest {
     class ColumnMarkerTest {
         @Test
         void withColumnStartZeroThenDontMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 0, 0))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 0, 0))
                     .contains("text that could be code");
         }
 
         @Test
         void givenColumnStartAndColumnEndZeroThenMarkFromStartToLineEnd() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 6, 0))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 0))
                     .contains("text OpEnMARKthat could be codeClOsEMARK");
         }
 
         @Test
         void givenColumnStartAndColumnEndwithColumnEndPointingToLineEndThenMarkFromStartToLineEnd() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 6, 23))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 23))
                     .contains("text OpEnMARKthat could be codeClOsEMARK");
         }
 
         @Test
         void givenColumnStartAndColumnEndThenMarkFromColumnStartToColumnEnd() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 6, 10))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 10))
                     .contains("text OpEnMARKthat ClOsEMARKcould be code");
         }
 
         @Test
         void givenColumnStartAndColumnEndWithDifferenceOfOneThenMarkFromColumnStartToColumnEnd() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 6, 7))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 7))
                     .contains("text OpEnMARKthClOsEMARKat could be code");
         }
 
         @Test
         void givenColumnStartAndColumnEndWithSameValueThenMarkOneCharacter() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 6, 6))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 6))
                     .contains("text OpEnMARKtClOsEMARKhat could be code");
         }
 
         @Test
         void givenAnEmptyTextThenMarkNothing() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("", 6, 6))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("", 6, 6))
                     .contains("");
         }
 
         @Test
         void givenColumnStartWithValueOneThenMarkTheLineFromBegin() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 1, 6))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 1, 6))
                     .contains("OpEnMARKtext tClOsEMARKhat could be code");
         }
 
         @Test
         void givenColumnStartWithValueOfTheLastCharacterThenMarkTheLastCharacter() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 23, 0))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 23, 0))
                     .contains("text that could be codOpEnMARKeClOsEMARK");
         }
 
         @Test
         void givenColumnStartWithValueOfBehindColumnEndThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 23, 10))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 23, 10))
                     .contains("text that could be code");
         }
 
         @Test
         void givenColumnStartIsAfterLineEndThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 30, 10))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 30, 10))
                     .contains("text that could be code");
         }
 
         @Test
         void givenColumnStartIsNegativeThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", -1, 10))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", -1, 10))
                     .contains("text that could be code");
         }
 
         @Test
         void givenColumnEndIsNegativeThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 1, -1))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 1, -1))
                     .contains("text that could be code");
         }
 
         @Test
         void givenColumnEndIsAfterLineEndThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK")
-                    .markColumns("text that could be code", 1, 24))
+            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 1, 24))
                     .contains("text that could be code");
         }
     }

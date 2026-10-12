@@ -1,25 +1,21 @@
 package io.jenkins.plugins.prism;
 
-import org.apache.commons.lang3.StringUtils;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
-
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.Objects;
-
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.verb.POST;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.util.FormValidation;
-
 import io.jenkins.plugins.util.JenkinsFacade;
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * A relative or absolute directory that contains source code files that can be shown in Jenkins´ user interface.
@@ -93,8 +89,8 @@ public final class SourceCodeDirectory implements Describable<SourceCodeDirector
          * @return the validation result
          */
         @POST
-        public FormValidation doCheckPath(@AncestorInPath final AbstractProject<?, ?> project,
-                @QueryParameter final String path) {
+        public FormValidation doCheckPath(
+                @AncestorInPath final AbstractProject<?, ?> project, @QueryParameter final String path) {
             if (!JENKINS.hasPermission(Item.CONFIGURE, project)) {
                 return FormValidation.ok();
             }
@@ -103,4 +99,3 @@ public final class SourceCodeDirectory implements Describable<SourceCodeDirector
         }
     }
 }
-

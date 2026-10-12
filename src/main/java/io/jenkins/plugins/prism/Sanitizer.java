@@ -1,15 +1,11 @@
 package io.jenkins.plugins.prism;
 
-import java.io.IOException;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import edu.hm.hafner.util.VisibleForTesting;
-
-import j2html.tags.DomContent;
-
 import hudson.markup.MarkupFormatter;
 import hudson.markup.RawHtmlMarkupFormatter;
+import j2html.tags.DomContent;
+import java.io.IOException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 /**
  * Sanitizes a piece of unsafe HTML code so that it can be rendered in a UI view. This class serves as simple
@@ -37,8 +33,7 @@ public class Sanitizer {
     public String render(final String html) {
         try {
             return formatter.translate(html);
-        }
-        catch (IOException exception) {
+        } catch (IOException exception) {
             return ExceptionUtils.getRootCauseMessage(exception);
         }
     }

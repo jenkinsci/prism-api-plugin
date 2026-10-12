@@ -1,16 +1,13 @@
 package io.jenkins.plugins.prism;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.Reader;
-
 import hudson.model.Job;
 import hudson.model.ModelObject;
 import hudson.model.Run;
-
 import io.jenkins.plugins.util.JenkinsFacade;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.Reader;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 /**
  * Renders a source code file with Prism syntax highlighting in a separate Jenkins view. Optionally, highlights a marker
@@ -42,8 +39,8 @@ public class SourceCodeViewModel implements ModelObject {
      *         the name of the file being viewed
      * @return the protected view (either original view or {@link PermissionDeniedViewModel})
      */
-    public static ModelObject protectedSourceCodeView(final ModelObject view, final Run<?, ?> owner,
-            final String fileName) {
+    public static ModelObject protectedSourceCodeView(
+            final ModelObject view, final Run<?, ?> owner, final String fileName) {
         if (hasPermissionToViewSourceCode(owner)) {
             return view;
         }
@@ -64,12 +61,10 @@ public class SourceCodeViewModel implements ModelObject {
      *         a block of lines (or a part of a line) to mark in the source code view
      * @return a {@link SourceCodeViewModel} if permission is granted, or a {@link PermissionDeniedViewModel} otherwise
      */
-    public static ModelObject create(final Run<?, ?> owner, final String fileName,
-            final Reader sourceCodeReader, final Marker marker) {
+    public static ModelObject create(
+            final Run<?, ?> owner, final String fileName, final Reader sourceCodeReader, final Marker marker) {
         return protectedSourceCodeView(
-                new SourceCodeViewModel(owner, fileName, sourceCodeReader, marker),
-                owner,
-                fileName);
+                new SourceCodeViewModel(owner, fileName, sourceCodeReader, marker), owner, fileName);
     }
 
     private final Run<?, ?> owner;
@@ -91,8 +86,8 @@ public class SourceCodeViewModel implements ModelObject {
      */
     @Deprecated
     @SuppressWarnings("DeprecatedIsStillUsed")
-    public SourceCodeViewModel(final Run<?, ?> owner, final String fileName, final Reader sourceCodeReader,
-            final Marker marker) {
+    public SourceCodeViewModel(
+            final Run<?, ?> owner, final String fileName, final Reader sourceCodeReader, final Marker marker) {
         this.owner = owner;
         this.fileName = fileName;
         sourceCode = render(sourceCodeReader, marker);
@@ -106,8 +101,7 @@ public class SourceCodeViewModel implements ModelObject {
         try (BufferedReader reader = new BufferedReader(affectedFile)) {
             SourcePrinter sourcePrinter = new SourcePrinter();
             return sourcePrinter.render(fileName, reader.lines(), marker);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             return String.format("%s%n%s", ExceptionUtils.getMessage(e), ExceptionUtils.getStackTrace(e));
         }
     }
@@ -135,4 +129,3 @@ public class SourceCodeViewModel implements ModelObject {
         return sourceCode;
     }
 }
-

@@ -1,12 +1,11 @@
 package io.jenkins.plugins.prism;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import hudson.model.Run;
-
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import hudson.model.Run;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Tests the class {@link PermissionDeniedViewModel}.
@@ -15,11 +14,7 @@ import static org.mockito.Mockito.*;
  */
 class PermissionDeniedViewModelTest {
     @ParameterizedTest(name = "Should return correct display name for file name: {0}")
-    @ValueSource(strings = {
-            "restricted/source/File.java",
-            "",
-            "file with spaces & special-chars.txt"
-    })
+    @ValueSource(strings = {"restricted/source/File.java", "", "file with spaces & special-chars.txt"})
     void shouldReturnCorrectDisplayName(final String fileName) {
         Run<?, ?> build = mock(Run.class);
 

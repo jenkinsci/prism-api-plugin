@@ -1,17 +1,14 @@
 package io.jenkins.plugins.prism;
 
+import edu.hm.hafner.util.FilteredLog;
+import hudson.model.Run;
+import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.apache.commons.io.FileUtils;
-
-import edu.hm.hafner.util.FilteredLog;
-
 import org.jvnet.localizer.LocaleProvider;
 import org.jvnet.localizer.Localizable;
-import hudson.model.Run;
-import hudson.util.ListBoxModel;
 
 /**
  * Defines the retention strategy for source code files.
@@ -41,6 +38,7 @@ public enum SourceCodeRetention {
 
     @SuppressWarnings("PMD.NonSerializableClass")
     private final Cleanup cleanupStrategy;
+
     private final Localizable localizable;
 
     SourceCodeRetention(final Cleanup cleanupStrategy, final Localizable localizable) {
@@ -76,17 +74,17 @@ public enum SourceCodeRetention {
         @Override
         void clean(final Run<?, ?> currentBuild, final String directory, final FilteredLog log) {
             for (Run<?, ?> build = currentBuild.getPreviousCompletedBuild();
-                    build != null; build = build.getPreviousCompletedBuild()) {
+                    build != null;
+                    build = build.getPreviousCompletedBuild()) {
                 Path buildDir = build.getRootDir().toPath();
                 Path sourcesFolder = buildDir.resolve(directory);
                 if (Files.exists(sourcesFolder)) {
                     try {
                         FileUtils.deleteDirectory(sourcesFolder.toFile());
                         log.logInfo("Deleting source code files of build " + build.getDisplayName());
-                    }
-                    catch (IOException exception) {
-                        log.logException(exception,
-                                "Could not delete source code files of build " + build.getDisplayName());
+                    } catch (IOException exception) {
+                        log.logException(
+                                exception, "Could not delete source code files of build " + build.getDisplayName());
                     }
                 }
             }

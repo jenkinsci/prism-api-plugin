@@ -19,8 +19,14 @@ public class Marker {
     private final int columnStart;
     private final int columnEnd;
 
-    Marker(final String title, final String icon, final String description,
-            final int lineStart, final int lineEnd, final int columnStart, final int columnEnd) {
+    Marker(
+            final String title,
+            final String icon,
+            final String description,
+            final int lineStart,
+            final int lineEnd,
+            final int columnStart,
+            final int columnEnd) {
         this.title = title;
         this.icon = icon;
         this.description = description;
@@ -175,8 +181,7 @@ public class Marker {
             if (providedLineStart == 0) {
                 this.lineStart = providedLineEnd;
                 this.lineEnd = providedLineEnd;
-            }
-            else {
+            } else {
                 this.lineStart = Math.min(providedLineStart, providedLineEnd);
                 this.lineEnd = Math.max(providedLineStart, providedLineEnd);
             }
@@ -186,8 +191,7 @@ public class Marker {
             if (providedColumnStart == 0) {
                 this.columnStart = providedColumnEnd;
                 this.columnEnd = providedColumnEnd;
-            }
-            else {
+            } else {
                 this.columnStart = Math.min(providedColumnStart, providedColumnEnd);
                 this.columnEnd = Math.max(providedColumnStart, providedColumnEnd);
             }
