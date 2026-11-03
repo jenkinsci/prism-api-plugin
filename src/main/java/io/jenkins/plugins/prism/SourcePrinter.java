@@ -1,6 +1,12 @@
 package io.jenkins.plugins.prism;
 
-import static j2html.TagCreator.*;
+import static j2html.TagCreator.code;
+import static j2html.TagCreator.div;
+import static j2html.TagCreator.img;
+import static j2html.TagCreator.pre;
+import static j2html.TagCreator.table;
+import static j2html.TagCreator.td;
+import static j2html.TagCreator.tr;
 
 import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
