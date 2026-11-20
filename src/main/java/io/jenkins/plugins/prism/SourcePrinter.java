@@ -1,26 +1,26 @@
 package io.jenkins.plugins.prism;
 
 import static j2html.TagCreator.code;
+import static j2html.TagCreator.details;
 import static j2html.TagCreator.div;
 import static j2html.TagCreator.img;
 import static j2html.TagCreator.pre;
-import static j2html.TagCreator.table;
-import static j2html.TagCreator.td;
-import static j2html.TagCreator.tr;
+import static j2html.TagCreator.span;
+import static j2html.TagCreator.summary;
 
-import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
+import io.jenkins.plugins.prism.MarkerLayout.ColumnRange;
+import io.jenkins.plugins.prism.MarkerLayout.PositionedMarker;
 import io.jenkins.plugins.util.JenkinsFacade;
-import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
+import java.util.List;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
-import org.jenkins.ui.symbol.SymbolRequest.Builder;
 
 /**
  * Renders a source code file into a HTML snippet using Prism.js.
@@ -38,6 +38,8 @@ class SourcePrinter {
     private static final String LINE_NUMBERS = "line-numbers";
     private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
+    private static final String MARKER_HEADER = "prism-marker__header";
+    private static final String MARKER_ICON = "prism-marker__icon";
     private static final char NEW_LINE = '\n';
 
     private final JenkinsFacade jenkinsFacade;
@@ -55,48 +57,109 @@ class SourcePrinter {
     }
 
     /**
-     * Creates a colorized HTML snippet with the specified source code. Highlights the specified issue and provides a
-     * clickable and collapsible element that shows the details for the issue.
+     * Creates a colorized HTML snippet with the specified source code. Highlights the specified marker and provides a
+     * clickable and collapsible element that shows the details for the marker.
      *
      * @param fileName
      *         the file name of the source code file
      * @param lines
      *         the lines of the source code
      * @param marker
-     *         the issue to show
+     *         the marker to show
      *
      * @return the source code as colorized HTML
      */
     String render(final String fileName, final Stream<String> lines, final Marker marker) {
-        try (LookaheadStream stream = new LookaheadStream(lines)) {
-            int start = marker.getLineStart();
-            int end = marker.getLineEnd();
+        return render(fileName, lines, List.of(marker));
+    }
 
-            StringBuilder before = readBlockUntilLine(stream, start - 1);
-            StringBuilder marked = readBlockUntilLine(stream, end);
-            StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
+    /**
+     * Creates a colorized HTML snippet with the specified source code. Highlights all specified markers and shows the
+     * details of each marker (title and description) in a box after the last line of the marker. Markers may
+     * overlap, and several markers may refer to the same line.
+     *
+     * @param fileName
+     *         the file name of the source code file
+     * @param lines
+     *         the lines of the source code
+     * @param markers
+     *         the markers to show, the list may be empty
+     *
+     * @return the source code as colorized HTML
+     */
+    String render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
+        List<String> source = lines.toList();
 
-            String language = selectLanguageClass(fileName, before);
-            boolean enableSyntaxHighlighting = shouldEnableSyntaxHighlighting(before, marked, after);
-            String code = asCode(before, getCodeClasses(language, enableSyntaxHighlighting))
-                    + asMarkedCode(marked, marker, getMarkedCodeClasses(language, enableSyntaxHighlighting))
-                    + createInfoPanel(marker)
-                    + asCode(after, getCodeClasses(language, enableSyntaxHighlighting));
+        String language = selectLanguageClass(fileName, source);
+        boolean enableSyntaxHighlighting = source.size() <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
+        String[] codeClasses = getCodeClasses(language, enableSyntaxHighlighting);
+        String[] markedCodeClasses = getMarkedCodeClasses(language, enableSyntaxHighlighting);
 
-            return pre().with(new UnescapedText(code)).renderFormatted();
+        var layout = new MarkerLayout(markers, source.size());
+        var code = new StringBuilder();
+        appendMarkers(code, layout.getMarkersAfter(0));
+
+        var block = new StringBuilder();
+        boolean isBlockMarked = false;
+        for (int line = 1; line <= source.size(); line++) {
+            boolean isLineMarked = layout.isMarked(line);
+            if (isLineMarked != isBlockMarked) {
+                appendBlock(code, block, isBlockMarked, codeClasses, markedCodeClasses);
+                isBlockMarked = isLineMarked;
+            }
+            String text = source.get(line - 1);
+            block.append(isLineMarked ? markColumns(text, layout.getColumnRanges(line)) : text)
+                    .append(NEW_LINE);
+
+            var markersAfterLine = layout.getMarkersAfter(line);
+            if (!markersAfterLine.isEmpty()) {
+                appendBlock(code, block, isBlockMarked, codeClasses, markedCodeClasses);
+                appendMarkers(code, markersAfterLine);
+            }
+        }
+        appendBlock(code, block, isBlockMarked, codeClasses, markedCodeClasses);
+
+        return pre().with(new UnescapedText(code.toString())).renderFormatted();
+    }
+
+    @SuppressWarnings("PMD.UseVarargs")
+    private void appendBlock(
+            final StringBuilder code,
+            final StringBuilder block,
+            final boolean isMarked,
+            final String[] codeClasses,
+            final String[] markedCodeClasses) {
+        if (block.isEmpty()) {
+            return;
+        }
+        if (isMarked) {
+            code.append(asMarkedCode(block, markedCodeClasses));
+        } else {
+            code.append(asCode(block, codeClasses));
+        }
+        block.setLength(0);
+    }
+
+    private void appendMarkers(final StringBuilder code, final List<PositionedMarker> markers) {
+        for (PositionedMarker positioned : markers) {
+            if (hasText(positioned.marker())) {
+                code.append(createInfoPanel(positioned.marker(), positioned.id()));
+            }
         }
     }
 
-    private boolean shouldEnableSyntaxHighlighting(
-            final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
-        return countLines(before) + countLines(marked) + countLines(after) <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
+    private boolean hasText(final Marker marker) {
+        return StringUtils.isNotBlank(marker.getTitle()) || StringUtils.isNotBlank(marker.getDescription());
     }
 
-    private int countLines(final StringBuilder text) {
-        if (text.isEmpty()) {
-            return 0;
+    private String markColumns(final String text, final List<ColumnRange> ranges) {
+        var marked = new StringBuilder(text);
+        // Mark the ranges from right to left, so the columns of the remaining ranges are still valid
+        for (int i = ranges.size() - 1; i >= 0; i--) {
+            var range = ranges.get(i);
+            marked = COLUMN_MARKER.markColumns(marked.toString(), range.start(), Math.min(range.end(), text.length()));
         }
-        return (int) text.chars().filter(c -> c == NEW_LINE).count();
+        return marked.toString();
     }
 
     private String[] getCodeClasses(final String language, final boolean enableSyntaxHighlighting) {
@@ -113,66 +176,40 @@ class SourcePrinter {
         return new String[] {"highlight"};
     }
 
-    private StringBuilder readBlockUntilLine(final LookaheadStream stream, final int end) {
-        StringBuilder marked = new StringBuilder();
-        while (stream.hasNext() && stream.getLine() < end) {
-            marked.append(stream.next());
-            marked.append(NEW_LINE);
-        }
-        return marked;
-    }
-
-    private String createInfoPanel(final Marker marker) {
-        return createBox(marker).withClass("analysis-warning").render();
-    }
-
-    private ContainerTag createBox(final Marker marker) {
-        if (StringUtils.isEmpty(marker.getDescription())) {
-            return createTitle(marker, false);
+    private String createInfoPanel(final Marker marker, final String id) {
+        var panel = div().withClass("prism-marker")
+                .withId(id)
+                .attr("data-line-start", marker.getLineStart())
+                .attr("data-line-end", marker.getLineEnd());
+        if (StringUtils.isBlank(marker.getDescription())) {
+            panel.with(div().withClass(MARKER_HEADER).with(createTitle(marker)));
         } else {
-            return createTitleAndCollapsedDescription(marker, marker.getDescription());
+            panel.with(details()
+                    .withClass("prism-marker__details")
+                    .with(
+                            summary().withClass(MARKER_HEADER).with(createTitle(marker)),
+                            div().withClass("prism-marker__description").with(unescape(marker.getDescription()))));
         }
+        return panel.render();
+    }
+
+    private List<DomContent> createTitle(final Marker marker) {
+        var title = span().withClass("prism-marker__title").with(replaceNewLine(marker.getTitle()));
+        if (StringUtils.isBlank(marker.getIcon())) {
+            return List.of(title);
+        }
+        return List.of(createIcon(marker.getIcon()), title);
     }
 
     private DomContent createIcon(final String name) {
         if (name.startsWith("symbol")) {
             String symbol = Symbol.get(new SymbolRequest.Builder()
                     .withRaw(name)
-                    .withClasses(ICON_MD)
+                    .withClasses(ICON_MD + " " + MARKER_ICON)
                     .build());
             return new UnescapedText(symbol);
         }
-        return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(ICON_MD);
-    }
-
-    private ContainerTag createTitle(final Marker marker, final boolean isCollapseVisible) {
-        return div().with(table().withClass("analysis-title")
-                .with(tr().with(
-                                td().with(createIcon(marker.getIcon())),
-                                td().withClass("analysis-title-column")
-                                        .with(div().withClass("analysis-warning-title")
-                                                .with(replaceNewLine(marker.getTitle()))),
-                                createCollapseButton(isCollapseVisible))));
-    }
-
-    private ContainerTag createCollapseButton(final boolean isCollapseVisible) {
-        ContainerTag td = td();
-        if (isCollapseVisible) {
-            td.with(new UnescapedText(jenkinsFacade.getSymbol(new Builder()
-                    .withName("chevron-down-circle-outline")
-                    .withPluginName("ionicons-api")
-                    .withClasses("analysis-collapse-icon")
-                    .build())));
-        }
-        return td;
-    }
-
-    private ContainerTag createTitleAndCollapsedDescription(final Marker marker, final String description) {
-        return div().with(
-                        div().withClass("analysis-collapse-button").with(createTitle(marker, true)),
-                        div().withClasses("collapse", "analysis-detail")
-                                .with(unescape(description))
-                                .withId("analysis-description"));
+        return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(ICON_MD, MARKER_ICON);
     }
 
     private UnescapedText replaceNewLine(final String message) {
@@ -184,10 +221,10 @@ class SourcePrinter {
     }
 
     @SuppressWarnings({"javancss", "PMD.CyclomaticComplexity"})
-    private String selectLanguageClass(final String fileName, final StringBuilder before) {
+    private String selectLanguageClass(final String fileName, final List<String> lines) {
         String extension = StringUtils.substringAfterLast(fileName, ".");
 
-        if ("ts".equals(extension) && Strings.CS.contains(before, QT_LINGUIST_PATTERN)) {
+        if ("ts".equals(extension) && lines.stream().anyMatch(line -> Strings.CS.contains(line, QT_LINGUIST_PATTERN))) {
             return "language-markup";
         }
 
@@ -220,15 +257,8 @@ class SourcePrinter {
         };
     }
 
-    private String asMarkedCode(final StringBuilder text, final Marker marker, final String... classes) {
-        StringBuilder marked;
-        if (marker.getLineStart() == marker.getLineEnd()) {
-            marked = COLUMN_MARKER.markColumns(text.toString(), marker.getColumnStart(), marker.getColumnEnd());
-        } else {
-            marked = text;
-        }
-
-        String sanitized = SANITIZER.render(StringEscapeUtils.escapeHtml4(marked.toString()));
+    private String asMarkedCode(final StringBuilder text, final String... classes) {
+        String sanitized = SANITIZER.render(StringEscapeUtils.escapeHtml4(text.toString()));
         String markerReplaced = COLUMN_MARKER.replacePlaceHolderWithHtmlTag(sanitized);
         return code().withClasses(classes)
                 .with(new UnescapedText(markerReplaced))

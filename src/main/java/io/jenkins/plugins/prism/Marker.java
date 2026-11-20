@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 @SuppressWarnings("PMD.DataClass")
 public class Marker {
+    private final String id;
     private final String title;
     private final String icon;
     private final String description;
@@ -19,7 +20,9 @@ public class Marker {
     private final int columnStart;
     private final int columnEnd;
 
+    @SuppressWarnings("checkstyle:ParameterNumber")
     Marker(
+            final String id,
             final String title,
             final String icon,
             final String description,
@@ -27,6 +30,7 @@ public class Marker {
             final int lineEnd,
             final int columnStart,
             final int columnEnd) {
+        this.id = id;
         this.title = title;
         this.icon = icon;
         this.description = description;
@@ -34,6 +38,16 @@ public class Marker {
         this.lineEnd = lineEnd;
         this.columnStart = columnStart;
         this.columnEnd = columnEnd;
+    }
+
+    /**
+     * Returns the ID of this marker. The ID is used as ID of the HTML element that shows the marker in the source
+     * code view, so it can be used as fragment of a URL to select and scroll to the marker.
+     *
+     * @return the ID of the marker, or an empty string if no ID has been defined
+     */
+    public String getId() {
+        return id;
     }
 
     public String getTitle() {
@@ -71,6 +85,7 @@ public class Marker {
      */
     @SuppressWarnings({"ParameterHidesMemberVariable", "checkstyle:HiddenField"})
     public static class MarkerBuilder {
+        private String id = StringUtils.EMPTY;
         private String title = StringUtils.EMPTY;
         private String icon = StringUtils.EMPTY;
         private String description = StringUtils.EMPTY;
@@ -78,6 +93,21 @@ public class Marker {
         private int lineEnd;
         private int columnStart;
         private int columnEnd;
+
+        /**
+         * Defines the ID of the marker. The ID is used as ID of the HTML element that shows the marker in the source
+         * code view, so it must be unique within a source code view. If no ID is defined, then a unique ID is
+         * generated when the source code is rendered.
+         *
+         * @param id
+         *         the ID of the marker
+         *
+         * @return this builder
+         */
+        public MarkerBuilder withId(final String id) {
+            this.id = id;
+            return this;
+        }
 
         /**
          * Defines the title of the marker. This title must not contain HTML tags.
@@ -196,7 +226,7 @@ public class Marker {
                 this.columnEnd = Math.max(providedColumnStart, providedColumnEnd);
             }
 
-            return new Marker(title, icon, description, lineStart, lineEnd, columnStart, columnEnd);
+            return new Marker(id, title, icon, description, lineStart, lineEnd, columnStart, columnEnd);
         }
 
         /**

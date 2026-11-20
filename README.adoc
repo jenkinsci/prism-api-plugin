@@ -22,7 +22,9 @@ image::images/themes.png[Themes selection]
 image::images/dark-theme.png[Dark Prism theme in Jenkins]
 
 * A default source code rendering view (see `SourceCodeViewModel`) that can be used in a Jenkins plugin to show the
-source code in a separate page. This page renders the source code with the configured theme.
+source code in a separate page. This page renders the source code with the configured theme. The view highlights
+an arbitrary number of markers (lines, parts of a line, or multi-line blocks) and shows the details of each marker
+in a box after the marked lines. The source code can also be embedded into a page of your plugin, see below.
 
 [#img-marker]
 image::images/syntax-highlighting-marker.png[Grid layout in Jenkins]
@@ -64,6 +66,21 @@ public PrismConfiguration getPrismConfiguration() {
     return PrismConfiguration.getInstance();
 }
 ----
+
+== Rendering source code with markers
+
+Create the view model with `SourceCodeViewModel.create(owner, fileName, reader, markers)`. The factory checks
+whether the current user has the permission to see the source code and returns a `PermissionDeniedViewModel`
+otherwise. You can return this model from `getDynamic` to show the source code on a separate page. Or you can
+embed the source code into a page of your plugin using the fragment `content.jelly` (available for both models):
+
+[source,xml]
+----
+<st:include it="${it.sourceCode}" page="content.jelly"/>
+----
+
+Each `Marker` can have an ID (`MarkerBuilder#withId`). The ID (or a line number) can be used as fragment of the URL
+to select a marker: the view then scrolls to the marker and expands its description.
 
 == Examples
 
