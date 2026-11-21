@@ -79,6 +79,10 @@ embed the source code into a page of your plugin using the fragment `content.jel
 <st:include it="${it.sourceCode}" page="content.jelly"/>
 ----
 
+Each `Marker` has a severity (`withSeverity`: `ERROR`, `WARNING` (default), or `INFO`) that defines the color of
+the marked lines and of the box. The box can additionally show badges (`withBadge`, e.g., the name of a tool or a
+category) and links to related pages (`withLink`). Each box gets a button to copy the link to the marker.
+
 Each `Marker` can have an ID (`MarkerBuilder#withId`). The ID (or a line number) can be used as fragment of the URL
 to select a marker: the view then scrolls to the marker and expands its description.
 

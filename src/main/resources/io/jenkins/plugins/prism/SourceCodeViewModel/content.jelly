@@ -12,7 +12,7 @@
   <link type="text/css" rel="stylesheet" href="${resURL}/plugin/prism-api/css/custom-prism.css"/>
   <st:adjunct includes="io.jenkins.plugins.prism.SourceCodeViewModel.source-code"/>
 
-  <div class="prism-source">
+  <div class="prism-source" data-copy-link="${%copy.link}" data-copy-link-done="${%copy.link.done}">
     <j:out value="${it.sourceCode}"/>
   </div>
 

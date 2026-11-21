@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import edu.hm.hafner.util.ResourceTest;
 import io.jenkins.plugins.prism.Marker.MarkerBuilder;
+import io.jenkins.plugins.prism.Marker.Severity;
 import io.jenkins.plugins.util.JenkinsFacade;
 import java.util.List;
 import java.util.Objects;
@@ -179,7 +180,7 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(document.getElementsByTag("code").toString())
                 .isEqualTo("<code class=\"language-clike line-numbers match-braces\">#include &lt;iostream&gt;\n"
                         + "</code>\n"
-                        + "<code class=\"language-clike line-numbers highlight match-braces\">\n"
+                        + "<code class=\"language-clike line-numbers highlight match-braces prism-marked--warning\">\n"
                         + "int main(int argc, char**argv) {\n"
                         + "\n"
                         + "  int b = std::move(argc);\n"
@@ -282,7 +283,8 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(document.getElementsByTag("code").first()).isNotNull();
         assertThat(document.getElementsByTag("code").first().classNames())
                 .doesNotContain("language-markup", "line-numbers", "match-braces");
-        assertThat(document.getElementsByTag("code").get(1).classNames()).containsExactly("highlight");
+        assertThat(document.getElementsByTag("code").get(1).classNames())
+                .containsExactly("highlight", "prism-marked--warning");
     }
 
     @Test
@@ -443,6 +445,93 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(document.getElementsByTag("code")).hasSize(1);
         assertThat(document.getElementsByTag("code").text()).isEqualToIgnoringWhitespace(toString("format-cpp.txt"));
         assertThat(document.getElementsByClass("prism-marker")).isEmpty();
+    }
+
+    /**
+     * Verifies that the severity of a marker is used for the box and for the marked lines. Lines that are covered by
+     * markers with different severities are shown with the highest severity, and blocks of lines with different
+     * severities are rendered as separate code blocks.
+     */
+    @Test
+    void shouldUseSeverityOfMarkers() {
+        var error = new MarkerBuilder()
+                .withLineStart(3)
+                .withTitle("Error")
+                .withSeverity(Severity.ERROR)
+                .build();
+        var info = new MarkerBuilder()
+                .withLineStart(3)
+                .withLineEnd(5)
+                .withTitle("Info")
+                .withSeverity(Severity.INFO)
+                .build();
+        var warning = new MarkerBuilder().withLineStart(8).withTitle("Warning").build();
+
+        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
+                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(error, info, warning)));
+
+        assertThat(document.getElementsByClass("prism-marker"))
+                .extracting(element -> element.classNames().toString())
+                .containsExactly(
+                        "[prism-marker, prism-marker--error]",
+                        "[prism-marker, prism-marker--info]",
+                        "[prism-marker, prism-marker--warning]");
+        assertThat(document.select("code.prism-marked--error").text())
+                .isEqualToIgnoringWhitespace("int main(int argc, char**argv) {");
+        assertThat(document.select("code.prism-marked--info").text())
+                .isEqualToIgnoringWhitespace("int b = std::move(argc);");
+        assertThat(document.select("code.prism-marked--warning").text()).isEqualToIgnoringWhitespace("return 0;");
+    }
+
+    /**
+     * Verifies that the badges and links of a marker are shown. Links with JavaScript URLs are skipped.
+     */
+    @Test
+    void shouldShowBadgesAndLinks() {
+        var marker = new MarkerBuilder()
+                .withLineStart(3)
+                .withTitle("Title")
+                .withBadge("New")
+                .withBadge("PMD <b>", "Tool")
+                .withLink("Details", "details/1", ICON)
+                .withLink("Unsafe", " JavaScript:alert(1)")
+                .withLink("Commit", "https://github.com/commit/1")
+                .build();
+
+        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
+                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(marker)));
+
+        assertThat(document.getElementsByClass("prism-marker__badge"))
+                .extracting(Element::text)
+                .containsExactly("New", "PMD <b>");
+        assertThat(document.getElementsByClass("prism-marker__badge"))
+                .extracting(element -> element.attr("tooltip"))
+                .containsExactly("", "Tool");
+        assertThat(document.getElementsByClass("prism-marker__badge").select("b"))
+                .isEmpty();
+        assertThat(document.getElementsByClass("prism-marker__link"))
+                .extracting(Element::text)
+                .containsExactly("Details", "Commit");
+        assertThat(document.getElementsByClass("prism-marker__link"))
+                .extracting(element -> element.attr("href"))
+                .containsExactly("details/1", "https://github.com/commit/1");
+        assertThat(document.getElementsByClass("prism-marker__link-icon").attr("src"))
+                .isEqualTo("/path/to/icon");
+    }
+
+    /**
+     * Verifies that a marker without badges and links has no containers for them.
+     */
+    @Test
+    void shouldSkipEmptyBadgesAndLinks() {
+        var marker = new MarkerBuilder().withLineStart(3).withTitle("Title").build();
+
+        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
+                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(marker)));
+
+        assertThat(document.getElementsByClass("prism-marker--warning")).hasSize(1);
+        assertThat(document.getElementsByClass("prism-marker__badges")).isEmpty();
+        assertThat(document.getElementsByClass("prism-marker__links")).isEmpty();
     }
 
     private JenkinsFacade createJenkinsFacade() {

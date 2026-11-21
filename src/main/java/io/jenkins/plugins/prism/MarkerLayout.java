@@ -1,7 +1,7 @@
 package io.jenkins.plugins.prism;
 
+import io.jenkins.plugins.prism.Marker.Severity;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +11,8 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * Determines where the markers of a source code file are shown. A marker highlights the lines between its start and
  * end line. The details of a marker (title and description) are shown in a box directly after the last line of the
- * marker. Markers may overlap and several markers may refer to the same line. Markers without a line (line 0) are
+ * marker. Markers may overlap and several markers may refer to the same line: then the line is shown with the highest
+ * severity of these markers. Markers without a line (line 0) are
  * shown before the first line, markers after the end of the file are shown after the last line.
  *
  * @author Ullrich Hafner
@@ -20,7 +21,7 @@ class MarkerLayout {
     private static final String ID_PREFIX = "prism-marker-";
 
     private final int linesCount;
-    private final BitSet markedLines = new BitSet();
+    private final Map<Integer, Severity> severityPerLine = new TreeMap<>();
     private final Map<Integer, List<PositionedMarker>> markersAfterLine = new TreeMap<>();
     private final Map<Integer, List<ColumnRange>> columnsPerLine = new TreeMap<>();
 
@@ -51,7 +52,9 @@ class MarkerLayout {
         } else {
             int start = marker.getLineStart();
             int end = Math.min(Math.max(start, marker.getLineEnd()), linesCount);
-            markedLines.set(start, end + 1);
+            for (int line = start; line <= end; line++) {
+                severityPerLine.merge(line, marker.getSeverity(), Severity::max);
+            }
             addMarkerAfterLine(end, positioned);
 
             if (start == marker.getLineEnd() && marker.getColumnStart() >= 1) {
@@ -76,7 +79,19 @@ class MarkerLayout {
      * @return {@code true} if the line is marked, {@code false} otherwise
      */
     boolean isMarked(final int line) {
-        return markedLines.get(line);
+        return severityPerLine.containsKey(line);
+    }
+
+    /**
+     * Returns the highest severity of the markers that contain the specified line.
+     *
+     * @param line
+     *         the line to check (1-based)
+     *
+     * @return the severity of the line, or {@link Severity#WARNING} if the line is not marked
+     */
+    Severity getSeverity(final int line) {
+        return severityPerLine.getOrDefault(line, Severity.WARNING);
     }
 
     /**

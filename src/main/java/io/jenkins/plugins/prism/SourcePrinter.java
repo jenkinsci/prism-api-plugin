@@ -1,21 +1,28 @@
 package io.jenkins.plugins.prism;
 
+import static j2html.TagCreator.a;
 import static j2html.TagCreator.code;
 import static j2html.TagCreator.details;
 import static j2html.TagCreator.div;
+import static j2html.TagCreator.each;
 import static j2html.TagCreator.img;
 import static j2html.TagCreator.pre;
 import static j2html.TagCreator.span;
 import static j2html.TagCreator.summary;
 
 import edu.hm.hafner.util.VisibleForTesting;
+import io.jenkins.plugins.prism.Marker.Badge;
+import io.jenkins.plugins.prism.Marker.Link;
+import io.jenkins.plugins.prism.Marker.Severity;
 import io.jenkins.plugins.prism.MarkerLayout.ColumnRange;
 import io.jenkins.plugins.prism.MarkerLayout.PositionedMarker;
 import io.jenkins.plugins.util.JenkinsFacade;
 import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringEscapeUtils;
@@ -38,6 +45,7 @@ class SourcePrinter {
     private static final String LINE_NUMBERS = "line-numbers";
     private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
+    private static final String ICON_SM = "icon-sm";
     private static final String MARKER_HEADER = "prism-marker__header";
     private static final String MARKER_ICON = "prism-marker__icon";
     private static final char NEW_LINE = '\n';
@@ -92,60 +100,22 @@ class SourcePrinter {
 
         String language = selectLanguageClass(fileName, source);
         boolean enableSyntaxHighlighting = source.size() <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
-        String[] codeClasses = getCodeClasses(language, enableSyntaxHighlighting);
-        String[] markedCodeClasses = getMarkedCodeClasses(language, enableSyntaxHighlighting);
+        var writer = new CodeWriter(
+                getCodeClasses(language, enableSyntaxHighlighting),
+                getMarkedCodeClasses(language, enableSyntaxHighlighting));
 
         var layout = new MarkerLayout(markers, source.size());
-        var code = new StringBuilder();
-        appendMarkers(code, layout.getMarkersAfter(0));
-
-        var block = new StringBuilder();
-        boolean isBlockMarked = false;
+        writer.appendMarkers(layout.getMarkersAfter(0));
         for (int line = 1; line <= source.size(); line++) {
-            boolean isLineMarked = layout.isMarked(line);
-            if (isLineMarked != isBlockMarked) {
-                appendBlock(code, block, isBlockMarked, codeClasses, markedCodeClasses);
-                isBlockMarked = isLineMarked;
-            }
             String text = source.get(line - 1);
-            block.append(isLineMarked ? markColumns(text, layout.getColumnRanges(line)) : text)
-                    .append(NEW_LINE);
-
-            var markersAfterLine = layout.getMarkersAfter(line);
-            if (!markersAfterLine.isEmpty()) {
-                appendBlock(code, block, isBlockMarked, codeClasses, markedCodeClasses);
-                appendMarkers(code, markersAfterLine);
+            if (layout.isMarked(line)) {
+                writer.appendMarkedLine(markColumns(text, layout.getColumnRanges(line)), layout.getSeverity(line));
+            } else {
+                writer.appendLine(text);
             }
+            writer.appendMarkers(layout.getMarkersAfter(line));
         }
-        appendBlock(code, block, isBlockMarked, codeClasses, markedCodeClasses);
-
-        return pre().with(new UnescapedText(code.toString())).renderFormatted();
-    }
-
-    @SuppressWarnings("PMD.UseVarargs")
-    private void appendBlock(
-            final StringBuilder code,
-            final StringBuilder block,
-            final boolean isMarked,
-            final String[] codeClasses,
-            final String[] markedCodeClasses) {
-        if (block.isEmpty()) {
-            return;
-        }
-        if (isMarked) {
-            code.append(asMarkedCode(block, markedCodeClasses));
-        } else {
-            code.append(asCode(block, codeClasses));
-        }
-        block.setLength(0);
-    }
-
-    private void appendMarkers(final StringBuilder code, final List<PositionedMarker> markers) {
-        for (PositionedMarker positioned : markers) {
-            if (hasText(positioned.marker())) {
-                code.append(createInfoPanel(positioned.marker(), positioned.id()));
-            }
-        }
+        return writer.render();
     }
 
     private boolean hasText(final Marker marker) {
@@ -177,39 +147,68 @@ class SourcePrinter {
     }
 
     private String createInfoPanel(final Marker marker, final String id) {
-        var panel = div().withClass("prism-marker")
+        var panel = div().withClasses(
+                        "prism-marker", "prism-marker--" + marker.getSeverity().getCssModifier())
                 .withId(id)
                 .attr("data-line-start", marker.getLineStart())
                 .attr("data-line-end", marker.getLineEnd());
         if (StringUtils.isBlank(marker.getDescription())) {
-            panel.with(div().withClass(MARKER_HEADER).with(createTitle(marker)));
+            panel.with(div().withClass(MARKER_HEADER).with(createHeader(marker)));
         } else {
             panel.with(details()
                     .withClass("prism-marker__details")
                     .with(
-                            summary().withClass(MARKER_HEADER).with(createTitle(marker)),
+                            summary().withClass(MARKER_HEADER).with(createHeader(marker)),
                             div().withClass("prism-marker__description").with(unescape(marker.getDescription()))));
+        }
+        var links = marker.getLinks().stream().filter(this::isSafe).toList();
+        if (!links.isEmpty()) {
+            panel.with(div().withClass("prism-marker__links").with(each(links, this::createLink)));
         }
         return panel.render();
     }
 
-    private List<DomContent> createTitle(final Marker marker) {
-        var title = span().withClass("prism-marker__title").with(replaceNewLine(marker.getTitle()));
-        if (StringUtils.isBlank(marker.getIcon())) {
-            return List.of(title);
+    private List<DomContent> createHeader(final Marker marker) {
+        var header = new ArrayList<DomContent>();
+        if (StringUtils.isNotBlank(marker.getIcon())) {
+            header.add(createIcon(marker.getIcon(), ICON_MD, MARKER_ICON));
         }
-        return List.of(createIcon(marker.getIcon()), title);
+        header.add(span().withClass("prism-marker__title").with(replaceNewLine(marker.getTitle())));
+        if (!marker.getBadges().isEmpty()) {
+            header.add(span().withClass("prism-marker__badges").with(each(marker.getBadges(), this::createBadge)));
+        }
+        return header;
     }
 
-    private DomContent createIcon(final String name) {
+    private DomContent createBadge(final Badge badge) {
+        var element = span().withClass("prism-marker__badge").withText(badge.getText());
+        if (StringUtils.isNotBlank(badge.getTooltip())) {
+            element.attr("tooltip", badge.getTooltip());
+        }
+        return element;
+    }
+
+    private boolean isSafe(final Link link) {
+        return !Strings.CI.startsWith(StringUtils.strip(link.getUrl()), "javascript:");
+    }
+
+    private DomContent createLink(final Link link) {
+        var element = a().withClass("prism-marker__link").withHref(link.getUrl());
+        if (StringUtils.isNotBlank(link.getIcon())) {
+            element.with(createIcon(link.getIcon(), ICON_SM, "prism-marker__link-icon"));
+        }
+        return element.with(span().withText(link.getLabel()));
+    }
+
+    private DomContent createIcon(final String name, final String... classes) {
         if (name.startsWith("symbol")) {
             String symbol = Symbol.get(new SymbolRequest.Builder()
                     .withRaw(name)
-                    .withClasses(ICON_MD + " " + MARKER_ICON)
+                    .withClasses(String.join(" ", classes))
                     .build());
             return new UnescapedText(symbol);
         }
-        return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(ICON_MD, MARKER_ICON);
+        return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(classes);
     }
 
     private UnescapedText replaceNewLine(final String message) {
@@ -269,6 +268,74 @@ class SourcePrinter {
         return code().withClasses(classes)
                 .with(unescape(StringEscapeUtils.escapeHtml4(text.toString())))
                 .render();
+    }
+
+    /**
+     * Writes the blocks of the source code and the boxes of the markers. Consecutive lines with the same state (not
+     * marked, or marked with the same severity) are combined into a single code block, since Prism colorizes each
+     * code block separately.
+     */
+    @SuppressWarnings("PMD.AvoidStringBufferField")
+    private final class CodeWriter {
+        private final StringBuilder code = new StringBuilder();
+        private final StringBuilder block = new StringBuilder();
+        private final String[] codeClasses;
+        private final String[] markedCodeClasses;
+        private boolean isBlockMarked;
+        private Severity blockSeverity = Severity.WARNING;
+
+        @SuppressWarnings("PMD.UseVarargs")
+        CodeWriter(final String[] codeClasses, final String[] markedCodeClasses) {
+            this.codeClasses = codeClasses.clone();
+            this.markedCodeClasses = markedCodeClasses.clone();
+        }
+
+        void appendLine(final String text) {
+            if (isBlockMarked) {
+                flush();
+                isBlockMarked = false;
+            }
+            block.append(text).append(NEW_LINE);
+        }
+
+        void appendMarkedLine(final String text, final Severity severity) {
+            if (!isBlockMarked || severity != blockSeverity) {
+                flush();
+                isBlockMarked = true;
+                blockSeverity = severity;
+            }
+            block.append(text).append(NEW_LINE);
+        }
+
+        void appendMarkers(final List<PositionedMarker> markers) {
+            if (markers.isEmpty()) {
+                return;
+            }
+            flush();
+            for (PositionedMarker positioned : markers) {
+                if (hasText(positioned.marker())) {
+                    code.append(createInfoPanel(positioned.marker(), positioned.id()));
+                }
+            }
+        }
+
+        String render() {
+            flush();
+            return pre().with(new UnescapedText(code.toString())).renderFormatted();
+        }
+
+        private void flush() {
+            if (block.isEmpty()) {
+                return;
+            }
+            if (isBlockMarked) {
+                code.append(asMarkedCode(
+                        block, ArrayUtils.add(markedCodeClasses, "prism-marked--" + blockSeverity.getCssModifier())));
+            } else {
+                code.append(asCode(block, codeClasses));
+            }
+            block.setLength(0);
+        }
     }
 
     /**
