@@ -1,6 +1,5 @@
 package io.jenkins.plugins.prism;
 
-import io.jenkins.plugins.prism.Marker.Severity;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -12,10 +11,11 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * Determines where the markers of a source code file are shown. A marker highlights the lines between its start and
- * end line. The details of a marker (title and description) are shown in a box directly after the last line of the
- * marker. Markers may overlap and several markers may refer to the same line: then the line is shown with the highest
- * severity of these markers. Markers without a line (line 0) are
- * shown before the first line, markers after the end of the file are shown after the last line.
+ * end line, the client side script of the source code view computes the highlight of each line from the visible
+ * markers. The details of a marker (title and description) are shown in a box directly after the last line of the
+ * marker, this line is called the anchor line of the marker. Markers without a line (line 0) are shown before the
+ * first line (anchor line 0), markers after the end of the file are shown after the last line. Additionally, a marker
+ * in a single line can mark some columns of the line.
  *
  * @author Ullrich Hafner
  */
@@ -23,9 +23,7 @@ class MarkerLayout {
     private static final String ID_PREFIX = "prism-marker-";
 
     private final int linesCount;
-    private final Map<Integer, Severity> severityPerLine = new TreeMap<>();
-    private final Map<Integer, SortedSet<String>> markersPerLine = new TreeMap<>();
-    private final Map<Integer, List<PositionedMarker>> markersAfterLine = new TreeMap<>();
+    private final List<PositionedMarker> markers = new ArrayList<>();
     private final Map<Integer, List<ColumnRange>> columnsPerLine = new TreeMap<>();
 
     /**
@@ -46,88 +44,44 @@ class MarkerLayout {
 
     private void add(final Marker marker, final int index) {
         var id = StringUtils.defaultIfBlank(marker.getId(), ID_PREFIX + (index + 1));
-        var positioned = new PositionedMarker(marker, id);
 
-        if (marker.getLineStart() < 1) {
-            addMarkerAfterLine(0, positioned);
-        } else if (marker.getLineStart() > linesCount) {
-            addMarkerAfterLine(linesCount, positioned);
+        int start = marker.getLineStart();
+        if (start < 1) {
+            markers.add(new PositionedMarker(marker, id, 0));
+        } else if (start > linesCount) {
+            markers.add(new PositionedMarker(marker, id, linesCount));
         } else {
-            int start = marker.getLineStart();
             int end = Math.min(Math.max(start, marker.getLineEnd()), linesCount);
-            for (int line = start; line <= end; line++) {
-                severityPerLine.merge(line, marker.getSeverity(), Severity::max);
-                markersPerLine.computeIfAbsent(line, key -> new TreeSet<>()).add(id);
-            }
-            addMarkerAfterLine(end, positioned);
+            markers.add(new PositionedMarker(marker, id, end));
 
             if (start == marker.getLineEnd() && marker.getColumnStart() >= 1) {
                 columnsPerLine
                         .computeIfAbsent(start, key -> new ArrayList<>())
                         .add(new ColumnRange(
-                                marker.getColumnStart(), Math.max(marker.getColumnStart(), marker.getColumnEnd())));
+                                marker.getColumnStart(),
+                                Math.max(marker.getColumnStart(), marker.getColumnEnd()),
+                                List.of(id)));
             }
         }
     }
 
-    private void addMarkerAfterLine(final int line, final PositionedMarker positioned) {
-        markersAfterLine.computeIfAbsent(line, key -> new ArrayList<>()).add(positioned);
-    }
-
     /**
-     * Returns whether the specified line is part of at least one marker.
+     * Returns all markers in the order they should be shown: sorted by their anchor line, and markers with the same
+     * anchor line are sorted by their start line.
      *
-     * @param line
-     *         the line to check (1-based)
-     *
-     * @return {@code true} if the line is marked, {@code false} otherwise
+     * @return the markers
      */
-    boolean isMarked(final int line) {
-        return severityPerLine.containsKey(line);
-    }
-
-    /**
-     * Returns the highest severity of the markers that contain the specified line.
-     *
-     * @param line
-     *         the line to check (1-based)
-     *
-     * @return the severity of the line, or {@link Severity#WARNING} if the line is not marked
-     */
-    Severity getSeverity(final int line) {
-        return severityPerLine.getOrDefault(line, Severity.WARNING);
-    }
-
-    /**
-     * Returns the IDs of the markers that contain the specified line.
-     *
-     * @param line
-     *         the line to check (1-based)
-     *
-     * @return the IDs of the markers, sorted alphabetically, or an empty list if the line is not marked
-     */
-    List<String> getMarkerIds(final int line) {
-        return List.copyOf(markersPerLine.getOrDefault(line, new TreeSet<>()));
-    }
-
-    /**
-     * Returns the markers that should be shown after the specified line. The markers are sorted by their start line.
-     *
-     * @param line
-     *         the line (1-based) or 0 for the markers that should be shown before the first line
-     *
-     * @return the markers to show after the line, or an empty list if there are no such markers
-     */
-    List<PositionedMarker> getMarkersAfter(final int line) {
-        return markersAfterLine.getOrDefault(line, List.of()).stream()
-                .sorted(Comparator.comparingInt(
-                        positioned -> positioned.marker().getLineStart()))
+    List<PositionedMarker> getMarkers() {
+        return markers.stream()
+                .sorted(Comparator.comparingInt(PositionedMarker::anchorLine)
+                        .thenComparingInt(positioned -> positioned.marker().getLineStart()))
                 .toList();
     }
 
     /**
      * Returns the column ranges that should be marked in the specified line. Overlapping or adjacent ranges are
-     * merged, so the returned ranges are disjoint and sorted by their start column.
+     * merged, so the returned ranges are disjoint and sorted by their start column. Each range contains the IDs of
+     * all markers that are part of the range.
      *
      * @param line
      *         the line to check (1-based)
@@ -143,7 +97,9 @@ class MarkerLayout {
             if (!merged.isEmpty()
                     && range.start() <= merged.get(merged.size() - 1).end() + 1) {
                 var last = merged.remove(merged.size() - 1);
-                merged.add(new ColumnRange(last.start(), Math.max(last.end(), range.end())));
+                SortedSet<String> ids = new TreeSet<>(last.markerIds());
+                ids.addAll(range.markerIds());
+                merged.add(new ColumnRange(last.start(), Math.max(last.end(), range.end()), List.copyOf(ids)));
             } else {
                 merged.add(range);
             }
@@ -152,14 +108,16 @@ class MarkerLayout {
     }
 
     /**
-     * A marker together with the ID of the HTML element that shows the marker.
+     * A marker together with the ID of the HTML element that shows the marker and its anchor line.
      *
      * @param marker
      *         the marker
      * @param id
      *         the ID of the HTML element: the ID of the marker or a generated ID if the marker has no ID
+     * @param anchorLine
+     *         the line after which the box of the marker is shown (0 for markers before the first line)
      */
-    record PositionedMarker(Marker marker, String id) {}
+    record PositionedMarker(Marker marker, String id, int anchorLine) {}
 
     /**
      * A range of columns in a line that should be marked.
@@ -168,6 +126,8 @@ class MarkerLayout {
      *         the first column (1-based)
      * @param end
      *         the last column (1-based and inclusive)
+     * @param markerIds
+     *         the IDs of the markers that mark this range
      */
-    record ColumnRange(int start, int end) {}
+    record ColumnRange(int start, int end, List<String> markerIds) {}
 }

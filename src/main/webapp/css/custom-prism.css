@@ -1,6 +1,7 @@
 /**
- * Styles of the highlighted code in the source code view (SourceCodeViewModel/content.jelly). The styles of the
- * boxes of the markers are part of the adjunct SourceCodeViewModel/source-code.css.
+ * Styles of the highlighted code in the former layout of the source code view. The source code view does not use
+ * these styles anymore (see the adjunct SourceCodeViewModel/source-code.css), the file is kept for plugins that still
+ * reference it.
  */
 
 pre > code.highlight {

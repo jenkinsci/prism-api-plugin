@@ -1,7 +1,8 @@
 /*
- * Styles of the markers in the source code view. The boxes are part of the pre element of Prism, so the font and
- * white space settings of the pre element need to be reset. Only Jenkins variables are used, so themes and the dark
- * mode work out of the box. The color of a marker (and of the marked lines) is defined by its severity.
+ * Styles of the source code view: the lines and the boxes of the markers (see source-code.js). The boxes are part of
+ * the pre element with the lines, so the font and white space settings of the pre element need to be reset. Only
+ * Jenkins variables are used, so themes and the dark mode work out of the box. The color of a marker (and of the
+ * marked lines) is defined by its severity.
  */
 .prism-source {
   --prism-color-error: var(--error-color, #e6001f);
@@ -10,24 +11,67 @@
 }
 
 .prism-marker,
-.prism-marked--warning {
+.prism-line--warning {
   --prism-severity-color: var(--prism-color-warning);
 }
 
 .prism-marker--error,
-.prism-marked--error {
+.prism-line--error {
   --prism-severity-color: var(--prism-color-error);
 }
 
 .prism-marker--info,
-.prism-marked--info {
+.prism-line--info {
   --prism-severity-color: var(--prism-color-info);
 }
 
+/* Lines of the source code, created by source-code.js */
+.prism-source pre.prism-source__lines {
+  margin: 0;
+  padding: 0.5rem 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.prism-line {
+  display: flex;
+  min-width: fit-content;
+}
+
+.prism-line__number {
+  flex: 0 0 auto;
+  box-sizing: content-box;
+  width: calc(var(--prism-line-number-digits, 3) * 1ch);
+  padding: 0 0.75rem;
+  color: var(--text-color-secondary, inherit);
+  text-align: right;
+  text-decoration: none;
+  user-select: none;
+}
+
+.prism-line__number:hover,
+.prism-line__number:focus-visible {
+  color: var(--text-color);
+  text-decoration: underline;
+}
+
+.prism-line__code {
+  flex: 1 0 auto;
+  padding: 0 1rem 0 0.75rem;
+}
+
 /* Marked lines: a bar next to the line numbers and a light background in the color of the severity */
-.prism-source pre > code.highlight[class*="prism-marked--"] {
+.prism-line--marked {
   background: color-mix(in srgb, var(--prism-severity-color) 10%, transparent);
-  box-shadow: inset 3px 0 0 var(--prism-severity-color);
+}
+
+.prism-line--marked .prism-line__number {
+  box-shadow: inset -3px 0 0 var(--prism-severity-color);
+}
+
+/* Line selected by the fragment of the URL (e.g., #L42) */
+.prism-line--selected {
+  background: color-mix(in srgb, var(--prism-color-info) 15%, transparent);
 }
 
 .prism-source .code-mark {
@@ -38,9 +82,14 @@
   text-underline-offset: 3px;
 }
 
+/* Column marks of markers that are hidden by a filter of the page */
+.prism-source .code-mark--hidden {
+  text-decoration: none;
+}
+
 /* Box with the details of a marker */
 .prism-marker {
-  margin: 0.5rem 0;
+  margin: 0.5rem 0.75rem;
   border: var(--jenkins-border-width, 1px) solid var(--input-border, #ccc);
   border-inline-start: 4px solid var(--prism-severity-color);
   border-radius: 6px;
@@ -175,16 +224,6 @@ summary.prism-marker__header::after {
   height: 1rem;
 }
 
-/* Marked lines whose markers are all hidden by a filter of the page */
-.prism-source pre > code.highlight.prism-marked--hidden {
-  background: none;
-  box-shadow: none;
-}
-
-.prism-source code.prism-marked--hidden .code-mark {
-  text-decoration: none;
-}
-
 /* Floating navigation between the markers, see prism/navigation.jelly (same style as the stage view) */
 .prism-navigation {
   position: fixed;
@@ -265,6 +304,7 @@ summary.prism-marker__header::after {
   text-align: center;
 }
 
-.prism-marker[hidden] {
+.prism-marker[hidden],
+.prism-marker--empty {
   display: none;
 }

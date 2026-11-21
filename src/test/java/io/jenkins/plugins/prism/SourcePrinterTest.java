@@ -15,8 +15,6 @@ import java.util.stream.Stream;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -29,291 +27,131 @@ class SourcePrinterTest extends ResourceTest {
     private static final String DESCRIPTION = "Hello Description";
     private static final String FILE_NAME = "filename.txt";
     private static final String ICON = "/plugin/xyz/icon";
+    private static final String CPP_FILE = "format-cpp.txt";
 
+    /**
+     * Verifies that the source code is rendered as a single hidden code block, so it can be colorized at once on the
+     * client side.
+     */
     @Test
-    void shouldCreateSourceWithoutLineNumber() {
-        MarkerBuilder builder = new MarkerBuilder();
-        SourcePrinter printer = new SourcePrinter();
+    void shouldRenderSourceCodeAsSingleBlock() {
+        var document = render(FILE_NAME, asStream("format-java.txt"), List.of());
 
-        Marker issue = builder.build();
-
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), issue));
-        String expectedFile = toString("format-java.txt");
-
-        assertThat(document.text()).isEqualToIgnoringWhitespace(expectedFile);
-
-        Elements pre = document.getElementsByTag("pre");
-        assertThat(pre.text()).isEqualToIgnoringWhitespace(expectedFile);
+        var code = getCode(document);
+        assertThat(code.wholeText()).isEqualTo(toString("format-java.txt").stripTrailing());
+        assertThat(code.attr("data-lines"))
+                .isEqualTo(String.valueOf(asStream("format-java.txt").count()));
+        assertThat(code.classNames()).containsExactly("language-clike");
+        assertThat(document.getElementsByClass("prism-source__raw").attr("hidden"))
+                .isEqualTo("hidden");
+        assertThat(document.getElementsByClass("prism-source__markers").attr("hidden"))
+                .isEqualTo("hidden");
+        assertThat(document.getElementsByClass("prism-marker")).isEmpty();
     }
 
+    /**
+     * Verifies that HTML tags in the source code are escaped.
+     */
     @Test
-    void shouldCreateSourceWithLineNumber() {
-        MarkerBuilder builder = new MarkerBuilder();
-        Marker issue = builder.withLineStart(7)
-                .withTitle(MESSAGE)
-                .withDescription(DESCRIPTION)
+    void shouldEscapeTagsInCode() {
+        var marker = new MarkerBuilder()
+                .withLineStart(2)
+                .withColumnStart(1)
+                .withColumnEnd(14)
                 .build();
 
-        SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
+        var document = render(FILE_NAME, asStream("format-jelly.txt"), List.of(marker));
 
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), issue));
+        assertThat(getCode(document).html())
+                .isEqualTo("&lt;l:main-panel&gt;Before&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;\n"
+                        + "<span class=\"code-mark\" data-markers=\"prism-marker-1\">&lt;l:main-panel&gt;</span>"
+                        + "Warning&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;\n"
+                        + "&lt;l:main-panel&gt;After&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;");
+        assertThat(document.getElementsByTag("script")).isEmpty();
+    }
 
-        assertThatCodeIsEqualToSourceText(document);
+    /**
+     * Verifies that the title, the description, and the icon of a marker are shown.
+     */
+    @Test
+    void shouldShowTitleDescriptionAndIcon() {
+        var marker = new MarkerBuilder()
+                .withLineStart(7)
+                .withTitle(MESSAGE)
+                .withDescription(DESCRIPTION)
+                .withIcon(ICON)
+                .build();
+        var jenkins = mock(JenkinsFacade.class);
+        when(jenkins.getImagePath(ICON)).thenReturn("/resolved");
+
+        var document =
+                Jsoup.parse(new SourcePrinter(jenkins).render(FILE_NAME, asStream("format-java.txt"), List.of(marker)));
 
         assertThat(document.getElementsByClass("prism-marker__title").text()).isEqualTo(MESSAGE);
         assertThat(document.getElementsByClass("prism-marker__description").text())
                 .isEqualTo(DESCRIPTION);
+        assertThat(document.getElementsByClass("prism-marker__details")).hasSize(1);
+        assertThat(document.getElementsByClass("prism-marker__icon").attr("src"))
+                .isEqualTo("/resolved");
     }
 
-    private void assertThatCodeIsEqualToSourceText(final Document document) {
-        Elements code = document.getElementsByTag("code");
-        assertThat(code.text()).isEqualToIgnoringWhitespace(toString("format-java.txt"));
-    }
-
+    /**
+     * Verifies that a marker without description has no collapsible description.
+     */
     @Test
-    void shouldCreateSourceWithoutDescription() {
-        MarkerBuilder builder = new MarkerBuilder();
-        Marker issue = builder.withLineStart(7).withTitle("Hello Message").build();
+    void shouldCreateMarkerWithoutDescription() {
+        var marker = new MarkerBuilder().withLineStart(7).withTitle(MESSAGE).build();
 
-        SourcePrinter printer = new SourcePrinter();
-
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), issue));
-
-        assertThatCodeIsEqualToSourceText(document);
+        var document = render(FILE_NAME, asStream("format-java.txt"), List.of(marker));
 
         assertThat(document.getElementsByClass("prism-marker__title").text()).isEqualTo(MESSAGE);
         assertThat(document.getElementsByClass("prism-marker__description")).isEmpty();
         assertThat(document.getElementsByClass("prism-marker__details")).isEmpty();
     }
 
-    @Test
-    void shouldCreateIcon() {
-        MarkerBuilder builder = new MarkerBuilder();
-        Marker issue = builder.withLineStart(7)
-                .withTitle("Hello Message")
-                .withIcon(ICON)
-                .build();
-
-        JenkinsFacade jenkins = mock(JenkinsFacade.class);
-        when(jenkins.getImagePath(ICON)).thenReturn("/resolved");
-        SourcePrinter printer = new SourcePrinter(jenkins);
-
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), issue));
-
-        assertThatCodeIsEqualToSourceText(document);
-
-        assertThat(document.getElementsByClass("prism-marker__icon").attr("src"))
-                .isEqualTo("/resolved");
-    }
-
-    @Test
-    void shouldFilterTagsInCode() {
-        MarkerBuilder builder = new MarkerBuilder();
-        Marker issue = builder.withLineStart(2).build();
-
-        SourcePrinter printer = new SourcePrinter();
-
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-jelly.txt"), issue));
-        assertThat(document.getElementsByTag("code").html())
-                .isEqualTo("&lt;l:main-panel&gt;Before&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;\n"
-                        + "&lt;l:main-panel&gt;Warning&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;\n"
-                        + "&lt;l:main-panel&gt;After&lt;script&gt;execute&lt;/script&gt; Text&lt;/l:main-panel&gt;");
-    }
-
+    /**
+     * Verifies that HTML tags in the title and the description are sanitized.
+     */
     @Test
     void shouldFilterTagsInMessageAndDescription() {
-        MarkerBuilder builder = new MarkerBuilder();
-
-        Marker issue = builder.withLineStart(7)
+        var marker = new MarkerBuilder()
+                .withLineStart(7)
                 .withTitle("Hello <b>Message</b> <script>execute</script>")
                 .withDescription("Hello <b>Description</b> <script>execute</script>")
                 .build();
 
-        SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
-
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), issue));
-
-        assertThatCodeIsEqualToSourceText(document);
+        var document = render(FILE_NAME, asStream("format-java.txt"), List.of(marker));
 
         assertThat(document.getElementsByClass("prism-marker__title").html())
                 .isEqualToIgnoringWhitespace("Hello <b>Message</b>");
         assertThat(document.getElementsByClass("prism-marker__description").html())
                 .isEqualToIgnoringWhitespace("Hello <b>Description</b>");
-    }
-
-    @Test
-    void shouldMarkTheCodeBetweenColumnStartAndColumnEnd() {
-        MarkerBuilder builder = new MarkerBuilder();
-
-        Marker issue = builder.withLineStart(5)
-                .withColumnStart(11)
-                .withColumnEnd(25)
-                .withDescription("Hello <b>Description</b> <script>execute</script>")
-                .build();
-
-        SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-cpp.txt"), issue));
-
-        assertThat(document.getElementsByTag("code").html())
-                .isEqualTo("#include &lt;iostream&gt;\n"
-                        + "\n"
-                        + "int main(int argc, char**argv) {\n"
-                        + "int b = <span class=\"code-mark\">std::move(argc)</span>;\n"
-                        + "std::cout &lt;&lt; \"Hello, World!\" &lt;&lt; argc &lt;&lt; std::endl;\n"
-                        + "  return 0;\n"
-                        + "}");
-    }
-
-    @Test
-    void shouldNotMarkTheCodeIfStartLineAndEndLineAreDifferent() {
-        MarkerBuilder builder = new MarkerBuilder();
-        Marker issue = builder.withLineStart(5)
-                .withColumnStart(11)
-                .withColumnEnd(25)
-                .withLineStart(2)
-                .withLineEnd(5)
-                .withDescription("Hello <b>Description</b> <script>execute</script>")
-                .build();
-
-        SourcePrinter printer = new SourcePrinter(createJenkinsFacade());
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-cpp.txt"), issue));
-
-        assertThat(document.getElementsByTag("code").toString())
-                .isEqualTo("<code class=\"language-clike line-numbers match-braces\">#include &lt;iostream&gt;\n"
-                        + "</code>\n"
-                        + "<code class=\"language-clike line-numbers highlight match-braces prism-marked--warning\" "
-                        + "data-markers=\"prism-marker-1\">\n"
-                        + "int main(int argc, char**argv) {\n"
-                        + "\n"
-                        + "  int b = std::move(argc);\n"
-                        + "</code>\n"
-                        + "<code class=\"language-clike line-numbers match-braces\">\n"
-                        + "  std::cout &lt;&lt; \"Hello, World!\" &lt;&lt; argc &lt;&lt; std::endl;\n"
-                        + "  return 0;\n"
-                        + "}\n"
-                        + "</code>");
-    }
-
-    @Test
-    void shouldAddBreakOnNewLine() {
-        MarkerBuilder builder = new MarkerBuilder();
-
-        Marker issue = builder.withLineStart(7)
-                .withTitle("Hello <b>MessageLine1\nLine2\nLine3</b>")
-                .build();
-
-        SourcePrinter printer = new SourcePrinter();
-
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format-java.txt"), issue));
-
-        assertThatCodeIsEqualToSourceText(document);
-
-        assertThat(document.getElementsByClass("prism-marker__title").html())
-                .isEqualToIgnoringWhitespace("Hello <b>MessageLine1<br>Line2<br>Line3</b>");
-        assertThat(document.getElementsByClass("prism-marker__description")).isEmpty();
-        assertThat(document.getElementsByClass("prism-marker__details")).isEmpty();
-    }
-
-    @Test
-    @org.junitpioneer.jupiter.Issue("JENKINS-55679")
-    void shouldRenderXmlFiles() {
-        MarkerBuilder builder = new MarkerBuilder();
-        SourcePrinter printer = new SourcePrinter();
-
-        Marker issue = builder.build();
-
-        Document document = Jsoup.parse(printer.render(FILE_NAME, asStream("format.xml"), issue));
-        String expectedFile = toString("format.xml");
-
-        assertThat(document.text()).isEqualToIgnoringWhitespace(expectedFile);
-
-        Elements pre = document.getElementsByTag("pre");
-        assertThat(pre.text()).isEqualToIgnoringWhitespace(expectedFile);
-    }
-
-    @Test
-    @org.junitpioneer.jupiter.Issue("JENKINS-64584")
-    void shouldRenderTypeScriptFileAsTypeScript() {
-        Marker issue = new MarkerBuilder().build();
-        SourcePrinter printer = new SourcePrinter();
-
-        Document document = Jsoup.parse(printer.render("sample.ts", Stream.of("const answer: number = 42;"), issue));
-
-        assertThat(document.getElementsByTag("code").first()).isNotNull();
-        assertThat(document.getElementsByTag("code").first().classNames()).contains("language-typescript");
-    }
-
-    @Test
-    @org.junitpioneer.jupiter.Issue("JENKINS-64584")
-    void shouldRenderQtTranslationFileAsMarkup() {
-        Marker issue = new MarkerBuilder().withLineStart(7).build();
-        SourcePrinter printer = new SourcePrinter();
-
-        Document document = Jsoup.parse(printer.render(
-                "sample.ts",
-                Stream.of(
-                        "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
-                        "<!DOCTYPE TS>",
-                        "<TS version=\"2.1\" language=\"en_US\">",
-                        "  <context>",
-                        "    <name>MainWindow</name>",
-                        "    <message>",
-                        "      <source>Hello, world!</source>",
-                        "      <translation>Hello, world!</translation>",
-                        "    </message>",
-                        "    <message>",
-                        "      <source>File not found</source>",
-                        "      <translation>File not found</translation>",
-                        "    </message>",
-                        "  </context>",
-                        "</TS>"),
-                issue));
-
-        assertThat(document.getElementsByTag("code").first()).isNotNull();
-        assertThat(document.getElementsByTag("code").first().classNames()).contains("language-markup");
-    }
-
-    @Test
-    @org.junitpioneer.jupiter.Issue("JENKINS-73298")
-    void shouldSkipSyntaxHighlightingForLargeFiles() {
-        Marker issue = new MarkerBuilder().withLineStart(2_500).build();
-        SourcePrinter printer = new SourcePrinter();
-
-        Document document = Jsoup.parse(
-                printer.render("sample.xml", Stream.generate(() -> "line").limit(5_001), issue));
-
-        assertThat(document.getElementsByTag("code").first()).isNotNull();
-        assertThat(document.getElementsByTag("code").first().classNames())
-                .doesNotContain("language-markup", "line-numbers", "match-braces");
-        assertThat(document.getElementsByTag("code").get(1).classNames())
-                .containsExactly("highlight", "prism-marked--warning");
-    }
-
-    @Test
-    @org.junitpioneer.jupiter.Issue("JENKINS-73298")
-    void shouldKeepSyntaxHighlightingForFilesWithinLimit() {
-        Marker issue = new MarkerBuilder().withLineStart(2_500).build();
-        SourcePrinter printer = new SourcePrinter();
-
-        Document document = Jsoup.parse(
-                printer.render("sample.xml", Stream.generate(() -> "line").limit(5_000), issue));
-
-        assertThat(document.getElementsByTag("code").first()).isNotNull();
-        assertThat(document.getElementsByTag("code").first().classNames())
-                .contains("language-markup", "line-numbers", "match-braces");
+        assertThat(document.getElementsByTag("script")).isEmpty();
     }
 
     /**
-     * Verifies that all markers are shown: each marked block of lines is followed by the box with the details of the
-     * marker. Markers without an ID get a generated ID.
+     * Verifies that line breaks in the title are shown.
      */
     @Test
-    void shouldShowAllMarkers() {
-        var first = new MarkerBuilder()
-                .withLineStart(3)
-                .withTitle("First")
-                .withDescription(DESCRIPTION)
+    void shouldAddBreakOnNewLine() {
+        var marker = new MarkerBuilder()
+                .withLineStart(7)
+                .withTitle("Hello <b>MessageLine1\nLine2\nLine3</b>")
                 .build();
+
+        var document = render(FILE_NAME, asStream("format-java.txt"), List.of(marker));
+
+        assertThat(document.getElementsByClass("prism-marker__title").html())
+                .isEqualToIgnoringWhitespace("Hello <b>MessageLine1<br>Line2<br>Line3</b>");
+    }
+
+    /**
+     * Verifies that all markers are rendered with their position, sorted by their anchor line. Markers without an
+     * ID get a generated ID.
+     */
+    @Test
+    void shouldRenderAllMarkersWithTheirPosition() {
+        var first = new MarkerBuilder().withLineStart(3).withTitle("First").build();
         var second = new MarkerBuilder()
                 .withLineStart(7)
                 .withLineEnd(8)
@@ -321,45 +159,28 @@ class SourcePrinterTest extends ResourceTest {
                 .withId("second")
                 .build();
 
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(second, first)));
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(second, first));
 
-        assertThat(document.getElementsByTag("code").text()).isEqualToIgnoringWhitespace(toString("format-cpp.txt"));
         assertThat(document.getElementsByClass("prism-marker"))
-                .extracting(Element::id)
-                .containsExactly("prism-marker-2", "second");
+                .extracting(
+                        Element::id,
+                        e -> e.attr("data-line-start"),
+                        e -> e.attr("data-line-end"),
+                        e -> e.attr("data-anchor-line"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("prism-marker-2", "3", "3", "3"),
+                        org.assertj.core.groups.Tuple.tuple("second", "7", "8", "8"));
         assertThat(document.getElementsByClass("prism-marker__title"))
                 .extracting(Element::text)
                 .containsExactly("First", "Second");
-        assertThat(document.getElementsByClass("prism-marker__details")).hasSize(1);
-        assertThat(Objects.requireNonNull(document.getElementById("second")).attr("data-line-start"))
-                .isEqualTo("7");
-        assertThat(Objects.requireNonNull(document.getElementById("second")).attr("data-line-end"))
-                .isEqualTo("8");
-
-        Elements highlighted = document.select("code.highlight");
-        assertThat(highlighted).hasSize(2);
-        assertThat(highlighted.get(0).text()).isEqualToIgnoringWhitespace("int main(int argc, char**argv) {");
-        assertThat(highlighted.get(1).text())
-                .isEqualToIgnoringWhitespace("std::cout << \"Hello, World!\" << argc << std::endl; return 0;");
-        assertThatMarkerFollowsCode(document, "prism-marker-2", "int main(int argc, char**argv) {");
-        assertThatMarkerFollowsCode(document, "second", "return 0;");
-    }
-
-    private void assertThatMarkerFollowsCode(final Document document, final String id, final String code) {
-        var marker = document.getElementById(id);
-        assertThat(marker).isNotNull();
-        assertThat(marker.previousElementSibling()).isNotNull();
-        assertThat(Objects.requireNonNull(marker.previousElementSibling()).text())
-                .endsWith(code);
     }
 
     /**
-     * Verifies that overlapping markers and several markers in the same line are shown: the union of the lines is
-     * highlighted, and the boxes are shown after the last line of each marker.
+     * Verifies that overlapping markers and several markers in the same line are sorted by their anchor line and
+     * their start line.
      */
     @Test
-    void shouldShowOverlappingMarkers() {
+    void shouldSortOverlappingMarkers() {
         var block = new MarkerBuilder()
                 .withLineStart(3)
                 .withLineEnd(5)
@@ -369,22 +190,60 @@ class SourcePrinterTest extends ResourceTest {
         var sameLine =
                 new MarkerBuilder().withLineStart(4).withTitle("Same line").build();
 
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(block, inner, sameLine)));
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(block, inner, sameLine));
 
-        assertThat(document.getElementsByTag("code").text()).isEqualToIgnoringWhitespace(toString("format-cpp.txt"));
         assertThat(document.getElementsByClass("prism-marker__title"))
                 .extracting(Element::text)
                 .containsExactly("Inner", "Same line", "Block");
-        assertThat(document.select("code.highlight").text())
-                .isEqualToIgnoringWhitespace("int main(int argc, char**argv) { int b = std::move(argc);");
-        assertThat(document.select("code:not(.highlight)").text())
-                .isEqualToIgnoringWhitespace(
-                        "#include <iostream> std::cout << \"Hello, World!\" << argc << std::endl; return 0; }");
     }
 
     /**
-     * Verifies that several column ranges in the same line are marked, overlapping ranges are merged.
+     * Verifies that markers without a line are shown before the first line and markers after the end of the file
+     * are shown after the last line. Markers without a title and description are empty: they only mark lines.
+     */
+    @Test
+    void shouldPositionMarkersOutsideOfFile() {
+        var noLine = new MarkerBuilder().withTitle("No line").build();
+        var afterEnd =
+                new MarkerBuilder().withLineStart(100).withTitle("After end").build();
+        var noText = new MarkerBuilder().withLineStart(2).build();
+
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(afterEnd, noText, noLine));
+
+        assertThat(document.getElementsByClass("prism-marker"))
+                .extracting(Element::id, e -> e.attr("data-anchor-line"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("prism-marker-3", "0"),
+                        org.assertj.core.groups.Tuple.tuple("prism-marker-2", "2"),
+                        org.assertj.core.groups.Tuple.tuple("prism-marker-1", "9"));
+        var empty = document.getElementById("prism-marker-2");
+        assertThat(empty).isNotNull();
+        assertThat(empty.classNames()).contains("prism-marker--empty");
+        assertThat(empty.childrenSize()).isZero();
+    }
+
+    /**
+     * Verifies that the columns of a marker are marked.
+     */
+    @Test
+    void shouldMarkTheCodeBetweenColumnStartAndColumnEnd() {
+        var marker = new MarkerBuilder()
+                .withLineStart(5)
+                .withColumnStart(11)
+                .withColumnEnd(25)
+                .build();
+
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(marker));
+
+        assertThat(document.getElementsByClass("code-mark"))
+                .extracting(Element::text, e -> e.attr("data-markers"))
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("std::move(argc)", "prism-marker-1"));
+        assertThat(getCode(document).wholeText()).isEqualTo(toString(CPP_FILE).stripTrailing());
+    }
+
+    /**
+     * Verifies that several column ranges in the same line are marked: overlapping ranges are merged and list the
+     * IDs of all their markers.
      */
     @Test
     void shouldMarkSeveralColumnRangesInTheSameLine() {
@@ -392,107 +251,82 @@ class SourcePrinterTest extends ResourceTest {
                 .withLineStart(5)
                 .withColumnStart(3)
                 .withColumnEnd(5)
+                .withId("type")
                 .build();
         var call = new MarkerBuilder()
                 .withLineStart(5)
                 .withColumnStart(11)
                 .withColumnEnd(19)
+                .withId("call")
                 .build();
         var overlapping = new MarkerBuilder()
                 .withLineStart(5)
                 .withColumnStart(15)
                 .withColumnEnd(25)
+                .withId("args")
                 .build();
 
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(overlapping, type, call)));
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(overlapping, type, call));
+
+        assertThat(document.getElementsByClass("code-mark"))
+                .extracting(Element::text, e -> e.attr("data-markers"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("int", "type"),
+                        org.assertj.core.groups.Tuple.tuple("std::move(argc)", "args call"));
+    }
+
+    /**
+     * Verifies that columns outside the line are handled: the end column is limited to the end of the line and
+     * columns after the end of the line are not marked.
+     */
+    @Test
+    void shouldHandleColumnsOutsideOfLine() {
+        var tooLong = new MarkerBuilder()
+                .withLineStart(5)
+                .withColumnStart(11)
+                .withColumnEnd(100)
+                .build();
+        var afterEnd = new MarkerBuilder()
+                .withLineStart(3)
+                .withColumnStart(100)
+                .withColumnEnd(110)
+                .build();
+
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(tooLong, afterEnd));
 
         assertThat(document.getElementsByClass("code-mark"))
                 .extracting(Element::text)
-                .containsExactly("int", "std::move(argc)");
+                .containsExactly("std::move(argc);");
+        assertThat(getCode(document).wholeText()).isEqualTo(toString(CPP_FILE).stripTrailing());
     }
 
     /**
-     * Verifies that markers without a line are shown before the first line and markers after the end of the file are
-     * shown after the last line. Markers without a title and description are highlighted only.
+     * Verifies that columns of markers that span several lines are not marked.
      */
     @Test
-    void shouldShowMarkersOutsideOfFile() {
-        var noLine = new MarkerBuilder().withTitle("No line").build();
-        var afterEnd =
-                new MarkerBuilder().withLineStart(100).withTitle("After end").build();
-        var noText = new MarkerBuilder().withLineStart(2).build();
-
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(afterEnd, noText, noLine)));
-
-        assertThat(document.getElementsByClass("prism-marker"))
-                .extracting(Element::id)
-                .containsExactly("prism-marker-3", "prism-marker-1");
-        var pre = document.getElementsByTag("pre").first();
-        assertThat(pre).isNotNull();
-        assertThat(pre.child(0).id()).isEqualTo("prism-marker-3");
-        assertThat(pre.child(pre.childrenSize() - 1).id()).isEqualTo("prism-marker-1");
-        assertThat(document.select("code.highlight")).hasSize(1);
-    }
-
-    /**
-     * Verifies that a source code file without markers is rendered as a single block.
-     */
-    @Test
-    void shouldRenderSourceWithoutMarkers() {
-        Document document = Jsoup.parse(
-                new SourcePrinter(createJenkinsFacade()).render(FILE_NAME, asStream("format-cpp.txt"), List.of()));
-
-        assertThat(document.getElementsByTag("code")).hasSize(1);
-        assertThat(document.getElementsByTag("code").text()).isEqualToIgnoringWhitespace(toString("format-cpp.txt"));
-        assertThat(document.getElementsByClass("prism-marker")).isEmpty();
-    }
-
-    /**
-     * Verifies that the severity of a marker is used for the box and for the marked lines. Lines that are covered by
-     * markers with different severities are shown with the highest severity, and blocks of lines with different
-     * severities are rendered as separate code blocks.
-     */
-    @Test
-    void shouldUseSeverityOfMarkers() {
-        var error = new MarkerBuilder()
-                .withLineStart(3)
-                .withTitle("Error")
-                .withSeverity(Severity.ERROR)
-                .build();
-        var info = new MarkerBuilder()
-                .withLineStart(3)
+    void shouldNotMarkColumnsIfStartLineAndEndLineAreDifferent() {
+        var marker = new MarkerBuilder()
+                .withLineStart(2)
                 .withLineEnd(5)
-                .withTitle("Info")
-                .withSeverity(Severity.INFO)
+                .withColumnStart(11)
+                .withColumnEnd(25)
                 .build();
-        var warning = new MarkerBuilder().withLineStart(8).withTitle("Warning").build();
 
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(error, info, warning)));
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(marker));
 
-        assertThat(document.getElementsByClass("prism-marker"))
-                .extracting(element -> element.classNames().toString())
-                .containsExactly(
-                        "[prism-marker, prism-marker--error]",
-                        "[prism-marker, prism-marker--info]",
-                        "[prism-marker, prism-marker--warning]");
-        assertThat(document.select("code.prism-marked--error").text())
-                .isEqualToIgnoringWhitespace("int main(int argc, char**argv) {");
-        assertThat(document.select("code.prism-marked--info").text())
-                .isEqualToIgnoringWhitespace("int b = std::move(argc);");
-        assertThat(document.select("code.prism-marked--warning").text()).isEqualToIgnoringWhitespace("return 0;");
+        assertThat(document.getElementsByClass("code-mark")).isEmpty();
     }
 
     /**
-     * Verifies that the badges and links of a marker are shown. Links with JavaScript URLs are skipped.
+     * Verifies that the severity, the badges, and the links of a marker are shown. Links with JavaScript URLs are
+     * skipped.
      */
     @Test
-    void shouldShowBadgesAndLinks() {
+    void shouldShowSeverityBadgesAndLinks() {
         var marker = new MarkerBuilder()
                 .withLineStart(3)
                 .withTitle("Title")
+                .withSeverity(Severity.ERROR)
                 .withBadge("New")
                 .withBadge("PMD <b>", "Tool")
                 .withLink("Details", "details/1", ICON)
@@ -500,47 +334,59 @@ class SourcePrinterTest extends ResourceTest {
                 .withLink("Commit", "https://github.com/commit/1")
                 .build();
 
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(marker)));
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(marker));
 
+        var box = document.getElementsByClass("prism-marker").first();
+        assertThat(box).isNotNull();
+        assertThat(box.classNames()).containsExactly("prism-marker", "prism-marker--error");
+        assertThat(box.attr("data-severity")).isEqualTo("error");
         assertThat(document.getElementsByClass("prism-marker__badge"))
-                .extracting(Element::text)
-                .containsExactly("New", "PMD <b>");
-        assertThat(document.getElementsByClass("prism-marker__badge"))
-                .extracting(element -> element.attr("tooltip"))
-                .containsExactly("", "Tool");
+                .extracting(Element::text, e -> e.attr("tooltip"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("New", ""),
+                        org.assertj.core.groups.Tuple.tuple("PMD <b>", "Tool"));
         assertThat(document.getElementsByClass("prism-marker__badge").select("b"))
                 .isEmpty();
         assertThat(document.getElementsByClass("prism-marker__link"))
-                .extracting(Element::text)
-                .containsExactly("Details", "Commit");
-        assertThat(document.getElementsByClass("prism-marker__link"))
-                .extracting(element -> element.attr("href"))
-                .containsExactly("details/1", "https://github.com/commit/1");
+                .extracting(Element::text, e -> e.attr("href"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("Details", "details/1"),
+                        org.assertj.core.groups.Tuple.tuple("Commit", "https://github.com/commit/1"));
         assertThat(document.getElementsByClass("prism-marker__link-icon").attr("src"))
                 .isEqualTo("/path/to/icon");
     }
 
     /**
-     * Verifies that the data of a marker and its severity are rendered as attributes of the box, so client side
-     * scripts can filter the markers.
+     * Verifies that a marker without badges and links has no containers for them and uses the default severity.
+     */
+    @Test
+    void shouldSkipEmptyBadgesAndLinks() {
+        var marker = new MarkerBuilder().withLineStart(3).withTitle("Title").build();
+
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(marker));
+
+        assertThat(document.getElementsByClass("prism-marker--warning")).hasSize(1);
+        assertThat(document.getElementsByClass("prism-marker__badges")).isEmpty();
+        assertThat(document.getElementsByClass("prism-marker__links")).isEmpty();
+    }
+
+    /**
+     * Verifies that the data of a marker is rendered as attributes of the box, so client side scripts can filter
+     * the markers.
      */
     @Test
     void shouldRenderDataOfMarkers() {
         var marker = new MarkerBuilder()
                 .withLineStart(3)
                 .withTitle("Title")
-                .withSeverity(Severity.ERROR)
                 .withData("state", "new")
                 .withData("tool-id", "pmd")
                 .build();
 
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(marker)));
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(marker));
 
         var box = document.getElementsByClass("prism-marker").first();
         assertThat(box).isNotNull();
-        assertThat(box.attr("data-severity")).isEqualTo("error");
         assertThat(box.attr("data-marker-state")).isEqualTo("new");
         assertThat(box.attr("data-marker-tool-id")).isEqualTo("pmd");
     }
@@ -559,133 +405,94 @@ class SourcePrinterTest extends ResourceTest {
     }
 
     /**
-     * Verifies that each marked code block lists the IDs of its markers, and that blocks are split if the markers
-     * of the lines change.
+     * Verifies that TypeScript files are colorized as TypeScript.
      */
     @Test
-    void shouldListMarkersOfCodeBlocks() {
-        var block = new MarkerBuilder()
-                .withLineStart(3)
-                .withLineEnd(5)
-                .withId("block")
-                .build();
-        var inner = new MarkerBuilder().withLineStart(5).withId("inner").build();
+    @org.junitpioneer.jupiter.Issue("JENKINS-64584")
+    void shouldRenderTypeScriptFileAsTypeScript() {
+        var document = render("sample.ts", Stream.of("const answer: number = 42;"), List.of());
 
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(block, inner)));
-
-        assertThat(document.select("code.highlight"))
-                .extracting(element -> element.attr("data-markers"))
-                .containsExactly("block", "block inner");
-        assertThat(document.select("code.highlight").get(1).text())
-                .isEqualToIgnoringWhitespace("int b = std::move(argc);");
+        assertThat(getCode(document).classNames()).containsExactly("language-typescript");
     }
 
     /**
-     * Verifies that a marker without badges and links has no containers for them.
+     * Verifies that Qt translation files (which use the extension of TypeScript files) are colorized as markup.
      */
     @Test
-    void shouldSkipEmptyBadgesAndLinks() {
-        var marker = new MarkerBuilder().withLineStart(3).withTitle("Title").build();
+    @org.junitpioneer.jupiter.Issue("JENKINS-64584")
+    void shouldRenderQtTranslationFileAsMarkup() {
+        var document = render(
+                "sample.ts",
+                Stream.of(
+                        "<?xml version=\"1.0\" encoding=\"utf-8\"?>",
+                        "<!DOCTYPE TS>",
+                        "<TS version=\"2.1\" language=\"en_US\">",
+                        "</TS>"),
+                List.of());
 
-        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
-                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(marker)));
+        assertThat(getCode(document).classNames()).containsExactly("language-markup");
+    }
 
-        assertThat(document.getElementsByClass("prism-marker--warning")).hasSize(1);
-        assertThat(document.getElementsByClass("prism-marker__badges")).isEmpty();
-        assertThat(document.getElementsByClass("prism-marker__links")).isEmpty();
+    /**
+     * Verifies that XML files are rendered.
+     */
+    @Test
+    @org.junitpioneer.jupiter.Issue("JENKINS-55679")
+    void shouldRenderXmlFiles() {
+        var document = render("format.xml", asStream("format.xml"), List.of());
+
+        assertThat(getCode(document).wholeText())
+                .isEqualTo(toString("format.xml").stripTrailing());
+        assertThat(getCode(document).classNames()).containsExactly("language-markup");
+    }
+
+    /**
+     * Verifies that large files are not colorized.
+     */
+    @Test
+    @org.junitpioneer.jupiter.Issue("JENKINS-73298")
+    void shouldSkipSyntaxHighlightingForLargeFiles() {
+        var document = render("sample.xml", Stream.generate(() -> "line").limit(5_001), List.of());
+
+        assertThat(getCode(document).classNames()).isEmpty();
+        assertThat(getCode(document).attr("data-lines")).isEqualTo("5001");
+    }
+
+    /**
+     * Verifies that files within the limit are colorized.
+     */
+    @Test
+    @org.junitpioneer.jupiter.Issue("JENKINS-73298")
+    void shouldKeepSyntaxHighlightingForFilesWithinLimit() {
+        var document = render("sample.xml", Stream.generate(() -> "line").limit(5_000), List.of());
+
+        assertThat(getCode(document).classNames()).containsExactly("language-markup");
+    }
+
+    /**
+     * Verifies that the variant with a single marker renders the same snippet as the variant with a list.
+     */
+    @Test
+    void shouldRenderSingleMarker() {
+        var marker = new MarkerBuilder().withLineStart(3).withTitle(MESSAGE).build();
+        var printer = new SourcePrinter(createJenkinsFacade());
+
+        assertThat(printer.render(FILE_NAME, asStream(CPP_FILE), marker))
+                .isEqualTo(printer.render(FILE_NAME, asStream(CPP_FILE), List.of(marker)));
+    }
+
+    private Document render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
+        return Jsoup.parse(new SourcePrinter(createJenkinsFacade()).render(fileName, lines, markers));
+    }
+
+    private Element getCode(final Document document) {
+        return Objects.requireNonNull(
+                document.select(".prism-source__raw > code").first());
     }
 
     private JenkinsFacade createJenkinsFacade() {
         JenkinsFacade jenkinsFacade = mock(JenkinsFacade.class);
         when(jenkinsFacade.getImagePath(anyString())).thenReturn("/path/to/icon");
         return jenkinsFacade;
-    }
-
-    @Nested
-    class ColumnMarkerTest {
-        @Test
-        void withColumnStartZeroThenDontMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 0, 0))
-                    .contains("text that could be code");
-        }
-
-        @Test
-        void givenColumnStartAndColumnEndZeroThenMarkFromStartToLineEnd() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 0))
-                    .contains("text OpEnMARKthat could be codeClOsEMARK");
-        }
-
-        @Test
-        void givenColumnStartAndColumnEndwithColumnEndPointingToLineEndThenMarkFromStartToLineEnd() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 23))
-                    .contains("text OpEnMARKthat could be codeClOsEMARK");
-        }
-
-        @Test
-        void givenColumnStartAndColumnEndThenMarkFromColumnStartToColumnEnd() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 10))
-                    .contains("text OpEnMARKthat ClOsEMARKcould be code");
-        }
-
-        @Test
-        void givenColumnStartAndColumnEndWithDifferenceOfOneThenMarkFromColumnStartToColumnEnd() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 7))
-                    .contains("text OpEnMARKthClOsEMARKat could be code");
-        }
-
-        @Test
-        void givenColumnStartAndColumnEndWithSameValueThenMarkOneCharacter() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 6, 6))
-                    .contains("text OpEnMARKtClOsEMARKhat could be code");
-        }
-
-        @Test
-        void givenAnEmptyTextThenMarkNothing() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("", 6, 6))
-                    .contains("");
-        }
-
-        @Test
-        void givenColumnStartWithValueOneThenMarkTheLineFromBegin() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 1, 6))
-                    .contains("OpEnMARKtext tClOsEMARKhat could be code");
-        }
-
-        @Test
-        void givenColumnStartWithValueOfTheLastCharacterThenMarkTheLastCharacter() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 23, 0))
-                    .contains("text that could be codOpEnMARKeClOsEMARK");
-        }
-
-        @Test
-        void givenColumnStartWithValueOfBehindColumnEndThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 23, 10))
-                    .contains("text that could be code");
-        }
-
-        @Test
-        void givenColumnStartIsAfterLineEndThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 30, 10))
-                    .contains("text that could be code");
-        }
-
-        @Test
-        void givenColumnStartIsNegativeThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", -1, 10))
-                    .contains("text that could be code");
-        }
-
-        @Test
-        void givenColumnEndIsNegativeThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 1, -1))
-                    .contains("text that could be code");
-        }
-
-        @Test
-        void givenColumnEndIsAfterLineEndThenDoNotMark() {
-            assertThat(new SourcePrinter.ColumnMarker("MARK").markColumns("text that could be code", 1, 24))
-                    .contains("text that could be code");
-        }
     }
 }

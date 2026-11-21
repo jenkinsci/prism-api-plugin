@@ -159,18 +159,6 @@ public class Marker {
         String getCssModifier() {
             return name().toLowerCase(Locale.ENGLISH);
         }
-
-        /**
-         * Returns the higher severity of this severity and the specified other severity.
-         *
-         * @param other
-         *         the other severity
-         *
-         * @return the higher severity
-         */
-        Severity max(final Severity other) {
-            return compareTo(other) <= 0 ? this : other;
-        }
     }
 
     /**

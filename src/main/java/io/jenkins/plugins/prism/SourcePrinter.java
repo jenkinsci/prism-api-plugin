@@ -13,7 +13,6 @@ import static j2html.TagCreator.summary;
 import edu.hm.hafner.util.VisibleForTesting;
 import io.jenkins.plugins.prism.Marker.Badge;
 import io.jenkins.plugins.prism.Marker.Link;
-import io.jenkins.plugins.prism.Marker.Severity;
 import io.jenkins.plugins.prism.MarkerLayout.ColumnRange;
 import io.jenkins.plugins.prism.MarkerLayout.PositionedMarker;
 import io.jenkins.plugins.util.JenkinsFacade;
@@ -22,7 +21,6 @@ import j2html.tags.UnescapedText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringEscapeUtils;
@@ -30,7 +28,23 @@ import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
 
 /**
- * Renders a source code file into a HTML snippet using Prism.js.
+ * Renders a source code file and its markers into an HTML snippet. The layout of the source code view is created on
+ * the client side by the script {@code SourceCodeViewModel/source-code.js}: the snippet contains the escaped source
+ * code as a single code block, so Prism.js can colorize the whole file at once. Afterward, the script splits the
+ * colorized code into lines, adds the line numbers, and inserts the boxes of the markers after their anchor lines.
+ *
+ * <p>
+ * The snippet consists of two parts:
+ * </p>
+ * <ul>
+ *     <li>a hidden {@code pre} element with the class {@code prism-source__raw} that contains the source code. The
+ *     columns of the markers are enclosed in {@code span} elements with the class {@code code-mark} that list the
+ *     IDs of their markers in the attribute {@code data-markers}.</li>
+ *     <li>a hidden {@code div} element with the class {@code prism-source__markers} that contains an element for
+ *     each marker. The attributes {@code data-line-start}, {@code data-line-end}, and {@code data-anchor-line} define
+ *     the position of the marker. Markers without title and description have the class {@code prism-marker--empty}:
+ *     they only highlight their lines.</li>
+ * </ul>
  *
  * @author Philippe Arteau
  * @author Ullrich Hafner
@@ -39,15 +53,14 @@ import org.jenkins.ui.symbol.SymbolRequest;
 class SourcePrinter {
     private static final Sanitizer SANITIZER = new Sanitizer();
 
-    private static final ColumnMarker COLUMN_MARKER = new ColumnMarker("-n/a-");
     private static final String QT_LINGUIST_PATTERN = "<!DOCTYPE TS>";
     private static final int MAX_LINES_FOR_SYNTAX_HIGHLIGHTING = 5_000;
-    private static final String LINE_NUMBERS = "line-numbers";
-    private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
     private static final String ICON_SM = "icon-sm";
+    private static final String MARKER = "prism-marker";
     private static final String MARKER_HEADER = "prism-marker__header";
     private static final String MARKER_ICON = "prism-marker__icon";
+    private static final String HIDDEN = "hidden";
     private static final char NEW_LINE = '\n';
 
     private final JenkinsFacade jenkinsFacade;
@@ -65,8 +78,7 @@ class SourcePrinter {
     }
 
     /**
-     * Creates a colorized HTML snippet with the specified source code. Highlights the specified marker and provides a
-     * clickable and collapsible element that shows the details for the marker.
+     * Creates an HTML snippet with the specified source code and marker.
      *
      * @param fileName
      *         the file name of the source code file
@@ -75,16 +87,15 @@ class SourcePrinter {
      * @param marker
      *         the marker to show
      *
-     * @return the source code as colorized HTML
+     * @return the source code and the marker as HTML snippet
      */
     String render(final String fileName, final Stream<String> lines, final Marker marker) {
         return render(fileName, lines, List.of(marker));
     }
 
     /**
-     * Creates a colorized HTML snippet with the specified source code. Highlights all specified markers and shows the
-     * details of each marker (title and description) in a box after the last line of the marker. Markers may
-     * overlap, and several markers may refer to the same line.
+     * Creates an HTML snippet with the specified source code and markers. Markers may overlap, and several markers
+     * may refer to the same line.
      *
      * @param fileName
      *         the file name of the source code file
@@ -93,74 +104,89 @@ class SourcePrinter {
      * @param markers
      *         the markers to show, the list may be empty
      *
-     * @return the source code as colorized HTML
+     * @return the source code and the markers as HTML snippet
      */
     String render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
         List<String> source = lines.toList();
-
-        String language = selectLanguageClass(fileName, source);
-        boolean enableSyntaxHighlighting = source.size() <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
-        var writer = new CodeWriter(
-                getCodeClasses(language, enableSyntaxHighlighting),
-                getMarkedCodeClasses(language, enableSyntaxHighlighting));
-
         var layout = new MarkerLayout(markers, source.size());
-        writer.appendMarkers(layout.getMarkersAfter(0));
+
+        var code = new StringBuilder();
         for (int line = 1; line <= source.size(); line++) {
-            String text = source.get(line - 1);
-            if (layout.isMarked(line)) {
-                writer.appendMarkedLine(
-                        markColumns(text, layout.getColumnRanges(line)),
-                        layout.getSeverity(line),
-                        layout.getMarkerIds(line));
-            } else {
-                writer.appendLine(text);
+            if (line > 1) {
+                code.append(NEW_LINE);
             }
-            writer.appendMarkers(layout.getMarkersAfter(line));
+            code.append(renderLine(source.get(line - 1), layout.getColumnRanges(line)));
         }
-        return writer.render();
+
+        var codeElement = code().attr("data-lines", source.size()).with(new UnescapedText(code.toString()));
+        if (source.size() <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING) {
+            codeElement.withClass(selectLanguageClass(fileName, source));
+        }
+        var raw = pre().withClass("prism-source__raw").attr(HIDDEN, HIDDEN).with(codeElement);
+        var markerElements = div().withClass("prism-source__markers")
+                .attr(HIDDEN, HIDDEN)
+                .with(each(layout.getMarkers(), this::createMarker));
+
+        return raw.render() + markerElements.render();
+    }
+
+    /**
+     * Escapes the specified line and encloses the marked columns with {@code span} elements.
+     *
+     * @param text
+     *         the text of the line
+     * @param ranges
+     *         the disjoint column ranges to mark, sorted by their start column
+     *
+     * @return the line as HTML
+     */
+    private String renderLine(final String text, final List<ColumnRange> ranges) {
+        var html = new StringBuilder();
+        int position = 0;
+        for (ColumnRange range : ranges) {
+            int start = range.start() - 1;
+            int end = Math.min(range.end(), text.length());
+            if (start < position || start >= end) {
+                continue;
+            }
+            html.append(escape(text.substring(position, start)));
+            html.append(span().withClass("code-mark")
+                    .attr("data-markers", String.join(" ", range.markerIds()))
+                    .with(new UnescapedText(escape(text.substring(start, end))))
+                    .render());
+            position = end;
+        }
+        html.append(escape(text.substring(position)));
+        return html.toString();
+    }
+
+    private String escape(final String text) {
+        return StringEscapeUtils.escapeHtml4(text);
     }
 
     private boolean hasText(final Marker marker) {
         return StringUtils.isNotBlank(marker.getTitle()) || StringUtils.isNotBlank(marker.getDescription());
     }
 
-    private String markColumns(final String text, final List<ColumnRange> ranges) {
-        var marked = new StringBuilder(text);
-        // Mark the ranges from right to left, so the columns of the remaining ranges are still valid
-        for (int i = ranges.size() - 1; i >= 0; i--) {
-            var range = ranges.get(i);
-            marked = COLUMN_MARKER.markColumns(marked.toString(), range.start(), Math.min(range.end(), text.length()));
-        }
-        return marked.toString();
-    }
-
-    private String[] getCodeClasses(final String language, final boolean enableSyntaxHighlighting) {
-        if (enableSyntaxHighlighting) {
-            return new String[] {language, LINE_NUMBERS, MATCH_BRACES};
-        }
-        return new String[0];
-    }
-
-    private String[] getMarkedCodeClasses(final String language, final boolean enableSyntaxHighlighting) {
-        if (enableSyntaxHighlighting) {
-            return new String[] {language, LINE_NUMBERS, "highlight", MATCH_BRACES};
-        }
-        return new String[] {"highlight"};
-    }
-
-    private String createInfoPanel(final Marker marker, final String id) {
-        var panel = div().withClasses(
-                        "prism-marker", "prism-marker--" + marker.getSeverity().getCssModifier())
-                .withId(id)
+    private DomContent createMarker(final PositionedMarker positioned) {
+        var marker = positioned.marker();
+        var severityClass = MARKER + "--" + marker.getSeverity().getCssModifier();
+        var element = hasText(marker)
+                ? div().withClasses(MARKER, severityClass)
+                : div().withClasses(MARKER, severityClass, MARKER + "--empty");
+        element.withId(positioned.id())
                 .attr("data-line-start", marker.getLineStart())
                 .attr("data-line-end", marker.getLineEnd())
+                .attr("data-anchor-line", positioned.anchorLine())
                 .attr("data-severity", marker.getSeverity().getCssModifier());
-        marker.getData().forEach((name, value) -> panel.attr("data-marker-" + name, value));
+        marker.getData().forEach((name, value) -> element.attr("data-marker-" + name, value));
+        if (!hasText(marker)) {
+            return element;
+        }
         if (StringUtils.isBlank(marker.getDescription())) {
-            panel.with(div().withClass(MARKER_HEADER).with(createHeader(marker)));
+            element.with(div().withClass(MARKER_HEADER).with(createHeader(marker)));
         } else {
-            panel.with(details()
+            element.with(details()
                     .withClass("prism-marker__details")
                     .with(
                             summary().withClass(MARKER_HEADER).with(createHeader(marker)),
@@ -168,9 +194,9 @@ class SourcePrinter {
         }
         var links = marker.getLinks().stream().filter(this::isSafe).toList();
         if (!links.isEmpty()) {
-            panel.with(div().withClass("prism-marker__links").with(each(links, this::createLink)));
+            element.with(div().withClass("prism-marker__links").with(each(links, this::createLink)));
         }
-        return panel.render();
+        return element;
     }
 
     private List<DomContent> createHeader(final Marker marker) {
@@ -259,167 +285,5 @@ class SourcePrinter {
             case "yaml" -> "language-yaml";
             default -> "language-clike"; // Best effort for unknown extensions
         };
-    }
-
-    private String asMarkedCode(final StringBuilder text, final List<String> markerIds, final String... classes) {
-        String sanitized = SANITIZER.render(StringEscapeUtils.escapeHtml4(text.toString()));
-        String markerReplaced = COLUMN_MARKER.replacePlaceHolderWithHtmlTag(sanitized);
-        return code().withClasses(classes)
-                .attr("data-markers", String.join(" ", markerIds))
-                .with(new UnescapedText(markerReplaced))
-                .render();
-    }
-
-    private String asCode(final StringBuilder text, final String... classes) {
-        return code().withClasses(classes)
-                .with(unescape(StringEscapeUtils.escapeHtml4(text.toString())))
-                .render();
-    }
-
-    /**
-     * Writes the blocks of the source code and the boxes of the markers. Consecutive lines with the same state (not
-     * marked, or marked by the same markers) are combined into a single code block, since Prism colorizes each code
-     * block separately. Marked code blocks list the IDs of their markers in the attribute {@code data-markers}, so
-     * the highlight of a block can be removed on the client side if all of its markers are hidden by a filter.
-     */
-    @SuppressWarnings("PMD.AvoidStringBufferField")
-    private final class CodeWriter {
-        private final StringBuilder code = new StringBuilder();
-        private final StringBuilder block = new StringBuilder();
-        private final String[] codeClasses;
-        private final String[] markedCodeClasses;
-        private boolean isBlockMarked;
-        private Severity blockSeverity = Severity.WARNING;
-        private List<String> blockMarkerIds = List.of();
-
-        @SuppressWarnings("PMD.UseVarargs")
-        CodeWriter(final String[] codeClasses, final String[] markedCodeClasses) {
-            this.codeClasses = codeClasses.clone();
-            this.markedCodeClasses = markedCodeClasses.clone();
-        }
-
-        void appendLine(final String text) {
-            if (isBlockMarked) {
-                flush();
-                isBlockMarked = false;
-            }
-            block.append(text).append(NEW_LINE);
-        }
-
-        void appendMarkedLine(final String text, final Severity severity, final List<String> markerIds) {
-            if (!isBlockMarked || severity != blockSeverity || !markerIds.equals(blockMarkerIds)) {
-                flush();
-                isBlockMarked = true;
-                blockSeverity = severity;
-                blockMarkerIds = markerIds;
-            }
-            block.append(text).append(NEW_LINE);
-        }
-
-        void appendMarkers(final List<PositionedMarker> markers) {
-            if (markers.isEmpty()) {
-                return;
-            }
-            flush();
-            for (PositionedMarker positioned : markers) {
-                if (hasText(positioned.marker())) {
-                    code.append(createInfoPanel(positioned.marker(), positioned.id()));
-                }
-            }
-        }
-
-        String render() {
-            flush();
-            return pre().with(new UnescapedText(code.toString())).renderFormatted();
-        }
-
-        private void flush() {
-            if (block.isEmpty()) {
-                return;
-            }
-            if (isBlockMarked) {
-                code.append(asMarkedCode(
-                        block,
-                        blockMarkerIds,
-                        ArrayUtils.add(markedCodeClasses, "prism-marked--" + blockSeverity.getCssModifier())));
-            } else {
-                code.append(asCode(block, codeClasses));
-            }
-            block.setLength(0);
-        }
-    }
-
-    /**
-     * Encloses columns between {@code start} and {@code end} with an HTML tag (see {@code openingTag} and
-     * {@code closingTag}).
-     */
-    static final class ColumnMarker {
-        private static final String OPENING_TAG = "<span class='code-mark'>";
-        private static final String CLOSING_TAG = "</span>";
-
-        /**
-         * Creates a {@link ColumnMarker} that will use {@code placeHolderText} for enclosing.
-         *
-         * @param placeHolderText
-         *         Used to construct an opening and closing text that can later be replaced with the HTML tag
-         *         {@code openingTag} {@code closingTag}. It should be a text that is unlikely to appear in any source
-         *         code.
-         */
-        ColumnMarker(final String placeHolderText) {
-            openingTagPlaceHolder = "OpEn" + placeHolderText;
-            closingTagPlaceHolder = "ClOsE" + placeHolderText;
-        }
-
-        private final String openingTagPlaceHolder;
-        private final String closingTagPlaceHolder;
-
-        /**
-         * Encloses columns between start and end with the HTML tag {@code openingTag} {@code closingTag}. This will
-         * make prism highlight the enclosed part of the line.
-         *
-         * @param text
-         *         the source code line
-         * @param start
-         *         the first column in text, that needs to be marked
-         * @param end
-         *         the last column in text, that needs to be marked
-         *
-         * @return StringBuilder containing the text with the added HTML tag "mark"
-         */
-        StringBuilder markColumns(final String text, final int start, final int end) {
-            if (start < 1 || text.isEmpty() || end > text.length()) {
-                return new StringBuilder(text);
-            }
-            final int realStart = start - 1;
-            final int realEnd = (end == 0) ? text.length() - 1 : end - 1;
-
-            if (realStart > realEnd) {
-                return new StringBuilder(text);
-            }
-            final int afterMark = realEnd + 1;
-
-            final String before = text.substring(0, realStart);
-            final String toBeMarked = text.substring(realStart, afterMark);
-            final String after = text.substring(afterMark);
-
-            return new StringBuilder(before)
-                    .append(openingTagPlaceHolder)
-                    .append(toBeMarked)
-                    .append(closingTagPlaceHolder)
-                    .append(after);
-        }
-
-        /**
-         * Encloses columns between start and end with the HTML tag {@code openingTag} {@code closingTag}. This will
-         * make prism highlight the enclosed part of the line.
-         *
-         * @param text
-         *         the source code line
-         *
-         * @return String containing the text with the added html tag
-         */
-        String replacePlaceHolderWithHtmlTag(final String text) {
-            return text.replaceAll(openingTagPlaceHolder, OPENING_TAG).replaceAll(closingTagPlaceHolder, CLOSING_TAG);
-        }
     }
 }
