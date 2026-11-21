@@ -174,3 +174,31 @@ summary.prism-marker__header::after {
   width: 1rem;
   height: 1rem;
 }
+
+/* Marked lines whose markers are all hidden by a filter of the page */
+.prism-source pre > code.highlight.prism-marked--hidden {
+  background: none;
+  box-shadow: none;
+}
+
+.prism-source code.prism-marked--hidden .code-mark {
+  text-decoration: none;
+}
+
+/* Navigation between the markers, see prism/navigation.jelly */
+.prism-navigation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.prism-navigation__position {
+  min-width: 3.5rem;
+  color: var(--text-color-secondary, var(--text-color));
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.prism-marker[hidden] {
+  display: none;
+}

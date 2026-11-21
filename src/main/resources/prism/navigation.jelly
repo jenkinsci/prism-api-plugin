@@ -1,0 +1,22 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
+  <st:documentation>
+    Renders buttons to navigate to the previous and next marker of the source code view, together with the position
+    of the selected marker (e.g., "3 / 12"). The buttons can be placed anywhere on the page, e.g., in the app bar.
+    The navigation is handled by the script of the source code view (SourceCodeViewModel/source-code.js), which also
+    provides the keyboard shortcuts 'j' (next marker) and 'k' (previous marker). Hidden markers (e.g., removed by a
+    filter of the page) are skipped.
+  </st:documentation>
+
+  <div class="prism-navigation">
+    <button type="button" class="jenkins-button jenkins-button--tertiary prism-navigation__button"
+            data-prism-navigation="previous" tooltip="${%previous}" aria-label="${%previous}">
+      <l:icon src="symbol-chevron-up-outline plugin-ionicons-api"/>
+    </button>
+    <span class="prism-navigation__position" data-prism-navigation="position" tooltip="${%position}">-</span>
+    <button type="button" class="jenkins-button jenkins-button--tertiary prism-navigation__button"
+            data-prism-navigation="next" tooltip="${%next}" aria-label="${%next}">
+      <l:icon src="symbol-chevron-down-outline plugin-ionicons-api"/>
+    </button>
+  </div>
+</j:jelly>

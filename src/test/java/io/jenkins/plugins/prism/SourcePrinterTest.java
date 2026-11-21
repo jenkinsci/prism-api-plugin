@@ -1,6 +1,7 @@
 package io.jenkins.plugins.prism;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -180,7 +181,8 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(document.getElementsByTag("code").toString())
                 .isEqualTo("<code class=\"language-clike line-numbers match-braces\">#include &lt;iostream&gt;\n"
                         + "</code>\n"
-                        + "<code class=\"language-clike line-numbers highlight match-braces prism-marked--warning\">\n"
+                        + "<code class=\"language-clike line-numbers highlight match-braces prism-marked--warning\" "
+                        + "data-markers=\"prism-marker-1\">\n"
                         + "int main(int argc, char**argv) {\n"
                         + "\n"
                         + "  int b = std::move(argc);\n"
@@ -517,6 +519,66 @@ class SourcePrinterTest extends ResourceTest {
                 .containsExactly("details/1", "https://github.com/commit/1");
         assertThat(document.getElementsByClass("prism-marker__link-icon").attr("src"))
                 .isEqualTo("/path/to/icon");
+    }
+
+    /**
+     * Verifies that the data of a marker and its severity are rendered as attributes of the box, so client side
+     * scripts can filter the markers.
+     */
+    @Test
+    void shouldRenderDataOfMarkers() {
+        var marker = new MarkerBuilder()
+                .withLineStart(3)
+                .withTitle("Title")
+                .withSeverity(Severity.ERROR)
+                .withData("state", "new")
+                .withData("tool-id", "pmd")
+                .build();
+
+        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
+                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(marker)));
+
+        var box = document.getElementsByClass("prism-marker").first();
+        assertThat(box).isNotNull();
+        assertThat(box.attr("data-severity")).isEqualTo("error");
+        assertThat(box.attr("data-marker-state")).isEqualTo("new");
+        assertThat(box.attr("data-marker-tool-id")).isEqualTo("pmd");
+    }
+
+    /**
+     * Verifies that the name of marker data is validated.
+     */
+    @Test
+    void shouldRejectInvalidNamesOfData() {
+        var builder = new MarkerBuilder();
+
+        assertThatIllegalArgumentException().isThrownBy(() -> builder.withData("State", "new"));
+        assertThatIllegalArgumentException().isThrownBy(() -> builder.withData("1st", "new"));
+        assertThatIllegalArgumentException().isThrownBy(() -> builder.withData("a b", "new"));
+        assertThatIllegalArgumentException().isThrownBy(() -> builder.withData("\"onclick", "new"));
+    }
+
+    /**
+     * Verifies that each marked code block lists the IDs of its markers, and that blocks are split if the markers
+     * of the lines change.
+     */
+    @Test
+    void shouldListMarkersOfCodeBlocks() {
+        var block = new MarkerBuilder()
+                .withLineStart(3)
+                .withLineEnd(5)
+                .withId("block")
+                .build();
+        var inner = new MarkerBuilder().withLineStart(5).withId("inner").build();
+
+        Document document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
+                .render(FILE_NAME, asStream("format-cpp.txt"), List.of(block, inner)));
+
+        assertThat(document.select("code.highlight"))
+                .extracting(element -> element.attr("data-markers"))
+                .containsExactly("block", "block inner");
+        assertThat(document.select("code.highlight").get(1).text())
+                .isEqualToIgnoringWhitespace("int b = std::move(argc);");
     }
 
     /**

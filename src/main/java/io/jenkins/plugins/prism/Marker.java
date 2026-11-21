@@ -1,8 +1,11 @@
 package io.jenkins.plugins.prism;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -28,6 +31,7 @@ public class Marker {
     private final Severity severity;
     private final List<Badge> badges;
     private final List<Link> links;
+    private final Map<String, String> data;
 
     @SuppressWarnings("checkstyle:ParameterNumber")
     Marker(
@@ -41,7 +45,8 @@ public class Marker {
             final int columnEnd,
             final Severity severity,
             final List<Badge> badges,
-            final List<Link> links) {
+            final List<Link> links,
+            final Map<String, String> data) {
         this.id = id;
         this.title = title;
         this.icon = icon;
@@ -53,6 +58,7 @@ public class Marker {
         this.severity = severity;
         this.badges = List.copyOf(badges);
         this.links = List.copyOf(links);
+        this.data = Map.copyOf(data);
     }
 
     /**
@@ -120,6 +126,16 @@ public class Marker {
      */
     public List<Link> getLinks() {
         return links;
+    }
+
+    /**
+     * Returns additional data of this marker. Each entry is rendered as an attribute {@code data-marker-<name>} of
+     * the box of the marker, so client side scripts can use the data, e.g., to filter the markers.
+     *
+     * @return the data of the marker, the map may be empty
+     */
+    public Map<String, String> getData() {
+        return data;
     }
 
     /**
@@ -230,10 +246,13 @@ public class Marker {
      */
     @SuppressWarnings({"ParameterHidesMemberVariable", "checkstyle:HiddenField"})
     public static class MarkerBuilder {
+        private static final Pattern DATA_NAME = Pattern.compile("[a-z][a-z0-9-]*");
+
         private String id = StringUtils.EMPTY;
         private Severity severity = Severity.WARNING;
         private final List<Badge> badges = new ArrayList<>();
         private final List<Link> links = new ArrayList<>();
+        private final Map<String, String> data = new LinkedHashMap<>();
         private String title = StringUtils.EMPTY;
         private String icon = StringUtils.EMPTY;
         private String description = StringUtils.EMPTY;
@@ -325,6 +344,28 @@ public class Marker {
          */
         public MarkerBuilder withLink(final String label, final String url, final String icon) {
             links.add(new Link(label, url, icon));
+            return this;
+        }
+
+        /**
+         * Adds additional data to the marker. The data is rendered as an attribute {@code data-marker-<name>} of the
+         * box of the marker, so client side scripts can use the data, e.g., to filter the markers.
+         *
+         * @param name
+         *         the name of the data, must consist of lowercase letters, digits, and hyphens and must start with a
+         *         letter
+         * @param value
+         *         the value of the data
+         *
+         * @return this builder
+         * @throws IllegalArgumentException
+         *         if the name is not valid
+         */
+        public MarkerBuilder withData(final String name, final String value) {
+            if (!DATA_NAME.matcher(name).matches()) {
+                throw new IllegalArgumentException("Invalid name of marker data: " + name);
+            }
+            data.put(name, value);
             return this;
         }
 
@@ -446,7 +487,18 @@ public class Marker {
             }
 
             return new Marker(
-                    id, title, icon, description, lineStart, lineEnd, columnStart, columnEnd, severity, badges, links);
+                    id,
+                    title,
+                    icon,
+                    description,
+                    lineStart,
+                    lineEnd,
+                    columnStart,
+                    columnEnd,
+                    severity,
+                    badges,
+                    links,
+                    data);
         }
 
         /**

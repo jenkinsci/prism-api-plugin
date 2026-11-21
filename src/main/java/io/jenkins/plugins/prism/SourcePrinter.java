@@ -109,7 +109,10 @@ class SourcePrinter {
         for (int line = 1; line <= source.size(); line++) {
             String text = source.get(line - 1);
             if (layout.isMarked(line)) {
-                writer.appendMarkedLine(markColumns(text, layout.getColumnRanges(line)), layout.getSeverity(line));
+                writer.appendMarkedLine(
+                        markColumns(text, layout.getColumnRanges(line)),
+                        layout.getSeverity(line),
+                        layout.getMarkerIds(line));
             } else {
                 writer.appendLine(text);
             }
@@ -151,7 +154,9 @@ class SourcePrinter {
                         "prism-marker", "prism-marker--" + marker.getSeverity().getCssModifier())
                 .withId(id)
                 .attr("data-line-start", marker.getLineStart())
-                .attr("data-line-end", marker.getLineEnd());
+                .attr("data-line-end", marker.getLineEnd())
+                .attr("data-severity", marker.getSeverity().getCssModifier());
+        marker.getData().forEach((name, value) -> panel.attr("data-marker-" + name, value));
         if (StringUtils.isBlank(marker.getDescription())) {
             panel.with(div().withClass(MARKER_HEADER).with(createHeader(marker)));
         } else {
@@ -256,10 +261,11 @@ class SourcePrinter {
         };
     }
 
-    private String asMarkedCode(final StringBuilder text, final String... classes) {
+    private String asMarkedCode(final StringBuilder text, final List<String> markerIds, final String... classes) {
         String sanitized = SANITIZER.render(StringEscapeUtils.escapeHtml4(text.toString()));
         String markerReplaced = COLUMN_MARKER.replacePlaceHolderWithHtmlTag(sanitized);
         return code().withClasses(classes)
+                .attr("data-markers", String.join(" ", markerIds))
                 .with(new UnescapedText(markerReplaced))
                 .render();
     }
@@ -272,8 +278,9 @@ class SourcePrinter {
 
     /**
      * Writes the blocks of the source code and the boxes of the markers. Consecutive lines with the same state (not
-     * marked, or marked with the same severity) are combined into a single code block, since Prism colorizes each
-     * code block separately.
+     * marked, or marked by the same markers) are combined into a single code block, since Prism colorizes each code
+     * block separately. Marked code blocks list the IDs of their markers in the attribute {@code data-markers}, so
+     * the highlight of a block can be removed on the client side if all of its markers are hidden by a filter.
      */
     @SuppressWarnings("PMD.AvoidStringBufferField")
     private final class CodeWriter {
@@ -283,6 +290,7 @@ class SourcePrinter {
         private final String[] markedCodeClasses;
         private boolean isBlockMarked;
         private Severity blockSeverity = Severity.WARNING;
+        private List<String> blockMarkerIds = List.of();
 
         @SuppressWarnings("PMD.UseVarargs")
         CodeWriter(final String[] codeClasses, final String[] markedCodeClasses) {
@@ -298,11 +306,12 @@ class SourcePrinter {
             block.append(text).append(NEW_LINE);
         }
 
-        void appendMarkedLine(final String text, final Severity severity) {
-            if (!isBlockMarked || severity != blockSeverity) {
+        void appendMarkedLine(final String text, final Severity severity, final List<String> markerIds) {
+            if (!isBlockMarked || severity != blockSeverity || !markerIds.equals(blockMarkerIds)) {
                 flush();
                 isBlockMarked = true;
                 blockSeverity = severity;
+                blockMarkerIds = markerIds;
             }
             block.append(text).append(NEW_LINE);
         }
@@ -330,7 +339,9 @@ class SourcePrinter {
             }
             if (isBlockMarked) {
                 code.append(asMarkedCode(
-                        block, ArrayUtils.add(markedCodeClasses, "prism-marked--" + blockSeverity.getCssModifier())));
+                        block,
+                        blockMarkerIds,
+                        ArrayUtils.add(markedCodeClasses, "prism-marked--" + blockSeverity.getCssModifier())));
             } else {
                 code.append(asCode(block, codeClasses));
             }

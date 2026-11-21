@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -22,6 +24,7 @@ class MarkerLayout {
 
     private final int linesCount;
     private final Map<Integer, Severity> severityPerLine = new TreeMap<>();
+    private final Map<Integer, SortedSet<String>> markersPerLine = new TreeMap<>();
     private final Map<Integer, List<PositionedMarker>> markersAfterLine = new TreeMap<>();
     private final Map<Integer, List<ColumnRange>> columnsPerLine = new TreeMap<>();
 
@@ -54,6 +57,7 @@ class MarkerLayout {
             int end = Math.min(Math.max(start, marker.getLineEnd()), linesCount);
             for (int line = start; line <= end; line++) {
                 severityPerLine.merge(line, marker.getSeverity(), Severity::max);
+                markersPerLine.computeIfAbsent(line, key -> new TreeSet<>()).add(id);
             }
             addMarkerAfterLine(end, positioned);
 
@@ -92,6 +96,18 @@ class MarkerLayout {
      */
     Severity getSeverity(final int line) {
         return severityPerLine.getOrDefault(line, Severity.WARNING);
+    }
+
+    /**
+     * Returns the IDs of the markers that contain the specified line.
+     *
+     * @param line
+     *         the line to check (1-based)
+     *
+     * @return the IDs of the markers, sorted alphabetically, or an empty list if the line is not marked
+     */
+    List<String> getMarkerIds(final int line) {
+        return List.copyOf(markersPerLine.getOrDefault(line, new TreeSet<>()));
     }
 
     /**

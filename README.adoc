@@ -86,6 +86,16 @@ category) and links to related pages (`withLink`). Each box gets a button to cop
 Each `Marker` can have an ID (`MarkerBuilder#withId`). The ID (or a line number) can be used as fragment of the URL
 to select a marker: the view then scrolls to the marker and expands its description.
 
+=== Navigation and filtering
+
+Place the tag `<p:navigation/>` (namespace `/prism`) anywhere on your page, e.g., in the app bar, to show buttons
+that select the previous or next marker. The keys `j` and `k` do the same.
+
+Additional data of a marker (`MarkerBuilder#withData(name, value)`) is rendered as attribute `data-marker-<name>`
+of the box. Your page can use this data to filter the markers: set the attribute `hidden` of the boxes that should
+not be shown and dispatch the event `prism-markers-changed` on the document. The view then removes the highlight
+of all lines that belong to hidden markers only, and the navigation skips the hidden markers.
+
 == Examples
 
 For source code rendering look into the
