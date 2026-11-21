@@ -7,7 +7,8 @@
  *   <li>Each marker gets a button that copies the link to the marker (URL with the ID of the marker as fragment).
  *   </li>
  *   <li>The previous and next visible marker can be selected with the floating buttons (tag 'prism:navigation') or
- *   with the keys 'k' and 'j'. The buttons are shown only if there are at least two visible markers.</li>
+ *   with the keys 'k' and 'j'. The buttons are shown only if there are at least two visible markers.
+ *   An additional floating button scrolls to the top of the page, it is shown if the page has been scrolled down.</li>
  *   <li>Pages can hide markers (e.g., by a filter) by setting the attribute 'hidden' of the marker element. Afterwards,
  *   the page must dispatch the event 'prism-markers-changed' on the document. Then the highlight of all code blocks
  *   that contain only hidden markers is removed, and the navigation skips the hidden markers.</li>
@@ -17,6 +18,8 @@
   const SELECTED = "prism-marker--selected";
   const HIDDEN_BLOCK = "prism-marked--hidden";
   const CHANGED_EVENT = "prism-markers-changed";
+  // the button to scroll to the top is shown if the page has been scrolled down by more than this number of pixels
+  const SCROLL_THRESHOLD = 400;
   const LINK_ICON =
     '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round">' +
@@ -106,9 +109,13 @@
   function updateNavigation() {
     const visible = getVisibleMarkers();
     const index = visible.indexOf(getSelectedMarker());
+    const hasMarkers = visible.length > 1;
+    const isScrolled = window.scrollY > SCROLL_THRESHOLD;
     document.querySelectorAll(".prism-navigation").forEach((navigation) => {
-      const isVisible = visible.length > 1;
+      const isVisible = hasMarkers || isScrolled;
       navigation.classList.toggle("prism-navigation--visible", isVisible);
+      navigation.classList.toggle("prism-navigation--markers", hasMarkers);
+      navigation.classList.toggle("prism-navigation--scrolled", isScrolled);
       navigation.setAttribute("aria-hidden", String(!isVisible));
     });
     document
@@ -226,7 +233,28 @@
       .forEach((button) => {
         button.addEventListener("click", () => navigate(1));
       });
+    document
+      .querySelectorAll('[data-prism-navigation="top"]')
+      .forEach((button) => {
+        button.addEventListener("click", () =>
+          window.scrollTo({ top: 0, behavior: "smooth" }),
+        );
+      });
     document.addEventListener("keydown", handleKey);
+    let isUpdateRequested = false;
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (!isUpdateRequested) {
+          isUpdateRequested = true;
+          window.requestAnimationFrame(() => {
+            isUpdateRequested = false;
+            updateNavigation();
+          });
+        }
+      },
+      { passive: true },
+    );
   }
 
   function initialize() {

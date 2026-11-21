@@ -1,23 +1,34 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
   <st:documentation>
-    Renders floating buttons in the lower right corner of the page to navigate to the previous and next marker of the
-    source code view, together with the position of the selected marker (e.g., "3 / 12"). The buttons are shown only
-    if there are at least two visible markers. The navigation is handled by the script of the source code view
-    (SourceCodeViewModel/source-code.js), which also provides the keyboard shortcuts 'j' (next marker) and 'k'
-    (previous marker). Hidden markers (e.g., removed by a filter of the page) are skipped. This tag is part of the
-    fragment SourceCodeViewModel/content.jelly, so pages that embed the source code do not need to add it.
+    Renders floating buttons in the lower right corner of the page (same style as the scroll buttons of the stage
+    view):
+    <ul>
+      <li>a button to scroll to the top of the page, shown only if the page has been scrolled down,</li>
+      <li>buttons to navigate to the previous and next marker of the source code view, together with the position of
+      the selected marker (e.g., "3 / 12"), shown only if there are at least two visible markers.</li>
+    </ul>
+    The buttons are handled by the script of the source code view (SourceCodeViewModel/source-code.js), which also
+    provides the keyboard shortcuts 'j' (next marker) and 'k' (previous marker). Hidden markers (e.g., removed by a
+    filter of the page) are skipped. This tag is part of the fragment SourceCodeViewModel/content.jelly, so pages
+    that embed the source code do not need to add it.
   </st:documentation>
 
   <div class="prism-navigation jenkins-mobile-hide" aria-hidden="true">
-    <button type="button" class="jenkins-button prism-navigation__button"
-            data-prism-navigation="previous" tooltip="${%previous}" aria-label="${%previous}">
+    <button type="button" class="jenkins-button prism-navigation__button prism-navigation__top"
+            data-prism-navigation="top" tooltip="${%top}" aria-label="${%top}">
       <l:icon src="symbol-arrow-up-outline plugin-ionicons-api"/>
     </button>
-    <span class="prism-navigation__position" data-prism-navigation="position" tooltip="${%position}">-</span>
-    <button type="button" class="jenkins-button prism-navigation__button"
-            data-prism-navigation="next" tooltip="${%next}" aria-label="${%next}">
-      <l:icon src="symbol-arrow-down-outline plugin-ionicons-api"/>
-    </button>
+    <div class="prism-navigation__markers">
+      <button type="button" class="jenkins-button prism-navigation__button"
+              data-prism-navigation="previous" tooltip="${%previous}" aria-label="${%previous}">
+        <l:icon src="symbol-chevron-up-outline plugin-ionicons-api"/>
+      </button>
+      <span class="prism-navigation__position" data-prism-navigation="position" tooltip="${%position}">-</span>
+      <button type="button" class="jenkins-button prism-navigation__button"
+              data-prism-navigation="next" tooltip="${%next}" aria-label="${%next}">
+        <l:icon src="symbol-chevron-down-outline plugin-ionicons-api"/>
+      </button>
+    </div>
   </div>
 </j:jelly>

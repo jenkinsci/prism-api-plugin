@@ -89,7 +89,8 @@ to select a marker: the view then scrolls to the marker and expands its descript
 === Navigation and filtering
 
 If the source code view shows at least two markers, floating buttons in the lower right corner of the page select
-the previous or next marker (like the scroll buttons of the stage view). The keys `j` and `k` do the same. The
+the previous or next marker (like the scroll buttons of the stage view). The keys `j` and `k` do the same. If the
+page has been scrolled down, an additional button scrolls back to the top. The
 buttons are part of the fragment `content.jelly`.
 
 Additional data of a marker (`MarkerBuilder#withData(name, value)`) is rendered as attribute `data-marker-<name>`
