@@ -1,10 +1,11 @@
 package io.jenkins.plugins.prism;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 import edu.hm.hafner.util.FilteredLog;
 import edu.hm.hafner.util.PathUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.plugins.util.GlobalConfigurationFacade;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author Ullrich Hafner
  */
+@SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
 class PrismConfigurationTest {
     private static final PathUtil PATH_UTIL = new PathUtil();
 

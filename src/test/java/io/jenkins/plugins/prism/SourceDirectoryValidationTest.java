@@ -1,8 +1,10 @@
 package io.jenkins.plugins.prism;
 
-import static io.jenkins.plugins.prism.SourceDirectoryValidation.*;
+import static io.jenkins.plugins.prism.SourceDirectoryValidation.DIRECTORY_NOT_REGISTERED;
+import static io.jenkins.plugins.prism.SourceDirectoryValidation.SourceDirectoryValidator;
 import static org.mockito.Mockito.*;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
 import hudson.model.FreeStyleProject;
 import hudson.util.FormValidation;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
  * @author Stephan Plöderl
  * @author Ullrich Hafner
  */
+@SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
 class SourceDirectoryValidationTest {
     @Test
     void shouldValidateRelativeWithoutWorkspace() {

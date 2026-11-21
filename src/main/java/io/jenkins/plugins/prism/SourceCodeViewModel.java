@@ -7,11 +7,27 @@ import io.jenkins.plugins.util.JenkinsFacade;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.List;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 /**
- * Renders a source code file with Prism syntax highlighting in a separate Jenkins view. Optionally, highlights a marker
- * in the source code: either a line, some characters in a line, or a multi-line block.
+ * Renders a source code file with Prism syntax highlighting. Optionally, highlights an arbitrary number of markers in
+ * the source code: each marker is either a line, some characters in a line, or a multi-line block. The details of
+ * each marker (title, description, and icon) are shown in a box after the last line of the marker.
+ *
+ * <p>
+ * The model can be shown as a separate Jenkins view (see {@code index.jelly}), or it can be embedded into the view of
+ * another model by including the fragment {@code content.jelly}, e.g.,
+ * {@code <st:include it="${it.sourceCode}" page="content.jelly"/>}. The fragment is available for the
+ * {@link PermissionDeniedViewModel} as well, so the result of the factory methods can be embedded directly.
+ * </p>
+ *
+ * <p>
+ * A marker can be selected using the fragment of the URL: either the ID of the marker (see
+ * {@link Marker.MarkerBuilder#withId(String)}) or a line number. A selected marker is highlighted, its description
+ * is expanded, and the view scrolls to the marker. If there is only one marker, then this marker is selected
+ * automatically.
+ * </p>
  *
  * @author Ullrich Hafner
  */
@@ -67,6 +83,26 @@ public class SourceCodeViewModel implements ModelObject {
                 new SourceCodeViewModel(owner, fileName, sourceCodeReader, marker), owner, fileName);
     }
 
+    /**
+     * Creates a source code view model or a permission-denied view model based on the user's permissions. The view
+     * model highlights all specified markers.
+     *
+     * @param owner
+     *         the current build as the owner of this view
+     * @param fileName
+     *         the file name of the shown content
+     * @param sourceCodeReader
+     *         the source code file to show, provided by a {@link Reader} instance
+     * @param markers
+     *         the blocks of lines (or parts of lines) to mark in the source code view, may be empty
+     * @return a {@link SourceCodeViewModel} if permission is granted, or a {@link PermissionDeniedViewModel} otherwise
+     */
+    public static ModelObject create(
+            final Run<?, ?> owner, final String fileName, final Reader sourceCodeReader, final List<Marker> markers) {
+        return protectedSourceCodeView(
+                new SourceCodeViewModel(owner, fileName, sourceCodeReader, markers), owner, fileName);
+    }
+
     private final Run<?, ?> owner;
     private final String fileName;
     private final String sourceCode;
@@ -88,19 +124,24 @@ public class SourceCodeViewModel implements ModelObject {
     @SuppressWarnings("DeprecatedIsStillUsed")
     public SourceCodeViewModel(
             final Run<?, ?> owner, final String fileName, final Reader sourceCodeReader, final Marker marker) {
+        this(owner, fileName, sourceCodeReader, List.of(marker));
+    }
+
+    private SourceCodeViewModel(
+            final Run<?, ?> owner, final String fileName, final Reader sourceCodeReader, final List<Marker> markers) {
         this.owner = owner;
         this.fileName = fileName;
-        sourceCode = render(sourceCodeReader, marker);
+        sourceCode = render(sourceCodeReader, markers);
     }
 
     public PrismConfiguration getPrismConfiguration() {
         return PrismConfiguration.getInstance();
     }
 
-    private String render(final Reader affectedFile, final Marker marker) {
+    private String render(final Reader affectedFile, final List<Marker> markers) {
         try (BufferedReader reader = new BufferedReader(affectedFile)) {
             SourcePrinter sourcePrinter = new SourcePrinter();
-            return sourcePrinter.render(fileName, reader.lines(), marker);
+            return sourcePrinter.render(fileName, reader.lines(), markers);
         } catch (IOException e) {
             return String.format("%s%n%s", ExceptionUtils.getMessage(e), ExceptionUtils.getStackTrace(e));
         }
