@@ -6,8 +6,8 @@
  *   automatically. The view scrolls to the first selected marker.</li>
  *   <li>Each marker gets a button that copies the link to the marker (URL with the ID of the marker as fragment).
  *   </li>
- *   <li>The previous and next visible marker can be selected with the buttons of the tag 'prism:navigation' or with
- *   the keys 'k' and 'j'.</li>
+ *   <li>The previous and next visible marker can be selected with the floating buttons (tag 'prism:navigation') or
+ *   with the keys 'k' and 'j'. The buttons are shown only if there are at least two visible markers.</li>
  *   <li>Pages can hide markers (e.g., by a filter) by setting the attribute 'hidden' of the marker element. Afterwards,
  *   the page must dispatch the event 'prism-markers-changed' on the document. Then the highlight of all code blocks
  *   that contain only hidden markers is removed, and the navigation skips the hidden markers.</li>
@@ -106,6 +106,11 @@
   function updateNavigation() {
     const visible = getVisibleMarkers();
     const index = visible.indexOf(getSelectedMarker());
+    document.querySelectorAll(".prism-navigation").forEach((navigation) => {
+      const isVisible = visible.length > 1;
+      navigation.classList.toggle("prism-navigation--visible", isVisible);
+      navigation.setAttribute("aria-hidden", String(!isVisible));
+    });
     document
       .querySelectorAll('[data-prism-navigation="position"]')
       .forEach((position) => {
