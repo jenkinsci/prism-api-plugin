@@ -94,6 +94,12 @@ var view = new SourceCodeViewModel.Builder(build, "Console Output")
         .build(consoleLines);
 ----
 
+By default, long sections of lines without markers are collapsed (like in the merge requests of GitLab): only three
+lines of context around the marked lines remain visible, and each collapsed section can be expanded with a button. If
+no marker is visible (e.g., all markers are hidden by a filter), then all lines are shown. Use
+`withoutCollapsing()` of the builder to show all lines. Files with at least 50 lines get an overview ruler next to the
+lines that shows the positions of the visible markers; clicking a mark selects the marker.
+
 Each `Marker` has a severity (`withSeverity`: `ERROR`, `WARNING` (default), or `INFO`) that defines the color of
 the marked lines and of the box. The box can additionally show badges (`withBadge`, e.g., the name of a tool or a
 category) and links to related pages (`withLink`). Each box gets a button to copy the link to the marker.

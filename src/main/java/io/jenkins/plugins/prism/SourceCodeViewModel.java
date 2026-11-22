@@ -107,6 +107,7 @@ public class SourceCodeViewModel implements ModelObject {
     private final Run<?, ?> owner;
     private final String fileName;
     private final String sourceCode;
+    private final boolean collapsible;
 
     /**
      * Creates a new source code view model instance.
@@ -133,12 +134,15 @@ public class SourceCodeViewModel implements ModelObject {
         this.owner = owner;
         this.fileName = fileName;
         sourceCode = render(sourceCodeReader, markers);
+        collapsible = true;
     }
 
-    private SourceCodeViewModel(final Run<?, ?> owner, final String fileName, final String sourceCode) {
+    private SourceCodeViewModel(
+            final Run<?, ?> owner, final String fileName, final String sourceCode, final boolean isCollapsible) {
         this.owner = owner;
         this.fileName = fileName;
         this.sourceCode = sourceCode;
+        this.collapsible = isCollapsible;
     }
 
     public PrismConfiguration getPrismConfiguration() {
@@ -178,6 +182,16 @@ public class SourceCodeViewModel implements ModelObject {
     }
 
     /**
+     * Returns whether long sections of lines without markers are collapsed in the view. The lines around the markers
+     * are still visible, and the collapsed sections can be expanded by the user.
+     *
+     * @return {@code true} if the sections without markers are collapsed, {@code false} if all lines are visible
+     */
+    public boolean isCollapsible() {
+        return collapsible;
+    }
+
+    /**
      * Creates the view model of a source code view with additional options. By default, the whole content is shown,
      * the content is colorized based on the file name, and the permission to view source code is checked.
      *
@@ -202,6 +216,7 @@ public class SourceCodeViewModel implements ModelObject {
         private int firstLine = 1;
         private int lastLine = Integer.MAX_VALUE;
         private boolean isPermissionCheckRequired = true;
+        private boolean isCollapsible = true;
 
         /**
          * Creates a new builder.
@@ -272,6 +287,17 @@ public class SourceCodeViewModel implements ModelObject {
         }
 
         /**
+         * Shows all lines of the content. By default, long sections of lines without markers are collapsed, and only
+         * the lines around the markers are visible.
+         *
+         * @return this builder
+         */
+        public Builder withoutCollapsing() {
+            isCollapsible = false;
+            return this;
+        }
+
+        /**
          * Creates the view model for the content of the specified reader.
          *
          * @param reader
@@ -292,7 +318,8 @@ public class SourceCodeViewModel implements ModelObject {
                         fileName,
                         String.format(
                                 "%s%n%s",
-                                ExceptionUtils.getMessage(exception), ExceptionUtils.getStackTrace(exception)));
+                                ExceptionUtils.getMessage(exception), ExceptionUtils.getStackTrace(exception)),
+                        isCollapsible);
             }
         }
 
@@ -320,7 +347,10 @@ public class SourceCodeViewModel implements ModelObject {
             long excerptSize = Math.max(0L, (long) lastLine - firstLine + 1);
             var excerpt = lines.skip(firstLine - 1L).limit(excerptSize);
             return new SourceCodeViewModel(
-                    owner, fileName, new SourcePrinter().render(fileName, excerpt, markers, firstLine, isPlainText));
+                    owner,
+                    fileName,
+                    new SourcePrinter().render(fileName, excerpt, markers, firstLine, isPlainText),
+                    isCollapsible);
         }
     }
 }

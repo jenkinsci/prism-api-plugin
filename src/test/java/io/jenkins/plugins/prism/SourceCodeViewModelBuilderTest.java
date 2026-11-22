@@ -39,6 +39,7 @@ class SourceCodeViewModelBuilderTest {
         assertThat(view).isInstanceOfSatisfying(SourceCodeViewModel.class, model -> {
             assertThat(model.getDisplayName()).isEqualTo(FILE_NAME);
             assertThat(model.getOwner()).isSameAs(build);
+            assertThat(model.isCollapsible()).isTrue();
 
             var code = Objects.requireNonNull(Jsoup.parse(model.getSourceCode())
                     .select(".prism-source__raw > code")
@@ -72,6 +73,22 @@ class SourceCodeViewModelBuilderTest {
             assertThat(code.attr("data-first-line")).isEqualTo("1");
             assertThat(code.classNames()).containsExactly("language-java");
         });
+    }
+
+    /**
+     * Verifies that collapsing of the lines without markers can be disabled.
+     */
+    @Test
+    void shouldDisableCollapsing() {
+        var view = new SourceCodeViewModel.Builder(mock(Run.class), FILE_NAME)
+                .withoutCollapsing()
+                .withoutPermissionCheck()
+                .build(Stream.of("one", "two"));
+
+        assertThat(view)
+                .isInstanceOfSatisfying(
+                        SourceCodeViewModel.class,
+                        model -> assertThat(model.isCollapsible()).isFalse());
     }
 
     /**

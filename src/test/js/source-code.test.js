@@ -57,7 +57,7 @@ function escape(text) {
 /**
  * Creates the snippet that is rendered by the server (see SourcePrinter), together with the navigation.
  */
-function createSource(lines, markers, language = "language-java", firstLine = 1) {
+function createSource(lines, markers, language = "language-java", firstLine = 1, attributes = "") {
   const markerElements = markers
     .map((marker) => {
       const classes = `prism-marker prism-marker--${marker.severity}${marker.empty ? " prism-marker--empty" : ""}`;
@@ -70,7 +70,7 @@ function createSource(lines, markers, language = "language-java", firstLine = 1)
     })
     .join("");
   document.body.innerHTML = `
-    <div class="prism-source" data-copy-link="Copy" data-copy-link-done="Copied">
+    <div class="prism-source" data-copy-link="Copy" data-copy-link-done="Copied" ${attributes}>
       <pre class="prism-source__raw" hidden><code class="${language}" data-lines="${lines.length}" data-first-line="${firstLine}">${lines.join("\n")}</code></pre>
       <div class="prism-source__markers" hidden>${markerElements}</div>
     </div>
@@ -237,6 +237,221 @@ describe("layout of the markers", () => {
     expect(comments).toEqual([["/* A comment"], ["       with two lines */"]]);
     expect(getRows()[3].querySelector(".token.string").textContent).toBe('"<b>text</b>"');
     expect(getLayout()).toEqual(["top", "1", "2", "3", "comment", "4", "string", "5"]);
+  });
+});
+
+function createLines(count) {
+  return Array.from({ length: count }, (_, index) => "line " + (index + 1));
+}
+
+const COLLAPSE = 'data-collapse="true" data-expand-lines="Show {0} lines"';
+
+function getVisibleLines() {
+  return getRows()
+    .filter((row) => !row.hidden)
+    .map((row) => Number(row.dataset.line));
+}
+
+function getGaps() {
+  return Array.from(document.querySelectorAll(".prism-gap")).map(
+    (gap) => `${gap.dataset.gapStart}-${gap.dataset.gapEnd}: ${gap.textContent}`,
+  );
+}
+
+function range(from, to) {
+  return Array.from({ length: to - from + 1 }, (_, index) => from + index);
+}
+
+describe("collapsing the lines without markers", () => {
+  test("should show all lines if collapsing is not enabled", () => {
+    createSource(createLines(40), [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }], "");
+
+    loadScript();
+
+    expect(getVisibleLines()).toEqual(range(1, 40));
+    expect(getGaps()).toEqual([]);
+  });
+
+  test("should collapse the lines without markers except the context", () => {
+    createSource(
+      createLines(40),
+      [{ id: "m", start: 20, end: 21, anchor: 21, severity: "error" }],
+      "",
+      1,
+      COLLAPSE,
+    );
+
+    loadScript();
+
+    expect(getVisibleLines()).toEqual(range(17, 24));
+    expect(getGaps()).toEqual(["1-16: Show 16 lines", "25-40: Show 16 lines"]);
+    expect(document.querySelector(".prism-gap").nextElementSibling.id).toBe("L1");
+  });
+
+  test("should not collapse short sections", () => {
+    createSource(
+      createLines(30),
+      [
+        { id: "first", start: 8, end: 8, anchor: 8, severity: "error" },
+        { id: "second", start: 18, end: 18, anchor: 18, severity: "info" },
+      ],
+      "",
+      1,
+      COLLAPSE,
+    );
+
+    loadScript();
+
+    // lines 1-4 (4 lines) and 12-14 (3 lines) are too short, lines 22-30 (9 lines) are collapsed
+    expect(getVisibleLines()).toEqual(range(1, 21));
+    expect(getGaps()).toEqual(["22-30: Show 9 lines"]);
+  });
+
+  test("should expand a section", () => {
+    createSource(
+      createLines(40),
+      [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }],
+      "",
+      1,
+      COLLAPSE,
+    );
+    loadScript();
+
+    document.querySelector(".prism-gap__button").click();
+
+    expect(getVisibleLines()).toEqual(range(1, 23));
+    expect(getGaps()).toEqual(["24-40: Show 17 lines"]);
+
+    // expanded sections remain visible if the markers change
+    notifyChangedMarkers();
+    expect(getVisibleLines()).toEqual(range(1, 23));
+  });
+
+  test("should show all lines if there are no visible markers", () => {
+    createSource(
+      createLines(40),
+      [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }],
+      "",
+      1,
+      COLLAPSE,
+    );
+    loadScript();
+
+    document.getElementById("m").hidden = true;
+    notifyChangedMarkers();
+
+    expect(getVisibleLines()).toEqual(range(1, 40));
+    expect(getGaps()).toEqual([]);
+  });
+
+  test("should show the context of the selected line", () => {
+    window.history.replaceState(null, "", "#L35");
+    createSource(
+      createLines(40),
+      [{ id: "m", start: 5, end: 5, anchor: 5, severity: "error" }],
+      "",
+      1,
+      COLLAPSE,
+    );
+
+    loadScript();
+
+    // lines 1 and 39-40 are too short to be collapsed
+    expect(getVisibleLines()).toEqual([...range(1, 8), ...range(32, 40)]);
+    expect(getGaps()).toEqual(["9-31: Show 23 lines"]);
+    expect(document.getElementById("L35").classList.contains("prism-line--selected")).toBe(true);
+  });
+
+  test("should expand a collapsed line that is selected later", () => {
+    createSource(
+      createLines(40),
+      [{ id: "m", start: 5, end: 5, anchor: 5, severity: "error" }],
+      "",
+      1,
+      COLLAPSE,
+    );
+    loadScript();
+    expect(document.getElementById("L30").hidden).toBe(true);
+
+    window.history.replaceState(null, "", "#L30");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+    expect(document.getElementById("L30").hidden).toBe(false);
+    expect(getVisibleLines()).toEqual([...range(1, 8), ...range(27, 40)]);
+    expect(getGaps()).toEqual(["9-26: Show 18 lines"]);
+  });
+});
+
+describe("overview ruler", () => {
+  function getMarks() {
+    return Array.from(document.querySelectorAll(".prism-ruler__mark")).map((mark) => ({
+      marker: mark.dataset.marker,
+      severity: mark.classList[1],
+      top: mark.style.top,
+      height: mark.style.height,
+      title: mark.getAttribute("tooltip"),
+    }));
+  }
+
+  test("should not show a ruler for short files", () => {
+    createSource(createLines(49), [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }], "");
+
+    loadScript();
+
+    expect(document.querySelector(".prism-ruler")).toBeNull();
+    expect(document.querySelector(".prism-source").classList.contains("prism-source--ruler")).toBe(false);
+  });
+
+  test("should show the positions of the visible markers", () => {
+    createSource(
+      createLines(100),
+      [
+        { id: "first", start: 11, end: 20, anchor: 20, severity: "error" },
+        { id: "second", start: 51, end: 51, anchor: 51, severity: "info" },
+        { id: "hidden", start: 70, end: 70, anchor: 70, severity: "warning" },
+        { id: "outside", start: 500, end: 500, anchor: 100, severity: "warning" },
+      ],
+      "",
+    );
+    document.getElementById("hidden").hidden = true;
+
+    loadScript();
+
+    expect(document.querySelector(".prism-source").classList.contains("prism-source--ruler")).toBe(true);
+    expect(getMarks()).toEqual([
+      { marker: "first", severity: "prism-ruler__mark--error", top: "10%", height: "10%", title: "first" },
+      { marker: "second", severity: "prism-ruler__mark--info", top: "50%", height: "1%", title: "second" },
+    ]);
+  });
+
+  test("should select the marker of a mark", () => {
+    createSource(
+      createLines(100),
+      [
+        { id: "first", start: 11, end: 11, anchor: 11, severity: "error" },
+        { id: "second", start: 51, end: 51, anchor: 51, severity: "info" },
+      ],
+      "",
+    );
+    loadScript();
+
+    document.querySelector('.prism-ruler__mark[data-marker="second"]').click();
+
+    expect(getSelected()).toEqual(["second"]);
+    expect(window.location.hash).toBe("#second");
+    expect(
+      document.querySelector('.prism-ruler__mark[data-marker="second"]').classList.contains("prism-ruler__mark--selected"),
+    ).toBe(true);
+  });
+
+  test("should remove the ruler if all markers are hidden", () => {
+    createSource(createLines(100), [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }], "");
+    loadScript();
+
+    document.getElementById("m").hidden = true;
+    notifyChangedMarkers();
+
+    expect(document.querySelector(".prism-ruler")).toBeNull();
   });
 });
 

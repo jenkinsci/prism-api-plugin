@@ -22,6 +22,12 @@
  *   <li>Pages can hide markers (e.g., by a filter) by setting the attribute 'hidden' of the marker element.
  *   Afterwards, the page must dispatch the event 'prism-markers-changed' on the document. Then the highlights of
  *   the lines are computed from the visible markers only, and the navigation skips the hidden markers.</li>
+ *   <li>If the attribute 'data-collapse' of the view is 'true', then long sections of lines without visible markers
+ *   are collapsed: only some lines of context around the marked lines (and around the line selected by the URL) are
+ *   visible. A button replaces each collapsed section, it expands the section. If there are no visible markers, all
+ *   lines are visible.</li>
+ *   <li>Long files get an overview ruler next to the lines: it shows the positions of the visible markers in the
+ *   file. Clicking a mark selects the marker.</li>
  * </ul>
  */
 (function () {
@@ -38,6 +44,14 @@
   const SEVERITIES = ["error", "warning", "info"];
   // the button to scroll to the top is shown if the page has been scrolled down by more than this number of pixels
   const SCROLL_THRESHOLD = 400;
+  // the number of lines that are visible before and after a marked line if sections without markers are collapsed
+  const CONTEXT_LINES = 3;
+  // sections with fewer lines are not collapsed, since the button would need nearly the same space
+  const MIN_COLLAPSED_LINES = 8;
+  // the overview ruler is shown for files with at least this number of lines
+  const RULER_MIN_LINES = 50;
+  const GAP = "prism-gap";
+  const RULER = "prism-ruler";
   const LINK_ICON =
     '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round">' +
@@ -46,6 +60,8 @@
 
   // the view scrolls only once to the selection of the URL, later layouts keep the scroll position
   const selection = { isInitial: true };
+  // the sections that have been expanded by the user, they are not collapsed again
+  const expansion = { ranges: [] };
 
   /**
    * Splits the (colorized) content of an element into lines. Elements that contain line breaks (e.g., a token of a
@@ -135,6 +151,71 @@
         }
       });
     return states;
+  }
+
+  /**
+   * Computes the sections of lines that should be collapsed: all sections without visible markers, except some
+   * lines of context around the marked lines and around the selected line. Sections that have been expanded by the
+   * user and short sections are not collapsed. If there are no marked lines, then nothing is collapsed.
+   *
+   * @param {number} firstLine the number of the first line
+   * @param {{severity: (string|undefined)}[]} states the state of each line, see computeLineStates
+   * @param {number|undefined} selectedLine the line selected by the URL
+   * @param {{start: number, end: number}[]} expandedRanges the sections expanded by the user
+   * @returns {{start: number, end: number}[]} the sections to collapse (line numbers, inclusive)
+   */
+  function computeCollapsedRanges(
+    firstLine,
+    states,
+    selectedLine,
+    expandedRanges,
+  ) {
+    const count = states.length;
+    if (!states.some((state) => state.severity !== undefined)) {
+      return [];
+    }
+    const isVisible = new Array(count).fill(false);
+    const showContext = (index) => {
+      const from = Math.max(0, index - CONTEXT_LINES);
+      const to = Math.min(count - 1, index + CONTEXT_LINES);
+      for (let position = from; position <= to; position++) {
+        isVisible[position] = true;
+      }
+    };
+    states.forEach((state, index) => {
+      if (state.severity !== undefined) {
+        showContext(index);
+      }
+    });
+    if (selectedLine !== undefined) {
+      const index = selectedLine - firstLine;
+      if (index >= 0 && index < count) {
+        showContext(index);
+      }
+    }
+    expandedRanges.forEach((range) => {
+      const from = Math.max(0, range.start - firstLine);
+      const to = Math.min(count - 1, range.end - firstLine);
+      for (let position = from; position <= to; position++) {
+        isVisible[position] = true;
+      }
+    });
+
+    const ranges = [];
+    let start = -1;
+    for (let index = 0; index <= count; index++) {
+      if (index < count && !isVisible[index]) {
+        if (start < 0) {
+          start = index;
+        }
+      } else if (start >= 0) {
+        if (index - start >= MIN_COLLAPSED_LINES) {
+          ranges.push({ start: firstLine + start, end: firstLine + index - 1 });
+        }
+        start = -1;
+      }
+    }
+    return ranges;
   }
 
   function getRank(severity) {
@@ -293,6 +374,8 @@
         row.classList.toggle(LINE + "--" + name, severity === name);
       });
     });
+    updateCollapsedLines(rows, states, firstLine);
+    updateRuler(firstLine, rows.length);
     lines.querySelectorAll(".code-mark[data-markers]").forEach((mark) => {
       const isVisible = mark.dataset.markers
         .split(" ")
@@ -302,6 +385,150 @@
           return !marker || !marker.hidden;
         });
       mark.classList.toggle(HIDDEN_MARK, !isVisible);
+    });
+  }
+
+  function createGap(range, label) {
+    const gap = document.createElement("div");
+    gap.className = GAP;
+    gap.dataset.gapStart = String(range.start);
+    gap.dataset.gapEnd = String(range.end);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = GAP + "__button";
+    button.textContent = (label || "{0}").replace(
+      "{0}",
+      String(range.end - range.start + 1),
+    );
+    button.addEventListener("click", () => {
+      expansion.ranges.push(range);
+      updateHighlights();
+    });
+    gap.appendChild(button);
+    return gap;
+  }
+
+  /**
+   * Collapses the long sections of lines without visible markers, if enabled for the view.
+   *
+   * @param {HTMLElement[]} rows the lines of the view
+   * @param {{severity: (string|undefined)}[]} states the state of each line
+   * @param {number} firstLine the number of the first line
+   */
+  function updateCollapsedLines(rows, states, firstLine) {
+    const source = getSource();
+    const lines = getLines();
+    lines.querySelectorAll(":scope > ." + GAP).forEach((gap) => gap.remove());
+    rows.forEach((row) => {
+      row.hidden = false;
+    });
+    if (source.dataset.collapse !== "true") {
+      return;
+    }
+    const ranges = computeCollapsedRanges(
+      firstLine,
+      states,
+      parseFragment(window.location.hash).line,
+      expansion.ranges,
+    );
+    ranges.forEach((range) => {
+      for (let line = range.start; line <= range.end; line++) {
+        rows[line - firstLine].hidden = true;
+      }
+      rows[range.start - firstLine].before(
+        createGap(range, source.dataset.expandLines),
+      );
+    });
+  }
+
+  function getMarkerTitle(marker) {
+    const title = marker.querySelector(".prism-marker__title");
+    return title ? title.textContent.trim() : "";
+  }
+
+  function scrollToMarker(marker, start) {
+    if (marker.classList.contains("prism-marker--empty")) {
+      const row = document.getElementById("L" + start);
+      if (row) {
+        row.scrollIntoView({ block: "center" });
+      }
+    } else {
+      selectMarker(marker);
+    }
+  }
+
+  /**
+   * Shows the positions of the visible markers in an overview ruler next to the lines. The ruler is shown for long
+   * files only.
+   *
+   * @param {number} firstLine the number of the first line
+   * @param {number} lineCount the number of lines
+   */
+  function updateRuler(firstLine, lineCount) {
+    const source = getSource();
+    const lastLine = firstLine + lineCount - 1;
+    const marks = getMarkers()
+      .filter((marker) => !marker.hidden)
+      .filter((marker) => {
+        const position = toPosition(marker);
+        return (
+          position.start >= 1 &&
+          position.start <= lastLine &&
+          Math.max(position.start, position.end) >= firstLine
+        );
+      });
+
+    let ruler = source.querySelector(":scope > ." + RULER);
+    if (lineCount < RULER_MIN_LINES || marks.length === 0) {
+      if (ruler) {
+        ruler.remove();
+      }
+      source.classList.remove("prism-source--ruler");
+      return;
+    }
+    if (!ruler) {
+      ruler = document.createElement("div");
+      ruler.className = RULER;
+      ruler.setAttribute("role", "navigation");
+      ruler.setAttribute("aria-label", source.dataset.ruler || "");
+      const track = document.createElement("div");
+      track.className = RULER + "__track";
+      ruler.appendChild(track);
+      source.appendChild(ruler);
+    }
+    source.classList.add("prism-source--ruler");
+
+    const track = ruler.querySelector("." + RULER + "__track");
+    const elements = marks.map((marker) => {
+      const position = toPosition(marker);
+      const start = Math.max(position.start, firstLine);
+      const end = Math.min(Math.max(position.start, position.end), lastLine);
+      const mark = document.createElement("button");
+      mark.type = "button";
+      mark.className =
+        RULER + "__mark " + RULER + "__mark--" + position.severity;
+      mark.dataset.marker = marker.id;
+      mark.tabIndex = -1;
+      mark.style.top = ((start - firstLine) / lineCount) * 100 + "%";
+      mark.style.height = ((end - start + 1) / lineCount) * 100 + "%";
+      const title = getMarkerTitle(marker) || "L" + start;
+      mark.setAttribute("tooltip", title);
+      mark.setAttribute("aria-label", title);
+      mark.addEventListener("click", () => scrollToMarker(marker, start));
+      return mark;
+    });
+    track.replaceChildren(...elements);
+    updateRulerSelection();
+  }
+
+  function updateRulerSelection() {
+    const selected = getSelectedMarker();
+    document.querySelectorAll("." + RULER + "__mark").forEach((mark) => {
+      mark.classList.toggle(
+        RULER + "__mark--selected",
+        selected !== undefined && mark.dataset.marker === selected.id,
+      );
     });
   }
 
@@ -343,6 +570,10 @@
       });
       if (fragment.line) {
         selectedLine = document.getElementById("L" + fragment.line);
+        if (selectedLine && selectedLine.hidden) {
+          // the line is part of a collapsed section: show the context of the line
+          updateHighlights();
+        }
         if (selectedLine) {
           selectedLine.classList.add(SELECTED_LINE);
         }
@@ -361,6 +592,7 @@
         selection.isInitial = false;
       }
     }
+    updateRulerSelection();
     updateNavigation();
   }
 

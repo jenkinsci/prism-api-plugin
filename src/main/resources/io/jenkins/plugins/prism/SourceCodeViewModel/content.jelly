@@ -12,7 +12,9 @@
   <p:prism configuration="${it.prismConfiguration}"/>
   <st:adjunct includes="io.jenkins.plugins.prism.SourceCodeViewModel.source-code"/>
 
-  <div class="prism-source" data-copy-link="${%copy.link}" data-copy-link-done="${%copy.link.done}">
+  <div class="prism-source" data-copy-link="${%copy.link}" data-copy-link-done="${%copy.link.done}"
+       data-collapse="${it.collapsible}" data-expand-lines="${%expand.lines('{0}')}"
+       data-ruler="${%ruler}">
     <j:out value="${it.sourceCode}"/>
   </div>
 
