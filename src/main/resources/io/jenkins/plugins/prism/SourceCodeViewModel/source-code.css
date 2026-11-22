@@ -351,25 +351,30 @@ summary.prism-marker__header::after {
   background: color-mix(in srgb, var(--prism-color-info) 10%, transparent);
 }
 
-/* Overview ruler for long files: the positions of the markers in the file */
+/*
+ * Overview ruler for long files: the positions of the markers in the file. The ruler has a fixed position (computed
+ * by source-code.js) in the space that is reserved at the right side of the view.
+ */
 .prism-source--ruler {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 0.75rem;
-  column-gap: 0.25rem;
+  padding-right: 1.5rem;
 }
 
 .prism-ruler {
-  position: relative;
+  position: fixed;
+  z-index: 2;
+  width: 0.75rem;
+}
+
+.prism-ruler[hidden] {
+  display: none;
 }
 
 .prism-ruler__track {
-  position: sticky;
-  top: calc(var(--header-height, 0px) + 0.5rem);
-  height: min(calc(100vh - var(--header-height, 0px) - 1rem), 100%);
+  position: absolute;
+  inset: 0;
   border-radius: 0.375rem;
   background: color-mix(in srgb, var(--text-color) 6%, transparent);
 }
-
 .prism-ruler__mark {
   position: absolute;
   left: 0;

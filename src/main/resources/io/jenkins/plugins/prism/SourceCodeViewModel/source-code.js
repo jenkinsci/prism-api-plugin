@@ -27,7 +27,10 @@
  *   visible. A button replaces each collapsed section, it expands the section. If there are no visible markers, all
  *   lines are visible.</li>
  *   <li>Long files get an overview ruler next to the lines: it shows the positions of the visible markers in the
- *   file. Clicking a mark selects the marker.</li>
+ *   file. Clicking a mark selects the marker. The ruler has a fixed position at the right side of the view: it
+ *   covers the visible part of the view, below the fixed or sticky elements at the top of the page (e.g., the
+ *   header) and above the fixed or sticky elements at the bottom (e.g., the floating navigation). A sticky position
+ *   would not work, since the view is typically part of a card that is a scroll container.</li>
  * </ul>
  */
 (function () {
@@ -52,6 +55,10 @@
   const RULER_MIN_LINES = 50;
   const GAP = "prism-gap";
   const RULER = "prism-ruler";
+  // the minimal height of the ruler in pixels, otherwise the ruler is hidden
+  const RULER_MIN_HEIGHT = 48;
+  // the distance of the ruler to the header, to the bottom of the window, and to the right side of the view
+  const RULER_MARGIN = 8;
   const LINK_ICON =
     '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round">' +
@@ -62,6 +69,8 @@
   const selection = { isInitial: true };
   // the sections that have been expanded by the user, they are not collapsed again
   const expansion = { ranges: [] };
+  // the fixed or sticky elements of the page that might cover the ruler (computed once)
+  const overlays = { elements: undefined };
 
   /**
    * Splits the (colorized) content of an element into lines. Elements that contain line breaks (e.g., a token of a
@@ -498,6 +507,7 @@
       source.appendChild(ruler);
     }
     source.classList.add("prism-source--ruler");
+    positionRuler();
 
     const track = ruler.querySelector("." + RULER + "__track");
     const elements = marks.map((marker) => {
@@ -520,6 +530,64 @@
     });
     track.replaceChildren(...elements);
     updateRulerSelection();
+  }
+
+  function getOverlays() {
+    if (overlays.elements === undefined) {
+      overlays.elements = Array.from(document.querySelectorAll("body *")).filter(
+        (element) =>
+          !element.closest(SOURCE) &&
+          ["fixed", "sticky"].includes(getComputedStyle(element).position),
+      );
+    }
+    return overlays.elements;
+  }
+
+  /**
+   * Computes the area of the window that is not covered by fixed or sticky elements at the top or the bottom of the
+   * page (at the specified horizontal position).
+   *
+   * @param {number} left the left side of the ruler
+   * @param {number} right the right side of the ruler
+   * @returns {{top: number, bottom: number}} the free area of the window
+   */
+  function getFreeArea(left, right) {
+    const area = { top: 0, bottom: window.innerHeight };
+    getOverlays().forEach((element) => {
+      const bounds = element.getBoundingClientRect();
+      const isCovering =
+        bounds.height > 0 &&
+        bounds.height < window.innerHeight / 2 &&
+        bounds.left < right &&
+        bounds.right > left;
+      if (isCovering && bounds.top < window.innerHeight / 3) {
+        area.top = Math.max(area.top, bounds.bottom);
+      } else if (isCovering && bounds.bottom > (window.innerHeight * 2) / 3) {
+        area.bottom = Math.min(area.bottom, bounds.top);
+      }
+    });
+    return area;
+  }
+
+  /**
+   * Positions the ruler at the right side of the visible part of the view.
+   */
+  function positionRuler() {
+    const source = getSource();
+    const ruler = source ? source.querySelector(":scope > ." + RULER) : null;
+    if (!ruler) {
+      return;
+    }
+    const bounds = source.getBoundingClientRect();
+    const left = bounds.right - ruler.offsetWidth - RULER_MARGIN;
+    const area = getFreeArea(left, left + ruler.offsetWidth);
+    const top = Math.max(bounds.top, area.top) + RULER_MARGIN;
+    const bottom = Math.min(bounds.bottom, area.bottom) - RULER_MARGIN;
+    const height = bottom - top;
+    ruler.hidden = height < RULER_MIN_HEIGHT;
+    ruler.style.top = top + "px";
+    ruler.style.height = Math.max(height, 0) + "px";
+    ruler.style.left = left + "px";
   }
 
   function updateRulerSelection() {
@@ -749,11 +817,13 @@
           window.requestAnimationFrame(() => {
             scrolling.isUpdateRequested = false;
             updateNavigation();
+            positionRuler();
           });
         }
       },
       { passive: true },
     );
+    window.addEventListener("resize", positionRuler, { passive: true });
   }
 
   function initialize() {
