@@ -7,7 +7,8 @@
  * <ul>
  *   <li>Prism colorizes the whole source code at once (so multi-line comments or strings are colorized correctly).
  *   Afterwards, the colorized code is split into lines: each line gets a line number (with a link "#L42") and the
- *   boxes of the markers are inserted after their anchor lines. The layout is created again whenever Prism has
+ *   boxes of the markers are inserted after their anchor lines. If the server rendered an excerpt only, the attribute
+ *   'data-first-line' of the raw code defines the number of the first line. The layout is created again whenever Prism has
  *   colorized the code (e.g., after a language definition has been loaded).</li>
  *   <li>The lines of the visible markers are highlighted with the color of the highest severity.</li>
  *   <li>A marker is selected by the fragment of the URL: either the ID of the marker or a line number ("42" or
@@ -106,11 +107,13 @@
    * Computes the highlight of each line from the visible markers: the highest severity and the IDs of the markers
    * that contain the line.
    *
+   * @param {number} firstLine the number of the first line (the view might show an excerpt only)
    * @param {number} lineCount the number of lines
    * @param {{id: string, start: number, end: number, severity: string, visible: boolean}[]} markers the markers
-   * @returns {{severity: (string|undefined), ids: string[]}[]} the state of each line, index 0 is line 1
+   * @returns {{severity: (string|undefined), ids: string[]}[]} the state of each line, index 0 is the first line
    */
-  function computeLineStates(lineCount, markers) {
+  function computeLineStates(firstLine, lineCount, markers) {
+    const lastLine = firstLine + lineCount - 1;
     const states = Array.from({ length: lineCount }, () => ({
       severity: undefined,
       ids: [],
@@ -118,9 +121,10 @@
     markers
       .filter((marker) => marker.visible && marker.start >= 1)
       .forEach((marker) => {
-        const end = Math.min(Math.max(marker.start, marker.end), lineCount);
-        for (let line = marker.start; line <= end; line++) {
-          const state = states[line - 1];
+        const start = Math.max(marker.start, firstLine);
+        const end = Math.min(Math.max(marker.start, marker.end), lastLine);
+        for (let line = start; line <= end; line++) {
+          const state = states[line - firstLine];
           state.ids.push(marker.id);
           if (
             state.severity === undefined ||
@@ -224,6 +228,8 @@
       return;
     }
     const lineCount = Number(raw.dataset.lines) || 0;
+    const firstLine = Number(raw.dataset.firstLine) || 1;
+    const lastLine = firstLine + lineCount - 1;
     const contents = splitLines(raw).slice(0, lineCount);
 
     let lines = getLines();
@@ -234,24 +240,27 @@
     lines.className = LINES + " " + getLanguageClass(raw);
     lines.style.setProperty(
       "--prism-line-number-digits",
-      String(String(lineCount).length),
+      String(String(Math.max(lastLine, 1)).length),
     );
 
     const cardsByAnchor = new Map();
     getCards().forEach((card) => {
-      const anchor = Math.min(Number(card.dataset.anchorLine) || 0, lineCount);
+      const anchor = Math.min(
+        Math.max(Number(card.dataset.anchorLine) || 0, firstLine - 1),
+        lastLine,
+      );
       if (!cardsByAnchor.has(anchor)) {
         cardsByAnchor.set(anchor, []);
       }
       cardsByAnchor.get(anchor).push(card);
     });
 
-    const children = [...(cardsByAnchor.get(0) || [])];
-    for (let number = 1; number <= lineCount; number++) {
+    const children = [...(cardsByAnchor.get(firstLine - 1) || [])];
+    for (let number = firstLine; number <= lastLine; number++) {
       children.push(
         createLine(
           number,
-          contents[number - 1] || document.createDocumentFragment(),
+          contents[number - firstLine] || document.createDocumentFragment(),
         ),
       );
       children.push(...(cardsByAnchor.get(number) || []));
@@ -271,7 +280,12 @@
       return;
     }
     const rows = Array.from(lines.querySelectorAll(":scope > ." + LINE));
-    const states = computeLineStates(rows.length, getMarkers().map(toPosition));
+    const firstLine = rows.length > 0 ? Number(rows[0].dataset.line) : 1;
+    const states = computeLineStates(
+      firstLine,
+      rows.length,
+      getMarkers().map(toPosition),
+    );
     rows.forEach((row, index) => {
       const severity = states[index].severity;
       row.classList.toggle(LINE + "--marked", severity !== undefined);

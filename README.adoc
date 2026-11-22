@@ -79,6 +79,21 @@ embed the source code into a page of your plugin using the fragment `content.jel
 <st:include it="${it.sourceCode}" page="content.jelly"/>
 ----
 
+For more options use the builder `SourceCodeViewModel.Builder`: it shows the content as plain text
+(`withPlainText()`, also used automatically for `.log` and `.txt` files), shows an excerpt with the original line
+numbers (`withExcerpt(from, to)`), and skips the check of the permission to view the workspace for content that is not
+part of the workspace, e.g., the console log of a build (`withoutPermissionCheck()`):
+
+[source,java]
+----
+var view = new SourceCodeViewModel.Builder(build, "Console Output")
+        .withMarkers(markers)
+        .withPlainText()
+        .withExcerpt(120, 160)
+        .withoutPermissionCheck()
+        .build(consoleLines);
+----
+
 Each `Marker` has a severity (`withSeverity`: `ERROR`, `WARNING` (default), or `INFO`) that defines the color of
 the marked lines and of the box. The box can additionally show badges (`withBadge`, e.g., the name of a tool or a
 category) and links to related pages (`withLink`). Each box gets a button to copy the link to the marker.

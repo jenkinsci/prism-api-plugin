@@ -57,7 +57,7 @@ function escape(text) {
 /**
  * Creates the snippet that is rendered by the server (see SourcePrinter), together with the navigation.
  */
-function createSource(lines, markers, language = "language-java") {
+function createSource(lines, markers, language = "language-java", firstLine = 1) {
   const markerElements = markers
     .map((marker) => {
       const classes = `prism-marker prism-marker--${marker.severity}${marker.empty ? " prism-marker--empty" : ""}`;
@@ -71,7 +71,7 @@ function createSource(lines, markers, language = "language-java") {
     .join("");
   document.body.innerHTML = `
     <div class="prism-source" data-copy-link="Copy" data-copy-link-done="Copied">
-      <pre class="prism-source__raw" hidden><code class="${language}" data-lines="${lines.length}">${lines.join("\n")}</code></pre>
+      <pre class="prism-source__raw" hidden><code class="${language}" data-lines="${lines.length}" data-first-line="${firstLine}">${lines.join("\n")}</code></pre>
       <div class="prism-source__markers" hidden>${markerElements}</div>
     </div>
     <div class="prism-navigation">
@@ -237,6 +237,39 @@ describe("layout of the markers", () => {
     expect(comments).toEqual([["/* A comment"], ["       with two lines */"]]);
     expect(getRows()[3].querySelector(".token.string").textContent).toBe('"<b>text</b>"');
     expect(getLayout()).toEqual(["top", "1", "2", "3", "comment", "4", "string", "5"]);
+  });
+});
+
+describe("excerpts", () => {
+  test("should number the lines of an excerpt and position the markers", () => {
+    createSource(
+      ["line 120", "line 121", "line 122"],
+      [
+        { id: "before", start: 3, end: 3, anchor: 119, severity: "info" },
+        { id: "inside", start: 121, end: 121, anchor: 121, severity: "error" },
+        { id: "overlapping", start: 100, end: 120, anchor: 120, severity: "warning" },
+        { id: "after", start: 500, end: 500, anchor: 122, severity: "info" },
+      ],
+      "",
+      120,
+    );
+
+    loadScript();
+
+    expect(getLayout()).toEqual(["before", "120", "overlapping", "121", "inside", "122", "after"]);
+    expect(getRows().map((row) => row.id)).toEqual(["L120", "L121", "L122"]);
+    expect(getRows().map(markedSeverity)).toEqual(["warning", "error", undefined]);
+    expect(document.querySelector(".prism-source__lines").className).toBe("prism-source__lines language-none");
+  });
+
+  test("should select a line of the excerpt", () => {
+    window.history.replaceState(null, "", "#L121");
+    createSource(["line 120", "line 121"], [{ id: "inside", start: 121, end: 121, anchor: 121, severity: "error" }], "", 120);
+
+    loadScript();
+
+    expect(document.getElementById("L121").classList.contains("prism-line--selected")).toBe(true);
+    expect(getSelected()).toEqual(["inside"]);
   });
 });
 

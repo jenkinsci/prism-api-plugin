@@ -7,7 +7,9 @@ import io.jenkins.plugins.util.JenkinsFacade;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 /**
@@ -99,8 +101,7 @@ public class SourceCodeViewModel implements ModelObject {
      */
     public static ModelObject create(
             final Run<?, ?> owner, final String fileName, final Reader sourceCodeReader, final List<Marker> markers) {
-        return protectedSourceCodeView(
-                new SourceCodeViewModel(owner, fileName, sourceCodeReader, markers), owner, fileName);
+        return new Builder(owner, fileName).withMarkers(markers).build(sourceCodeReader);
     }
 
     private final Run<?, ?> owner;
@@ -132,6 +133,12 @@ public class SourceCodeViewModel implements ModelObject {
         this.owner = owner;
         this.fileName = fileName;
         sourceCode = render(sourceCodeReader, markers);
+    }
+
+    private SourceCodeViewModel(final Run<?, ?> owner, final String fileName, final String sourceCode) {
+        this.owner = owner;
+        this.fileName = fileName;
+        this.sourceCode = sourceCode;
     }
 
     public PrismConfiguration getPrismConfiguration() {
@@ -168,5 +175,152 @@ public class SourceCodeViewModel implements ModelObject {
      */
     public String getSourceCode() {
         return sourceCode;
+    }
+
+    /**
+     * Creates the view model of a source code view with additional options. By default, the whole content is shown,
+     * the content is colorized based on the file name, and the permission to view source code is checked.
+     *
+     * <p>
+     * Example: the excerpt of a console log with some markers, as plain text, without the check of the permission
+     * to view the workspace (the console log is not part of the workspace):
+     * </p>
+     * <pre>{@code
+     * var view = new SourceCodeViewModel.Builder(build, "Console Output")
+     *         .withMarkers(markers)
+     *         .withPlainText()
+     *         .withExcerpt(120, 160)
+     *         .withoutPermissionCheck()
+     *         .build(consoleLines);
+     * }</pre>
+     */
+    public static class Builder {
+        private final Run<?, ?> owner;
+        private final String fileName;
+        private List<Marker> markers = List.of();
+        private boolean isPlainText;
+        private int firstLine = 1;
+        private int lastLine = Integer.MAX_VALUE;
+        private boolean isPermissionCheckRequired = true;
+
+        /**
+         * Creates a new builder.
+         *
+         * @param owner
+         *         the current build as the owner of the view
+         * @param fileName
+         *         the file name of the shown content, used to select the language of the syntax highlighting
+         */
+        public Builder(final Run<?, ?> owner, final String fileName) {
+            this.owner = owner;
+            this.fileName = fileName;
+        }
+
+        /**
+         * Defines the markers to show. The lines of the markers refer to the whole content, even if only an excerpt
+         * is shown.
+         *
+         * @param markers
+         *         the markers
+         *
+         * @return this builder
+         */
+        @SuppressWarnings("checkstyle:HiddenField")
+        public Builder withMarkers(final List<Marker> markers) {
+            this.markers = List.copyOf(markers);
+            return this;
+        }
+
+        /**
+         * Shows the content as plain text, without syntax highlighting.
+         *
+         * @return this builder
+         */
+        public Builder withPlainText() {
+            isPlainText = true;
+            return this;
+        }
+
+        /**
+         * Shows only an excerpt of the content. The lines keep their line numbers. Markers before the excerpt are
+         * shown before its first line, markers after the excerpt after its last line.
+         *
+         * @param from
+         *         the first line of the excerpt (1-based)
+         * @param to
+         *         the last line of the excerpt (1-based, inclusive)
+         *
+         * @return this builder
+         */
+        public Builder withExcerpt(final int from, final int to) {
+            firstLine = Math.max(1, from);
+            lastLine = Math.max(to, firstLine - 1);
+            return this;
+        }
+
+        /**
+         * Skips the check of the permission to view the source code of the workspace (see
+         * {@link SourceCodeViewModel#hasPermissionToViewSourceCode(Run)}). Use this option only for content that is
+         * not part of the workspace (e.g., the console log of a build). The caller is responsible to check that the
+         * current user is allowed to see the content.
+         *
+         * @return this builder
+         */
+        public Builder withoutPermissionCheck() {
+            isPermissionCheckRequired = false;
+            return this;
+        }
+
+        /**
+         * Creates the view model for the content of the specified reader.
+         *
+         * @param reader
+         *         the content to show
+         *
+         * @return a {@link SourceCodeViewModel}, or a {@link PermissionDeniedViewModel} if the permission is
+         *         checked and the user is not allowed to view source code
+         */
+        public ModelObject build(final Reader reader) {
+            if (isDenied()) {
+                return new PermissionDeniedViewModel(owner, fileName);
+            }
+            try (BufferedReader lines = new BufferedReader(reader)) {
+                return render(lines.lines());
+            } catch (IOException | UncheckedIOException exception) {
+                return new SourceCodeViewModel(
+                        owner,
+                        fileName,
+                        String.format(
+                                "%s%n%s",
+                                ExceptionUtils.getMessage(exception), ExceptionUtils.getStackTrace(exception)));
+            }
+        }
+
+        /**
+         * Creates the view model for the specified lines.
+         *
+         * @param lines
+         *         the lines of the content to show
+         *
+         * @return a {@link SourceCodeViewModel}, or a {@link PermissionDeniedViewModel} if the permission is
+         *         checked and the user is not allowed to view source code
+         */
+        public ModelObject build(final Stream<String> lines) {
+            if (isDenied()) {
+                return new PermissionDeniedViewModel(owner, fileName);
+            }
+            return render(lines);
+        }
+
+        private boolean isDenied() {
+            return isPermissionCheckRequired && !hasPermissionToViewSourceCode(owner);
+        }
+
+        private SourceCodeViewModel render(final Stream<String> lines) {
+            long excerptSize = Math.max(0L, (long) lastLine - firstLine + 1);
+            var excerpt = lines.skip(firstLine - 1L).limit(excerptSize);
+            return new SourceCodeViewModel(
+                    owner, fileName, new SourcePrinter().render(fileName, excerpt, markers, firstLine, isPlainText));
+        }
     }
 }

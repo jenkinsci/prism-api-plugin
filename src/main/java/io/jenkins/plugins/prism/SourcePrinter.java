@@ -107,20 +107,52 @@ class SourcePrinter {
      * @return the source code and the markers as HTML snippet
      */
     String render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
+        return render(fileName, lines, markers, 1, false);
+    }
+
+    /**
+     * Creates an HTML snippet with an excerpt of the specified source code and markers. Markers may overlap, and
+     * several markers may refer to the same line.
+     *
+     * @param fileName
+     *         the file name of the source code file
+     * @param lines
+     *         the lines of the excerpt
+     * @param markers
+     *         the markers to show, the list may be empty. The lines of the markers refer to the whole file, not to the
+     *         excerpt.
+     * @param firstLine
+     *         the line number of the first line of the excerpt (1-based)
+     * @param isPlainText
+     *         determines whether the content is plain text that should not be colorized
+     *
+     * @return the source code and the markers as HTML snippet
+     */
+    String render(
+            final String fileName,
+            final Stream<String> lines,
+            final List<Marker> markers,
+            final int firstLine,
+            final boolean isPlainText) {
         List<String> source = lines.toList();
-        var layout = new MarkerLayout(markers, source.size());
+        var layout = new MarkerLayout(markers, firstLine, firstLine + source.size() - 1);
 
         var code = new StringBuilder();
-        for (int line = 1; line <= source.size(); line++) {
-            if (line > 1) {
+        for (int index = 0; index < source.size(); index++) {
+            if (index > 0) {
                 code.append(NEW_LINE);
             }
-            code.append(renderLine(source.get(line - 1), layout.getColumnRanges(line)));
+            code.append(renderLine(source.get(index), layout.getColumnRanges(firstLine + index)));
         }
 
-        var codeElement = code().attr("data-lines", source.size()).with(new UnescapedText(code.toString()));
-        if (source.size() <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING) {
-            codeElement.withClass(selectLanguageClass(fileName, source));
+        var codeElement = code().attr("data-lines", source.size())
+                .attr("data-first-line", firstLine)
+                .with(new UnescapedText(code.toString()));
+        if (!isPlainText && source.size() <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING) {
+            var language = selectLanguageClass(fileName, source);
+            if (!language.isEmpty()) {
+                codeElement.withClass(language);
+            }
         }
         var raw = pre().withClass("prism-source__raw").attr(HIDDEN, HIDDEN).with(codeElement);
         var markerElements = div().withClass("prism-source__markers")
@@ -250,6 +282,16 @@ class SourcePrinter {
         return new UnescapedText(SANITIZER.render(message));
     }
 
+    /**
+     * Selects the Prism language of the specified file.
+     *
+     * @param fileName
+     *         the name of the file
+     * @param lines
+     *         the lines of the file
+     *
+     * @return the CSS class of the language, or an empty string for plain text files that should not be colorized
+     */
     @SuppressWarnings({"javancss", "PMD.CyclomaticComplexity"})
     private String selectLanguageClass(final String fileName, final List<String> lines) {
         String extension = StringUtils.substringAfterLast(fileName, ".");
@@ -283,6 +325,7 @@ class SourcePrinter {
             case "swift" -> "language-swift";
             case "ts" -> "language-typescript";
             case "yaml" -> "language-yaml";
+            case "log", "txt" -> ""; // Plain text, no syntax highlighting
             default -> "language-clike"; // Best effort for unknown extensions
         };
     }

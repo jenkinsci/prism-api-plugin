@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 class SourcePrinterTest extends ResourceTest {
     private static final String MESSAGE = "Hello Message";
     private static final String DESCRIPTION = "Hello Description";
-    private static final String FILE_NAME = "filename.txt";
+    private static final String FILE_NAME = "filename.unknown";
     private static final String ICON = "/plugin/xyz/icon";
     private static final String CPP_FILE = "format-cpp.txt";
 
@@ -479,6 +479,80 @@ class SourcePrinterTest extends ResourceTest {
 
         assertThat(printer.render(FILE_NAME, asStream(CPP_FILE), marker))
                 .isEqualTo(printer.render(FILE_NAME, asStream(CPP_FILE), List.of(marker)));
+    }
+
+    /**
+     * Verifies that an excerpt keeps the line numbers of the whole file: markers before the excerpt are shown before
+     * the first line, markers after the excerpt after the last line.
+     */
+    @Test
+    void shouldRenderExcerpt() {
+        var before = new MarkerBuilder()
+                .withLineStart(5)
+                .withTitle("Before")
+                .withId("before")
+                .build();
+        var inside = new MarkerBuilder()
+                .withLineStart(121)
+                .withColumnStart(6)
+                .withColumnEnd(8)
+                .withTitle("Inside")
+                .withId("inside")
+                .build();
+        var overlapping = new MarkerBuilder()
+                .withLineStart(100)
+                .withLineEnd(120)
+                .withTitle("Overlapping")
+                .withId("overlapping")
+                .build();
+        var after = new MarkerBuilder()
+                .withLineStart(500)
+                .withTitle("After")
+                .withId("after")
+                .build();
+
+        var document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
+                .render(
+                        FILE_NAME,
+                        Stream.of("line 120", "line 121", "line 122"),
+                        List.of(after, inside, overlapping, before),
+                        120,
+                        false));
+
+        var code = getCode(document);
+        assertThat(code.attr("data-first-line")).isEqualTo("120");
+        assertThat(code.attr("data-lines")).isEqualTo("3");
+        assertThat(code.wholeText()).isEqualTo("line 120\nline 121\nline 122");
+        assertThat(document.getElementsByClass("prism-marker"))
+                .extracting(Element::id, e -> e.attr("data-anchor-line"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("before", "119"),
+                        org.assertj.core.groups.Tuple.tuple("overlapping", "120"),
+                        org.assertj.core.groups.Tuple.tuple("inside", "121"),
+                        org.assertj.core.groups.Tuple.tuple("after", "122"));
+        assertThat(document.getElementsByClass("code-mark"))
+                .extracting(Element::text, e -> e.attr("data-markers"))
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("121", "inside"));
+    }
+
+    /**
+     * Verifies that plain text is not colorized: either if requested explicitly or for log and text files.
+     */
+    @Test
+    void shouldRenderPlainText() {
+        var printer = new SourcePrinter(createJenkinsFacade());
+
+        assertThat(getCode(Jsoup.parse(printer.render("Hello.java", Stream.of("class Hello {}"), List.of(), 1, true)))
+                        .classNames())
+                .isEmpty();
+        assertThat(getCode(render("build.log", Stream.of("[INFO] Hello"), List.of()))
+                        .classNames())
+                .isEmpty();
+        assertThat(getCode(render("notes.txt", Stream.of("Hello"), List.of())).classNames())
+                .isEmpty();
+        assertThat(getCode(render("Hello.java", Stream.of("class Hello {}"), List.of()))
+                        .classNames())
+                .containsExactly("language-java");
     }
 
     private Document render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
