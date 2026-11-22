@@ -330,6 +330,8 @@ class SourcePrinterTest extends ResourceTest {
                 .withSeverity(Severity.ERROR)
                 .withBadge("New")
                 .withBadge("PMD <b>", "Tool")
+                .withBadge("Ulli · 3eaad0e", "Commit", "https://github.com/commit/3eaad0e")
+                .withBadge("Unsafe", "", "javascript:alert(1)")
                 .withLink("Details", "details/1", ICON)
                 .withLink("Unsafe", " JavaScript:alert(1)")
                 .withLink("Commit", "https://github.com/commit/1")
@@ -345,7 +347,13 @@ class SourcePrinterTest extends ResourceTest {
                 .extracting(Element::text, e -> e.attr("tooltip"))
                 .containsExactly(
                         org.assertj.core.groups.Tuple.tuple("New", ""),
-                        org.assertj.core.groups.Tuple.tuple("PMD <b>", "Tool"));
+                        org.assertj.core.groups.Tuple.tuple("PMD <b>", "Tool"),
+                        org.assertj.core.groups.Tuple.tuple("Ulli · 3eaad0e", "Commit"),
+                        org.assertj.core.groups.Tuple.tuple("Unsafe", ""));
+        assertThat(document.getElementsByClass("prism-marker__badge--link"))
+                .extracting(Element::tagName, e -> e.attr("href"), e -> e.attr("target"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("a", "https://github.com/commit/3eaad0e", "_blank"));
         assertThat(document.getElementsByClass("prism-marker__badge").select("b"))
                 .isEmpty();
         assertThat(document.getElementsByClass("prism-marker__link"))

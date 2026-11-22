@@ -402,3 +402,15 @@ summary.prism-marker__header::after {
   outline-offset: 1px;
   z-index: 1;
 }
+
+/* Badges that are links, e.g., to the commit of the marked lines */
+.prism-marker__badge--link {
+  text-decoration: none;
+}
+
+.prism-marker__badge--link:hover,
+.prism-marker__badge--link:focus-visible {
+  border-color: var(--text-color-secondary, var(--text-color));
+  color: var(--text-color);
+  text-decoration: underline;
+}

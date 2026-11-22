@@ -244,6 +244,17 @@ class SourcePrinter {
     }
 
     private DomContent createBadge(final Badge badge) {
+        if (StringUtils.isNotBlank(badge.getUrl()) && isSafe(badge.getUrl())) {
+            var link = a().withClasses("prism-marker__badge", "prism-marker__badge--link")
+                    .withHref(badge.getUrl())
+                    .withTarget("_blank")
+                    .withRel("noopener noreferrer")
+                    .withText(badge.getText());
+            if (StringUtils.isNotBlank(badge.getTooltip())) {
+                link.attr("tooltip", badge.getTooltip());
+            }
+            return link;
+        }
         var element = span().withClass("prism-marker__badge").withText(badge.getText());
         if (StringUtils.isNotBlank(badge.getTooltip())) {
             element.attr("tooltip", badge.getTooltip());
@@ -252,7 +263,11 @@ class SourcePrinter {
     }
 
     private boolean isSafe(final Link link) {
-        return !Strings.CI.startsWith(StringUtils.strip(link.getUrl()), "javascript:");
+        return isSafe(link.getUrl());
+    }
+
+    private boolean isSafe(final String url) {
+        return !Strings.CI.startsWith(StringUtils.strip(url), "javascript:");
     }
 
     private DomContent createLink(final Link link) {

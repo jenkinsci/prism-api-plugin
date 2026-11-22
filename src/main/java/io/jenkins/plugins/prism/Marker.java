@@ -167,6 +167,7 @@ public class Marker {
     public static final class Badge {
         private final String text;
         private final String tooltip;
+        private final String url;
 
         /**
          * Creates a new badge.
@@ -177,8 +178,23 @@ public class Marker {
          *         the tooltip of the badge, use an empty string if there is no tooltip
          */
         public Badge(final String text, final String tooltip) {
+            this(text, tooltip, StringUtils.EMPTY);
+        }
+
+        /**
+         * Creates a new badge that is a link.
+         *
+         * @param text
+         *         the text of the badge, must not contain HTML tags
+         * @param tooltip
+         *         the tooltip of the badge, use an empty string if there is no tooltip
+         * @param url
+         *         the URL of the badge, use an empty string if the badge is no link
+         */
+        public Badge(final String text, final String tooltip, final String url) {
             this.text = text;
             this.tooltip = tooltip;
+            this.url = url;
         }
 
         public String getText() {
@@ -187,6 +203,10 @@ public class Marker {
 
         public String getTooltip() {
             return tooltip;
+        }
+
+        public String getUrl() {
+            return url;
         }
     }
 
@@ -301,6 +321,24 @@ public class Marker {
          */
         public MarkerBuilder withBadge(final String text, final String tooltip) {
             badges.add(new Badge(text, tooltip));
+            return this;
+        }
+
+        /**
+         * Adds a badge with a tooltip to the marker that is a link, e.g., to the commit of the marked lines. The
+         * badges are shown in the order they have been added.
+         *
+         * @param text
+         *         the text of the badge, must not contain HTML tags
+         * @param tooltip
+         *         the tooltip of the badge
+         * @param url
+         *         the URL of the badge, use an empty string if the badge is no link
+         *
+         * @return this builder
+         */
+        public MarkerBuilder withBadge(final String text, final String tooltip, final String url) {
+            badges.add(new Badge(text, tooltip, url));
             return this;
         }
 
