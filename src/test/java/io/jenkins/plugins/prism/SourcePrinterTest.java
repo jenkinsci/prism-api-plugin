@@ -11,6 +11,7 @@ import io.jenkins.plugins.prism.Marker.Severity;
 import io.jenkins.plugins.util.JenkinsFacade;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -38,7 +39,7 @@ class SourcePrinterTest extends ResourceTest {
         var document = render(FILE_NAME, asStream("format-java.txt"), List.of());
 
         var code = getCode(document);
-        assertThat(code.wholeText()).isEqualTo(toString("format-java.txt").stripTrailing());
+        assertThat(code.wholeText()).isEqualTo(joinLines("format-java.txt"));
         assertThat(code.attr("data-lines"))
                 .isEqualTo(String.valueOf(asStream("format-java.txt").count()));
         assertThat(code.classNames()).containsExactly("language-clike");
@@ -238,7 +239,7 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(document.getElementsByClass("code-mark"))
                 .extracting(Element::text, e -> e.attr("data-markers"))
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("std::move(argc)", "prism-marker-1"));
-        assertThat(getCode(document).wholeText()).isEqualTo(toString(CPP_FILE).stripTrailing());
+        assertThat(getCode(document).wholeText()).isEqualTo(joinLines(CPP_FILE));
     }
 
     /**
@@ -297,7 +298,7 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(document.getElementsByClass("code-mark"))
                 .extracting(Element::text)
                 .containsExactly("std::move(argc);");
-        assertThat(getCode(document).wholeText()).isEqualTo(toString(CPP_FILE).stripTrailing());
+        assertThat(getCode(document).wholeText()).isEqualTo(joinLines(CPP_FILE));
     }
 
     /**
@@ -441,8 +442,7 @@ class SourcePrinterTest extends ResourceTest {
     void shouldRenderXmlFiles() {
         var document = render("format.xml", asStream("format.xml"), List.of());
 
-        assertThat(getCode(document).wholeText())
-                .isEqualTo(toString("format.xml").stripTrailing());
+        assertThat(getCode(document).wholeText()).isEqualTo(joinLines("format.xml"));
         assertThat(getCode(document).classNames()).containsExactly("language-markup");
     }
 
@@ -553,6 +553,19 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(getCode(render("Hello.java", Stream.of("class Hello {}"), List.of()))
                         .classNames())
                 .containsExactly("language-java");
+    }
+
+    /**
+     * Joins the lines of the specified resource with a line feed, like the source printer does. Comparing with the
+     * content of the file would fail on Windows, where the files are checked out with CR LF line endings.
+     *
+     * @param fileName
+     *         the name of the resource
+     *
+     * @return the lines of the resource, joined with a line feed
+     */
+    private String joinLines(final String fileName) {
+        return asStream(fileName).collect(Collectors.joining("\n"));
     }
 
     private Document render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
