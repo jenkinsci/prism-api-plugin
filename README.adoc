@@ -22,7 +22,9 @@ image::images/themes.png[Themes selection]
 image::images/dark-theme.png[Dark Prism theme in Jenkins]
 
 * A default source code rendering view (see `SourceCodeViewModel`) that can be used in a Jenkins plugin to show the
-source code in a separate page. This page renders the source code with the configured theme.
+source code in a separate page. This page renders the source code with the configured theme. The view highlights
+an arbitrary number of markers (lines, parts of a line, or multi-line blocks) and shows the details of each marker
+in a box after the marked lines. The source code can also be embedded into a page of your plugin, see below.
 
 [#img-marker]
 image::images/syntax-highlighting-marker.png[Grid layout in Jenkins]
@@ -64,6 +66,70 @@ public PrismConfiguration getPrismConfiguration() {
     return PrismConfiguration.getInstance();
 }
 ----
+
+== Rendering source code with markers
+
+Create the view model with `SourceCodeViewModel.create(owner, fileName, reader, markers)`. The factory checks
+whether the current user has the permission to see the source code and returns a `PermissionDeniedViewModel`
+otherwise. You can return this model from `getDynamic` to show the source code on a separate page. Or you can
+embed the source code into a page of your plugin using the fragment `content.jelly` (available for both models):
+
+[source,xml]
+----
+<st:include it="${it.sourceCode}" page="content.jelly"/>
+----
+
+For more options use the builder `SourceCodeViewModel.Builder`: it shows the content as plain text
+(`withPlainText()`, also used automatically for `.log` and `.txt` files), shows an excerpt with the original line
+numbers (`withExcerpt(from, to)`), and skips the check of the permission to view the workspace for content that is not
+part of the workspace, e.g., the console log of a build (`withoutPermissionCheck()`):
+
+[source,java]
+----
+var view = new SourceCodeViewModel.Builder(build, "Console Output")
+        .withMarkers(markers)
+        .withPlainText()
+        .withExcerpt(120, 160)
+        .withoutPermissionCheck()
+        .build(consoleLines);
+----
+
+By default, long sections of lines without markers are collapsed (like in the merge requests of GitLab): only three
+lines of context around the marked lines remain visible, and each collapsed section can be expanded with a button. If
+no marker is visible (e.g., all markers are hidden by a filter), then all lines are shown. Use
+`withoutCollapsing()` of the builder to show all lines. Files with at least 50 lines get an overview ruler next to the
+lines that shows the positions of the visible markers; clicking a mark selects the marker.
+
+Each `Marker` has a severity (`withSeverity`: `ERROR`, `WARNING` (default), or `INFO`) that defines the color of
+the marked lines and of the box. The box can additionally show badges (`withBadge`, e.g., the name of a tool or a
+category) and links to related pages (`withLink`). Each box gets a button to copy the link to the marker.
+
+Each `Marker` can have an ID (`MarkerBuilder#withId`). The ID (or a line number) can be used as fragment of the URL
+to select a marker: the view then scrolls to the marker and expands its description.
+
+The server renders the source code as a single block, so Prism colorizes the whole file at once (multi-line
+comments and strings are colorized correctly). The layout is created on the client side: the colorized code is split
+into lines with line numbers (each line can be linked with `#L<line>`), and the boxes of the markers are inserted
+after their last lines. The lines of each visible marker are highlighted with the color of its severity.
+
+=== Navigation and filtering
+
+If the source code view shows at least two markers, floating buttons in the lower right corner of the page select
+the previous or next marker (like the scroll buttons of the stage view). The keys `j` and `k` do the same. If the
+page has been scrolled down, an additional button scrolls back to the top. The
+buttons are part of the fragment `content.jelly`.
+
+Additional data of a marker (`MarkerBuilder#withData(name, value)`) is rendered as attribute `data-marker-<name>`
+of the box. Your page can use this data to filter the markers: set the attribute `hidden` of the boxes that should
+not be shown and dispatch the event `prism-markers-changed` on the document. The view then removes the highlight
+of all lines that belong to hidden markers only, and the navigation skips the hidden markers.
+
+== Development
+
+The client side script of the source code view is tested with https://vitest.dev[Vitest] and jsdom (see
+`src/test/js`), the same setup as in Jenkins core. Since the script is a classic script (an adjunct), the tests load it
+as text and evaluate it in the global scope. The tests are part of the Maven build (`npm run mvntest`, the results are
+written to `target/surefire-reports`), you can also run them with `npm test` or `npm run test:watch`.
 
 == Examples
 

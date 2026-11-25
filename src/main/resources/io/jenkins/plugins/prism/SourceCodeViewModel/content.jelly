@@ -1,0 +1,23 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:p="/prism">
+
+  <st:documentation>
+    Renders the colorized source code including the boxes of the markers, without any page decoration. This fragment
+    can be embedded into the view of another model by
+    &lt;st:include it="${it.sourceCode}" page="content.jelly"/&gt;.
+    The fragment neither requires Bootstrap nor jQuery. It also contains the floating navigation between the markers
+    (see prism/navigation.jelly).
+  </st:documentation>
+
+  <p:prism configuration="${it.prismConfiguration}"/>
+  <st:adjunct includes="io.jenkins.plugins.prism.SourceCodeViewModel.source-code"/>
+
+  <div class="prism-source" data-copy-link="${%copy.link}" data-copy-link-done="${%copy.link.done}"
+       data-collapse="${it.collapsible}" data-expand-lines="${%expand.lines('{0}')}"
+       data-ruler="${%ruler}">
+    <j:out value="${it.sourceCode}"/>
+  </div>
+
+  <p:navigation/>
+
+</j:jelly>

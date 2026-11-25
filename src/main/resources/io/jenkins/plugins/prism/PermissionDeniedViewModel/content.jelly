@@ -1,0 +1,29 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:st="jelly:stapler">
+
+  <st:documentation>
+    Renders the message that the user does not have the permission to view the source code, without any page
+    decoration. This fragment can be embedded into the view of another model, see SourceCodeViewModel/content.jelly.
+  </st:documentation>
+
+  <div class="prism-permission-denied">
+    <h2>
+      <l:icon class="icon-error icon-lg"/>
+      ${%permission.title}
+    </h2>
+    <p>
+      ${%permission.message}
+    </p>
+    <p>
+      <strong>${%permission.file}:</strong> ${it.fileName}
+    </p>
+    <p>
+      ${%permission.required}:
+      <code>${it.requiredPermission}</code>
+    </p>
+    <p>
+      ${%permission.contact}
+    </p>
+  </div>
+
+</j:jelly>

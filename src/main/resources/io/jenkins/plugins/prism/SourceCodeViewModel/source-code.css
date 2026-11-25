@@ -1,0 +1,416 @@
+/*
+ * Styles of the source code view: the lines and the boxes of the markers (see source-code.js). The boxes are part of
+ * the pre element with the lines, so the font and white space settings of the pre element need to be reset. Only
+ * Jenkins variables are used, so themes and the dark mode work out of the box. The color of a marker (and of the
+ * marked lines) is defined by its severity.
+ */
+.prism-source {
+  --prism-color-error: var(--error-color, #e6001f);
+  --prism-color-warning: var(--warning-color, #fe820a);
+  --prism-color-info: var(--accent-color, #2563eb);
+}
+
+.prism-marker,
+.prism-line--warning {
+  --prism-severity-color: var(--prism-color-warning);
+}
+
+.prism-marker--error,
+.prism-line--error {
+  --prism-severity-color: var(--prism-color-error);
+}
+
+.prism-marker--info,
+.prism-line--info {
+  --prism-severity-color: var(--prism-color-info);
+}
+
+/* Lines of the source code, created by source-code.js */
+.prism-source pre.prism-source__lines {
+  margin: 0;
+  padding: 0.5rem 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.prism-line {
+  display: flex;
+  min-width: fit-content;
+}
+
+.prism-line__number {
+  flex: 0 0 auto;
+  box-sizing: content-box;
+  width: calc(var(--prism-line-number-digits, 3) * 1ch);
+  padding: 0 0.75rem;
+  color: var(--text-color-secondary, inherit);
+  text-align: right;
+  text-decoration: none;
+  user-select: none;
+}
+
+.prism-line__number:hover,
+.prism-line__number:focus-visible {
+  color: var(--text-color);
+  text-decoration: underline;
+}
+
+.prism-line__code {
+  flex: 1 0 auto;
+  padding: 0 1rem 0 0.75rem;
+}
+
+/* Marked lines: a bar next to the line numbers and a light background in the color of the severity */
+.prism-line--marked {
+  background: color-mix(in srgb, var(--prism-severity-color) 10%, transparent);
+}
+
+.prism-line--marked .prism-line__number {
+  box-shadow: inset -3px 0 0 var(--prism-severity-color);
+}
+
+/* Line selected by the fragment of the URL (e.g., #L42) */
+.prism-line--selected {
+  background: color-mix(in srgb, var(--prism-color-info) 15%, transparent);
+}
+
+.prism-source .code-mark {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--prism-severity-color, var(--prism-color-error));
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+/* Column marks of markers that are hidden by a filter of the page */
+.prism-source .code-mark--hidden {
+  text-decoration: none;
+}
+
+/* Box with the details of a marker */
+.prism-marker {
+  margin: 0.5rem 0.75rem;
+  border: var(--jenkins-border-width, 1px) solid var(--input-border, #ccc);
+  border-inline-start: 4px solid var(--prism-severity-color);
+  border-radius: 6px;
+  background-color: var(--card-background, var(--background));
+  color: var(--text-color);
+  font-family: var(--font-family-sans, sans-serif);
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.prism-marker--selected {
+  box-shadow: 0 0 0 2px var(--focus-input-border, var(--accent-color));
+}
+
+.prism-marker__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+summary.prism-marker__header {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary.prism-marker__header::-webkit-details-marker {
+  display: none;
+}
+
+summary.prism-marker__header::after {
+  content: "";
+  flex-shrink: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-inline: 0.25rem;
+  border-right: 2px solid var(--text-color-secondary, currentColor);
+  border-bottom: 2px solid var(--text-color-secondary, currentColor);
+  transform: rotate(45deg);
+  transition: transform var(--standard-transition, 0.2s ease);
+}
+
+.prism-marker__details[open] > summary.prism-marker__header::after {
+  transform: rotate(-135deg);
+}
+
+.prism-marker__icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.prism-marker__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: var(--font-bold-weight, 600);
+}
+
+.prism-marker__badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.prism-marker__badge {
+  padding: 0 0.5rem;
+  border: var(--jenkins-border-width, 1px) solid var(--input-border, #ccc);
+  border-radius: 999px;
+  color: var(--text-color-secondary, var(--text-color));
+  font-size: 0.75rem;
+  line-height: 1.5rem;
+  white-space: nowrap;
+}
+
+.prism-marker__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-color-secondary, var(--text-color));
+  cursor: pointer;
+}
+
+.prism-marker__copy:hover,
+.prism-marker__copy:focus-visible {
+  background-color: var(--item-background--hover, rgba(0, 0, 0, 0.05));
+  color: var(--text-color);
+}
+
+.prism-marker__copy svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.prism-marker__description {
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-top: var(--jenkins-border-width, 1px) solid var(--input-border, #ccc);
+  color: var(--text-color-secondary, var(--text-color));
+}
+
+.prism-marker__description pre {
+  white-space: pre-wrap;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background-color: var(--background);
+}
+
+.prism-marker__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-top: var(--jenkins-border-width, 1px) solid var(--input-border, #ccc);
+}
+
+.prism-marker__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.prism-marker__link-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Floating navigation between the markers, see prism/navigation.jelly (same style as the stage view) */
+.prism-navigation {
+  position: fixed;
+  right: calc(var(--section-padding, 1.375rem) * 2);
+  bottom: var(--section-padding, 1.375rem);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem;
+  border-radius: 100px;
+  background-color: color-mix(in srgb, var(--overlay-surface-background, var(--background)) 85%, transparent);
+  box-shadow: var(--elevation-3-box-shadow, 0 4px 12px rgba(0, 0, 0, 0.15));
+  backdrop-filter: contrast(1.1) saturate(2.5) blur(20px);
+  opacity: 0;
+  scale: 0.25;
+  pointer-events: none;
+  transition:
+    opacity var(--elastic-transition, 0.3s ease),
+    scale var(--elastic-transition, 0.3s ease);
+}
+
+.prism-navigation::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: var(--jenkins-border-width, 1px) solid color-mix(in srgb, var(--white, #fff) 10%, transparent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.prism-navigation--visible {
+  opacity: 1;
+  scale: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prism-navigation {
+    transition: none;
+  }
+}
+
+.prism-navigation .prism-navigation__button {
+  width: 2.375rem;
+  min-width: 2.375rem;
+  height: 2.375rem;
+  padding: 0;
+  border-radius: 100px;
+}
+
+/* The parts of the navigation are shown independently: scroll to top and previous/next marker */
+.prism-navigation .prism-navigation__top,
+.prism-navigation .prism-navigation__markers {
+  display: none;
+}
+
+.prism-navigation--scrolled .prism-navigation__top {
+  display: inline-flex;
+}
+
+.prism-navigation--markers .prism-navigation__markers {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* separator between the button to scroll to the top and the buttons to navigate between the markers */
+.prism-navigation--scrolled.prism-navigation--markers .prism-navigation__markers {
+  padding-inline-start: 0.375rem;
+  border-inline-start: var(--jenkins-border-width, 1px) solid var(--input-border, #ccc);
+}
+
+.prism-navigation__position {
+  min-width: 3.5rem;
+  color: var(--text-color-secondary, var(--text-color));
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.prism-marker[hidden],
+.prism-marker--empty {
+  display: none;
+}
+
+/* Collapsed sections of lines without markers: the lines are hidden, a button expands the section */
+.prism-line[hidden] {
+  display: none;
+}
+
+.prism-gap {
+  display: flex;
+  min-width: fit-content;
+  background: var(--button-background, color-mix(in srgb, var(--text-color) 5%, transparent));
+}
+
+.prism-gap__button {
+  flex: 1 0 auto;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  border: none;
+  background: none;
+  color: var(--text-color-secondary, inherit);
+  font: inherit;
+  font-family: var(--font-family-sans, sans-serif);
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.prism-gap__button::before {
+  content: "⋯";
+  display: inline-block;
+  box-sizing: content-box;
+  width: calc(var(--prism-line-number-digits, 3) * 1ch);
+  margin-right: 1.5rem;
+  font-family: var(--font-family-mono, monospace);
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.prism-gap__button:hover,
+.prism-gap__button:focus-visible {
+  color: var(--text-color);
+  background: color-mix(in srgb, var(--prism-color-info) 10%, transparent);
+}
+
+/*
+ * Overview ruler for long files: the positions of the markers in the file. The ruler has a fixed position (computed
+ * by source-code.js) in the space that is reserved at the right side of the view.
+ */
+.prism-source--ruler {
+  padding-right: 1.5rem;
+}
+
+.prism-ruler {
+  position: fixed;
+  z-index: 2;
+  width: 0.75rem;
+}
+
+.prism-ruler[hidden] {
+  display: none;
+}
+
+.prism-ruler__track {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--text-color) 6%, transparent);
+}
+.prism-ruler__mark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  min-height: 3px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 1px;
+  background: var(--prism-color-warning);
+  cursor: pointer;
+}
+
+.prism-ruler__mark--error {
+  background: var(--prism-color-error);
+}
+
+.prism-ruler__mark--info {
+  background: var(--prism-color-info);
+}
+
+.prism-ruler__mark:hover,
+.prism-ruler__mark--selected {
+  outline: 2px solid var(--text-color);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+/* Badges that are links, e.g., to the commit of the marked lines */
+.prism-marker__badge--link {
+  text-decoration: none;
+}
+
+.prism-marker__badge--link:hover,
+.prism-marker__badge--link:focus-visible {
+  border-color: var(--text-color-secondary, var(--text-color));
+  color: var(--text-color);
+  text-decoration: underline;
+}

@@ -1,29 +1,50 @@
 package io.jenkins.plugins.prism;
 
+import static j2html.TagCreator.a;
 import static j2html.TagCreator.code;
+import static j2html.TagCreator.details;
 import static j2html.TagCreator.div;
+import static j2html.TagCreator.each;
 import static j2html.TagCreator.img;
 import static j2html.TagCreator.pre;
-import static j2html.TagCreator.table;
-import static j2html.TagCreator.td;
-import static j2html.TagCreator.tr;
+import static j2html.TagCreator.span;
+import static j2html.TagCreator.summary;
 
-import edu.hm.hafner.util.LookaheadStream;
 import edu.hm.hafner.util.VisibleForTesting;
+import io.jenkins.plugins.prism.Marker.Badge;
+import io.jenkins.plugins.prism.Marker.Link;
+import io.jenkins.plugins.prism.MarkerLayout.ColumnRange;
+import io.jenkins.plugins.prism.MarkerLayout.PositionedMarker;
 import io.jenkins.plugins.util.JenkinsFacade;
-import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
-import org.jenkins.ui.symbol.SymbolRequest.Builder;
 
 /**
- * Renders a source code file into a HTML snippet using Prism.js.
+ * Renders a source code file and its markers into an HTML snippet. The layout of the source code view is created on
+ * the client side by the script {@code SourceCodeViewModel/source-code.js}: the snippet contains the escaped source
+ * code as a single code block, so Prism.js can colorize the whole file at once. Afterward, the script splits the
+ * colorized code into lines, adds the line numbers, and inserts the boxes of the markers after their anchor lines.
+ *
+ * <p>
+ * The snippet consists of two parts:
+ * </p>
+ * <ul>
+ *     <li>a hidden {@code pre} element with the class {@code prism-source__raw} that contains the source code. The
+ *     columns of the markers are enclosed in {@code span} elements with the class {@code code-mark} that list the
+ *     IDs of their markers in the attribute {@code data-markers}.</li>
+ *     <li>a hidden {@code div} element with the class {@code prism-source__markers} that contains an element for
+ *     each marker. The attributes {@code data-line-start}, {@code data-line-end}, and {@code data-anchor-line} define
+ *     the position of the marker. Markers without title and description have the class {@code prism-marker--empty}:
+ *     they only highlight their lines.</li>
+ * </ul>
  *
  * @author Philippe Arteau
  * @author Ullrich Hafner
@@ -32,12 +53,14 @@ import org.jenkins.ui.symbol.SymbolRequest.Builder;
 class SourcePrinter {
     private static final Sanitizer SANITIZER = new Sanitizer();
 
-    private static final ColumnMarker COLUMN_MARKER = new ColumnMarker("-n/a-");
     private static final String QT_LINGUIST_PATTERN = "<!DOCTYPE TS>";
     private static final int MAX_LINES_FOR_SYNTAX_HIGHLIGHTING = 5_000;
-    private static final String LINE_NUMBERS = "line-numbers";
-    private static final String MATCH_BRACES = "match-braces";
     private static final String ICON_MD = "icon-md";
+    private static final String ICON_SM = "icon-sm";
+    private static final String MARKER = "prism-marker";
+    private static final String MARKER_HEADER = "prism-marker__header";
+    private static final String MARKER_ICON = "prism-marker__icon";
+    private static final String HIDDEN = "hidden";
     private static final char NEW_LINE = '\n';
 
     private final JenkinsFacade jenkinsFacade;
@@ -55,124 +78,215 @@ class SourcePrinter {
     }
 
     /**
-     * Creates a colorized HTML snippet with the specified source code. Highlights the specified issue and provides a
-     * clickable and collapsible element that shows the details for the issue.
+     * Creates an HTML snippet with the specified source code and marker.
      *
      * @param fileName
      *         the file name of the source code file
      * @param lines
      *         the lines of the source code
      * @param marker
-     *         the issue to show
+     *         the marker to show
      *
-     * @return the source code as colorized HTML
+     * @return the source code and the marker as HTML snippet
      */
     String render(final String fileName, final Stream<String> lines, final Marker marker) {
-        try (LookaheadStream stream = new LookaheadStream(lines)) {
-            int start = marker.getLineStart();
-            int end = marker.getLineEnd();
+        return render(fileName, lines, List.of(marker));
+    }
 
-            StringBuilder before = readBlockUntilLine(stream, start - 1);
-            StringBuilder marked = readBlockUntilLine(stream, end);
-            StringBuilder after = readBlockUntilLine(stream, Integer.MAX_VALUE);
+    /**
+     * Creates an HTML snippet with the specified source code and markers. Markers may overlap, and several markers
+     * may refer to the same line.
+     *
+     * @param fileName
+     *         the file name of the source code file
+     * @param lines
+     *         the lines of the source code
+     * @param markers
+     *         the markers to show, the list may be empty
+     *
+     * @return the source code and the markers as HTML snippet
+     */
+    String render(final String fileName, final Stream<String> lines, final List<Marker> markers) {
+        return render(fileName, lines, markers, 1, false);
+    }
 
-            String language = selectLanguageClass(fileName, before);
-            boolean enableSyntaxHighlighting = shouldEnableSyntaxHighlighting(before, marked, after);
-            String code = asCode(before, getCodeClasses(language, enableSyntaxHighlighting))
-                    + asMarkedCode(marked, marker, getMarkedCodeClasses(language, enableSyntaxHighlighting))
-                    + createInfoPanel(marker)
-                    + asCode(after, getCodeClasses(language, enableSyntaxHighlighting));
+    /**
+     * Creates an HTML snippet with an excerpt of the specified source code and markers. Markers may overlap, and
+     * several markers may refer to the same line.
+     *
+     * @param fileName
+     *         the file name of the source code file
+     * @param lines
+     *         the lines of the excerpt
+     * @param markers
+     *         the markers to show, the list may be empty. The lines of the markers refer to the whole file, not to the
+     *         excerpt.
+     * @param firstLine
+     *         the line number of the first line of the excerpt (1-based)
+     * @param isPlainText
+     *         determines whether the content is plain text that should not be colorized
+     *
+     * @return the source code and the markers as HTML snippet
+     */
+    String render(
+            final String fileName,
+            final Stream<String> lines,
+            final List<Marker> markers,
+            final int firstLine,
+            final boolean isPlainText) {
+        List<String> source = lines.toList();
+        var layout = new MarkerLayout(markers, firstLine, firstLine + source.size() - 1);
 
-            return pre().with(new UnescapedText(code)).renderFormatted();
+        var code = new StringBuilder();
+        for (int index = 0; index < source.size(); index++) {
+            if (index > 0) {
+                code.append(NEW_LINE);
+            }
+            code.append(renderLine(source.get(index), layout.getColumnRanges(firstLine + index)));
         }
-    }
 
-    private boolean shouldEnableSyntaxHighlighting(
-            final StringBuilder before, final StringBuilder marked, final StringBuilder after) {
-        return countLines(before) + countLines(marked) + countLines(after) <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING;
-    }
-
-    private int countLines(final StringBuilder text) {
-        if (text.isEmpty()) {
-            return 0;
+        var codeElement = code().attr("data-lines", source.size())
+                .attr("data-first-line", firstLine)
+                .with(new UnescapedText(code.toString()));
+        if (!isPlainText && source.size() <= MAX_LINES_FOR_SYNTAX_HIGHLIGHTING) {
+            var language = selectLanguageClass(fileName, source);
+            if (!language.isEmpty()) {
+                codeElement.withClass(language);
+            }
         }
-        return (int) text.chars().filter(c -> c == NEW_LINE).count();
+        var raw = pre().withClass("prism-source__raw").attr(HIDDEN, HIDDEN).with(codeElement);
+        var markerElements = div().withClass("prism-source__markers")
+                .attr(HIDDEN, HIDDEN)
+                .with(each(layout.getMarkers(), this::createMarker));
+
+        return raw.render() + markerElements.render();
     }
 
-    private String[] getCodeClasses(final String language, final boolean enableSyntaxHighlighting) {
-        if (enableSyntaxHighlighting) {
-            return new String[] {language, LINE_NUMBERS, MATCH_BRACES};
+    /**
+     * Escapes the specified line and encloses the marked columns with {@code span} elements.
+     *
+     * @param text
+     *         the text of the line
+     * @param ranges
+     *         the disjoint column ranges to mark, sorted by their start column
+     *
+     * @return the line as HTML
+     */
+    private String renderLine(final String text, final List<ColumnRange> ranges) {
+        var html = new StringBuilder();
+        int position = 0;
+        for (ColumnRange range : ranges) {
+            int start = range.start() - 1;
+            int end = Math.min(range.end(), text.length());
+            if (start < position || start >= end) {
+                continue;
+            }
+            html.append(escape(text.substring(position, start)));
+            html.append(span().withClass("code-mark")
+                    .attr("data-markers", String.join(" ", range.markerIds()))
+                    .with(new UnescapedText(escape(text.substring(start, end))))
+                    .render());
+            position = end;
         }
-        return new String[0];
+        html.append(escape(text.substring(position)));
+        return html.toString();
     }
 
-    private String[] getMarkedCodeClasses(final String language, final boolean enableSyntaxHighlighting) {
-        if (enableSyntaxHighlighting) {
-            return new String[] {language, LINE_NUMBERS, "highlight", MATCH_BRACES};
+    private String escape(final String text) {
+        return StringEscapeUtils.escapeHtml4(text);
+    }
+
+    private boolean hasText(final Marker marker) {
+        return StringUtils.isNotBlank(marker.getTitle()) || StringUtils.isNotBlank(marker.getDescription());
+    }
+
+    private DomContent createMarker(final PositionedMarker positioned) {
+        var marker = positioned.marker();
+        var severityClass = MARKER + "--" + marker.getSeverity().getCssModifier();
+        var element = hasText(marker)
+                ? div().withClasses(MARKER, severityClass)
+                : div().withClasses(MARKER, severityClass, MARKER + "--empty");
+        element.withId(positioned.id())
+                .attr("data-line-start", marker.getLineStart())
+                .attr("data-line-end", marker.getLineEnd())
+                .attr("data-anchor-line", positioned.anchorLine())
+                .attr("data-severity", marker.getSeverity().getCssModifier());
+        marker.getData().forEach((name, value) -> element.attr("data-marker-" + name, value));
+        if (!hasText(marker)) {
+            return element;
         }
-        return new String[] {"highlight"};
-    }
-
-    private StringBuilder readBlockUntilLine(final LookaheadStream stream, final int end) {
-        StringBuilder marked = new StringBuilder();
-        while (stream.hasNext() && stream.getLine() < end) {
-            marked.append(stream.next());
-            marked.append(NEW_LINE);
-        }
-        return marked;
-    }
-
-    private String createInfoPanel(final Marker marker) {
-        return createBox(marker).withClass("analysis-warning").render();
-    }
-
-    private ContainerTag createBox(final Marker marker) {
-        if (StringUtils.isEmpty(marker.getDescription())) {
-            return createTitle(marker, false);
+        if (StringUtils.isBlank(marker.getDescription())) {
+            element.with(div().withClass(MARKER_HEADER).with(createHeader(marker)));
         } else {
-            return createTitleAndCollapsedDescription(marker, marker.getDescription());
+            element.with(details()
+                    .withClass("prism-marker__details")
+                    .with(
+                            summary().withClass(MARKER_HEADER).with(createHeader(marker)),
+                            div().withClass("prism-marker__description").with(unescape(marker.getDescription()))));
         }
+        var links = marker.getLinks().stream().filter(this::isSafe).toList();
+        if (!links.isEmpty()) {
+            element.with(div().withClass("prism-marker__links").with(each(links, this::createLink)));
+        }
+        return element;
     }
 
-    private DomContent createIcon(final String name) {
+    private List<DomContent> createHeader(final Marker marker) {
+        var header = new ArrayList<DomContent>();
+        if (StringUtils.isNotBlank(marker.getIcon())) {
+            header.add(createIcon(marker.getIcon(), ICON_MD, MARKER_ICON));
+        }
+        header.add(span().withClass("prism-marker__title").with(replaceNewLine(marker.getTitle())));
+        if (!marker.getBadges().isEmpty()) {
+            header.add(span().withClass("prism-marker__badges").with(each(marker.getBadges(), this::createBadge)));
+        }
+        return header;
+    }
+
+    private DomContent createBadge(final Badge badge) {
+        if (StringUtils.isNotBlank(badge.getUrl()) && isSafe(badge.getUrl())) {
+            var link = a().withClasses("prism-marker__badge", "prism-marker__badge--link")
+                    .withHref(badge.getUrl())
+                    .withTarget("_blank")
+                    .withRel("noopener noreferrer")
+                    .withText(badge.getText());
+            if (StringUtils.isNotBlank(badge.getTooltip())) {
+                link.attr("tooltip", badge.getTooltip());
+            }
+            return link;
+        }
+        var element = span().withClass("prism-marker__badge").withText(badge.getText());
+        if (StringUtils.isNotBlank(badge.getTooltip())) {
+            element.attr("tooltip", badge.getTooltip());
+        }
+        return element;
+    }
+
+    private boolean isSafe(final Link link) {
+        return isSafe(link.getUrl());
+    }
+
+    private boolean isSafe(final String url) {
+        return !Strings.CI.startsWith(StringUtils.strip(url), "javascript:");
+    }
+
+    private DomContent createLink(final Link link) {
+        var element = a().withClass("prism-marker__link").withHref(link.getUrl());
+        if (StringUtils.isNotBlank(link.getIcon())) {
+            element.with(createIcon(link.getIcon(), ICON_SM, "prism-marker__link-icon"));
+        }
+        return element.with(span().withText(link.getLabel()));
+    }
+
+    private DomContent createIcon(final String name, final String... classes) {
         if (name.startsWith("symbol")) {
             String symbol = Symbol.get(new SymbolRequest.Builder()
                     .withRaw(name)
-                    .withClasses(ICON_MD)
+                    .withClasses(String.join(" ", classes))
                     .build());
             return new UnescapedText(symbol);
         }
-        return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(ICON_MD);
-    }
-
-    private ContainerTag createTitle(final Marker marker, final boolean isCollapseVisible) {
-        return div().with(table().withClass("analysis-title")
-                .with(tr().with(
-                                td().with(createIcon(marker.getIcon())),
-                                td().withClass("analysis-title-column")
-                                        .with(div().withClass("analysis-warning-title")
-                                                .with(replaceNewLine(marker.getTitle()))),
-                                createCollapseButton(isCollapseVisible))));
-    }
-
-    private ContainerTag createCollapseButton(final boolean isCollapseVisible) {
-        ContainerTag td = td();
-        if (isCollapseVisible) {
-            td.with(new UnescapedText(jenkinsFacade.getSymbol(new Builder()
-                    .withName("chevron-down-circle-outline")
-                    .withPluginName("ionicons-api")
-                    .withClasses("analysis-collapse-icon")
-                    .build())));
-        }
-        return td;
-    }
-
-    private ContainerTag createTitleAndCollapsedDescription(final Marker marker, final String description) {
-        return div().with(
-                        div().withClass("analysis-collapse-button").with(createTitle(marker, true)),
-                        div().withClasses("collapse", "analysis-detail")
-                                .with(unescape(description))
-                                .withId("analysis-description"));
+        return img().withSrc(jenkinsFacade.getImagePath(name)).withClasses(classes);
     }
 
     private UnescapedText replaceNewLine(final String message) {
@@ -183,11 +297,21 @@ class SourcePrinter {
         return new UnescapedText(SANITIZER.render(message));
     }
 
+    /**
+     * Selects the Prism language of the specified file.
+     *
+     * @param fileName
+     *         the name of the file
+     * @param lines
+     *         the lines of the file
+     *
+     * @return the CSS class of the language, or an empty string for plain text files that should not be colorized
+     */
     @SuppressWarnings({"javancss", "PMD.CyclomaticComplexity"})
-    private String selectLanguageClass(final String fileName, final StringBuilder before) {
+    private String selectLanguageClass(final String fileName, final List<String> lines) {
         String extension = StringUtils.substringAfterLast(fileName, ".");
 
-        if ("ts".equals(extension) && Strings.CS.contains(before, QT_LINGUIST_PATTERN)) {
+        if ("ts".equals(extension) && lines.stream().anyMatch(line -> Strings.CS.contains(line, QT_LINGUIST_PATTERN))) {
             return "language-markup";
         }
 
@@ -216,102 +340,8 @@ class SourcePrinter {
             case "swift" -> "language-swift";
             case "ts" -> "language-typescript";
             case "yaml" -> "language-yaml";
+            case "log", "txt" -> ""; // Plain text, no syntax highlighting
             default -> "language-clike"; // Best effort for unknown extensions
         };
-    }
-
-    private String asMarkedCode(final StringBuilder text, final Marker marker, final String... classes) {
-        StringBuilder marked;
-        if (marker.getLineStart() == marker.getLineEnd()) {
-            marked = COLUMN_MARKER.markColumns(text.toString(), marker.getColumnStart(), marker.getColumnEnd());
-        } else {
-            marked = text;
-        }
-
-        String sanitized = SANITIZER.render(StringEscapeUtils.escapeHtml4(marked.toString()));
-        String markerReplaced = COLUMN_MARKER.replacePlaceHolderWithHtmlTag(sanitized);
-        return code().withClasses(classes)
-                .with(new UnescapedText(markerReplaced))
-                .render();
-    }
-
-    private String asCode(final StringBuilder text, final String... classes) {
-        return code().withClasses(classes)
-                .with(unescape(StringEscapeUtils.escapeHtml4(text.toString())))
-                .render();
-    }
-
-    /**
-     * Encloses columns between {@code start} and {@code end} with an HTML tag (see {@code openingTag} and
-     * {@code closingTag}).
-     */
-    static final class ColumnMarker {
-        private static final String OPENING_TAG = "<span class='code-mark'>";
-        private static final String CLOSING_TAG = "</span>";
-
-        /**
-         * Creates a {@link ColumnMarker} that will use {@code placeHolderText} for enclosing.
-         *
-         * @param placeHolderText
-         *         Used to construct an opening and closing text that can later be replaced with the HTML tag
-         *         {@code openingTag} {@code closingTag}. It should be a text that is unlikely to appear in any source
-         *         code.
-         */
-        ColumnMarker(final String placeHolderText) {
-            openingTagPlaceHolder = "OpEn" + placeHolderText;
-            closingTagPlaceHolder = "ClOsE" + placeHolderText;
-        }
-
-        private final String openingTagPlaceHolder;
-        private final String closingTagPlaceHolder;
-
-        /**
-         * Encloses columns between start and end with the HTML tag {@code openingTag} {@code closingTag}. This will
-         * make prism highlight the enclosed part of the line.
-         *
-         * @param text
-         *         the source code line
-         * @param start
-         *         the first column in text, that needs to be marked
-         * @param end
-         *         the last column in text, that needs to be marked
-         *
-         * @return StringBuilder containing the text with the added HTML tag "mark"
-         */
-        StringBuilder markColumns(final String text, final int start, final int end) {
-            if (start < 1 || text.isEmpty() || end > text.length()) {
-                return new StringBuilder(text);
-            }
-            final int realStart = start - 1;
-            final int realEnd = (end == 0) ? text.length() - 1 : end - 1;
-
-            if (realStart > realEnd) {
-                return new StringBuilder(text);
-            }
-            final int afterMark = realEnd + 1;
-
-            final String before = text.substring(0, realStart);
-            final String toBeMarked = text.substring(realStart, afterMark);
-            final String after = text.substring(afterMark);
-
-            return new StringBuilder(before)
-                    .append(openingTagPlaceHolder)
-                    .append(toBeMarked)
-                    .append(closingTagPlaceHolder)
-                    .append(after);
-        }
-
-        /**
-         * Encloses columns between start and end with the HTML tag {@code openingTag} {@code closingTag}. This will
-         * make prism highlight the enclosed part of the line.
-         *
-         * @param text
-         *         the source code line
-         *
-         * @return String containing the text with the added html tag
-         */
-        String replacePlaceHolderWithHtmlTag(final String text) {
-            return text.replaceAll(openingTagPlaceHolder, OPENING_TAG).replaceAll(closingTagPlaceHolder, CLOSING_TAG);
-        }
     }
 }
