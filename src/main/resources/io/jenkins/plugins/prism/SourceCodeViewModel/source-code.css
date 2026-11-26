@@ -66,12 +66,32 @@
   padding: 0 1rem 0 0.75rem;
 }
 
+/* Column with the annotations of the lines (e.g., the number of covered branches), see LineAnnotation */
+.prism-line__annotation {
+  flex: 0 0 auto;
+  box-sizing: content-box;
+  width: calc(var(--prism-annotation-width, 1) * 1ch);
+  padding: 0 0.5rem;
+  color: var(--text-color-secondary, inherit);
+  text-align: right;
+  user-select: none;
+}
+
 /* Marked lines: a bar next to the line numbers and a light background in the color of the severity */
 .prism-line--marked {
   background: color-mix(in srgb, var(--prism-severity-color) 10%, transparent);
 }
 
 .prism-line--marked .prism-line__number {
+  box-shadow: inset -3px 0 0 var(--prism-severity-color);
+}
+
+/* With annotations, the bar is shown between the annotations and the code */
+.prism-source__lines--annotated .prism-line--marked .prism-line__number {
+  box-shadow: none;
+}
+
+.prism-line--marked .prism-line__annotation {
   box-shadow: inset -3px 0 0 var(--prism-severity-color);
 }
 
@@ -349,6 +369,11 @@ summary.prism-marker__header::after {
   font-family: var(--font-family-mono, monospace);
   font-size: 0.875rem;
   text-align: right;
+}
+
+/* With annotations, the text of the button starts at the same position as the code */
+.prism-source__lines--annotated .prism-gap__button::before {
+  margin-right: calc(2.5rem + var(--prism-annotation-width, 1) * 1ch);
 }
 
 .prism-gap__button:hover,

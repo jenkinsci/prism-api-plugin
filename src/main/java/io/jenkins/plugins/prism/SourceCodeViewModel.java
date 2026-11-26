@@ -212,6 +212,7 @@ public class SourceCodeViewModel implements ModelObject {
         private final Run<?, ?> owner;
         private final String fileName;
         private List<Marker> markers = List.of();
+        private List<LineAnnotation> annotations = List.of();
         private boolean isPlainText;
         private int firstLine = 1;
         private int lastLine = Integer.MAX_VALUE;
@@ -243,6 +244,23 @@ public class SourceCodeViewModel implements ModelObject {
         @SuppressWarnings("checkstyle:HiddenField")
         public Builder withMarkers(final List<Marker> markers) {
             this.markers = List.copyOf(markers);
+            return this;
+        }
+
+        /**
+         * Defines the annotations of the lines. The annotations are shown in a separate column between the line
+         * numbers and the code, e.g., to show the number of covered branches of each line. If there are several
+         * annotations for the same line, then the last one is shown. Annotations of lines outside the shown content
+         * are skipped.
+         *
+         * @param annotations
+         *         the annotations of the lines
+         *
+         * @return this builder
+         */
+        @SuppressWarnings("checkstyle:HiddenField")
+        public Builder withLineAnnotations(final List<LineAnnotation> annotations) {
+            this.annotations = List.copyOf(annotations);
             return this;
         }
 
@@ -349,7 +367,7 @@ public class SourceCodeViewModel implements ModelObject {
             return new SourceCodeViewModel(
                     owner,
                     fileName,
-                    new SourcePrinter().render(fileName, excerpt, markers, firstLine, isPlainText),
+                    new SourcePrinter().render(fileName, excerpt, markers, annotations, firstLine, isPlainText),
                     isCollapsible);
         }
     }

@@ -20,6 +20,7 @@ import j2html.tags.DomContent;
 import j2html.tags.UnescapedText;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
@@ -44,6 +45,9 @@ import org.jenkins.ui.symbol.SymbolRequest;
  *     each marker. The attributes {@code data-line-start}, {@code data-line-end}, and {@code data-anchor-line} define
  *     the position of the marker. Markers without title and description have the class {@code prism-marker--empty}:
  *     they only highlight their lines.</li>
+ *     <li>a hidden {@code div} element with the class {@code prism-source__annotations} that contains an element for
+ *     each {@link LineAnnotation annotation} of a line. The attribute {@code data-line} defines the line of the
+ *     annotation. The element is part of the snippet only if there are annotations.</li>
  * </ul>
  *
  * @author Philippe Arteau
@@ -134,8 +138,40 @@ class SourcePrinter {
             final List<Marker> markers,
             final int firstLine,
             final boolean isPlainText) {
+        return render(fileName, lines, markers, List.of(), firstLine, isPlainText);
+    }
+
+    /**
+     * Creates an HTML snippet with an excerpt of the specified source code, markers, and annotations of the lines.
+     * Markers may overlap, and several markers may refer to the same line.
+     *
+     * @param fileName
+     *         the file name of the source code file
+     * @param lines
+     *         the lines of the excerpt
+     * @param markers
+     *         the markers to show, the list may be empty. The lines of the markers refer to the whole file, not to the
+     *         excerpt.
+     * @param annotations
+     *         the annotations of the lines, the list may be empty. If there are several annotations for the same
+     *         line, then the last one is shown. Annotations of lines outside the excerpt are skipped.
+     * @param firstLine
+     *         the line number of the first line of the excerpt (1-based)
+     * @param isPlainText
+     *         determines whether the content is plain text that should not be colorized
+     *
+     * @return the source code, the markers, and the annotations as HTML snippet
+     */
+    String render(
+            final String fileName,
+            final Stream<String> lines,
+            final List<Marker> markers,
+            final List<LineAnnotation> annotations,
+            final int firstLine,
+            final boolean isPlainText) {
         List<String> source = lines.toList();
-        var layout = new MarkerLayout(markers, firstLine, firstLine + source.size() - 1);
+        int lastLine = firstLine + source.size() - 1;
+        var layout = new MarkerLayout(markers, firstLine, lastLine);
 
         var code = new StringBuilder();
         for (int index = 0; index < source.size(); index++) {
@@ -159,7 +195,31 @@ class SourcePrinter {
                 .attr(HIDDEN, HIDDEN)
                 .with(each(layout.getMarkers(), this::createMarker));
 
-        return raw.render() + markerElements.render();
+        return raw.render() + markerElements.render() + renderAnnotations(annotations, firstLine, lastLine);
+    }
+
+    private String renderAnnotations(final List<LineAnnotation> annotations, final int firstLine, final int lastLine) {
+        var annotationPerLine = new TreeMap<Integer, LineAnnotation>();
+        annotations.stream()
+                .filter(annotation -> annotation.line() >= firstLine && annotation.line() <= lastLine)
+                .forEach(annotation -> annotationPerLine.put(annotation.line(), annotation));
+        if (annotationPerLine.isEmpty()) {
+            return StringUtils.EMPTY;
+        }
+        return div().withClass("prism-source__annotations")
+                .attr(HIDDEN, HIDDEN)
+                .with(each(annotationPerLine.values(), this::createAnnotation))
+                .render();
+    }
+
+    private DomContent createAnnotation(final LineAnnotation annotation) {
+        var element = span().withClass("prism-line__annotation")
+                .attr("data-line", annotation.line())
+                .withText(annotation.text());
+        if (StringUtils.isNotBlank(annotation.tooltip())) {
+            element.attr("tooltip", annotation.tooltip());
+        }
+        return element;
     }
 
     /**

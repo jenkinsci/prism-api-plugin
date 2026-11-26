@@ -57,7 +57,17 @@ function escape(text) {
 /**
  * Creates the snippet that is rendered by the server (see SourcePrinter), together with the navigation.
  */
-function createSource(lines, markers, language = "language-java", firstLine = 1, attributes = "") {
+function createSource(lines, markers, language = "language-java", firstLine = 1, attributes = "", annotations = []) {
+  const annotationElements =
+    annotations.length === 0
+      ? ""
+      : `<div class="prism-source__annotations" hidden>${annotations
+          .map(
+            (annotation) =>
+              `<span class="prism-line__annotation" data-line="${annotation.line}"` +
+              `${annotation.tooltip ? ` tooltip="${annotation.tooltip}"` : ""}>${annotation.text}</span>`,
+          )
+          .join("")}</div>`;
   const markerElements = markers
     .map((marker) => {
       const classes = `prism-marker prism-marker--${marker.severity}${marker.empty ? " prism-marker--empty" : ""}`;
@@ -73,6 +83,7 @@ function createSource(lines, markers, language = "language-java", firstLine = 1,
     <div class="prism-source" data-copy-link="Copy" data-copy-link-done="Copied" ${attributes}>
       <pre class="prism-source__raw" hidden><code class="${language}" data-lines="${lines.length}" data-first-line="${firstLine}">${lines.join("\n")}</code></pre>
       <div class="prism-source__markers" hidden>${markerElements}</div>
+      ${annotationElements}
     </div>
     <div class="prism-navigation">
       <button data-prism-navigation="top"></button>
@@ -127,6 +138,8 @@ async function loadPrism() {
   const prism = (await import("prismjs")).default;
   await import("prismjs/components/prism-clike");
   await import("prismjs/components/prism-java");
+  // the module is evaluated only once: in later tests, the global variable must be set again
+  window.Prism = prism;
   return prism;
 }
 
@@ -251,6 +264,57 @@ describe("layout of the markers", () => {
     expect(comments).toEqual([["/* A comment"], ["       with two lines */"]]);
     expect(getRows()[3].querySelector(".token.string").textContent).toBe('"<b>text</b>"');
     expect(getLayout()).toEqual(["top", "1", "2", "3", "comment", "4", "string", "5"]);
+  });
+});
+
+describe("annotations of the lines", () => {
+  const annotations = [
+    { line: 2, text: "1" },
+    { line: 4, text: "2/4", tooltip: "Covered branches" },
+  ];
+
+  function getAnnotations() {
+    return getRows().map((row) => row.querySelector(".prism-line__annotation").textContent);
+  }
+
+  test("should show the annotations in a separate column", () => {
+    createSource(JAVA_SOURCE.map(escape), [], "language-java", 1, "", annotations);
+
+    loadScript();
+
+    const lines = document.querySelector(".prism-source__lines");
+    expect(lines.classList.contains("prism-source__lines--annotated")).toBe(true);
+    expect(lines.style.getPropertyValue("--prism-annotation-width")).toBe("3");
+    expect(getAnnotations()).toEqual(["", "1", "", "2/4", ""]);
+    expect(Array.from(getRows()[3].children).map((cell) => cell.className)).toEqual([
+      "prism-line__number",
+      "prism-line__annotation",
+      "prism-line__code",
+    ]);
+    expect(getRows()[3].querySelector(".prism-line__annotation").getAttribute("tooltip")).toBe("Covered branches");
+  });
+
+  test("should not show a column without annotations", () => {
+    createSource(JAVA_SOURCE.map(escape), []);
+
+    loadScript();
+
+    expect(document.querySelector(".prism-source__lines").classList.contains("prism-source__lines--annotated")).toBe(
+      false,
+    );
+    expect(document.querySelector(".prism-line__annotation")).toBeNull();
+  });
+
+  test("should keep the annotations if the layout is created again", async () => {
+    createSource(JAVA_SOURCE.map(escape), [], "language-java", 1, "", annotations);
+    const annotation = document.querySelector('.prism-source__annotations [data-line="4"]');
+    const prism = await loadPrism();
+
+    loadScript();
+    prism.highlightElement(document.querySelector(".prism-source__raw > code"));
+
+    expect(getRows()[3].querySelector(".prism-line__annotation")).toBe(annotation);
+    expect(getAnnotations()).toEqual(["", "1", "", "2/4", ""]);
   });
 });
 

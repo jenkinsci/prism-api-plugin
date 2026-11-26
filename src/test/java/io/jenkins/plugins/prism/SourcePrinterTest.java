@@ -568,6 +568,41 @@ class SourcePrinterTest extends ResourceTest {
     }
 
     /**
+     * Verifies that the annotations of the lines are rendered as hidden elements: the text is escaped, only the last
+     * annotation of a line is shown, and annotations of lines outside the file are skipped.
+     */
+    @Test
+    void shouldRenderLineAnnotations() {
+        var annotations = List.of(
+                new LineAnnotation(5, "1"),
+                new LineAnnotation(2, "<b>2/4</b>", "Covered branches"),
+                new LineAnnotation(5, "3"),
+                new LineAnnotation(0, "before"),
+                new LineAnnotation(100, "after"));
+
+        var document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
+                .render(FILE_NAME, asStream(CPP_FILE), List.of(), annotations, 1, false));
+
+        assertThat(document.select(".prism-source__annotations[hidden] > .prism-line__annotation"))
+                .extracting(e -> e.attr("data-line"), Element::text, e -> e.attr("tooltip"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("2", "<b>2/4</b>", "Covered branches"),
+                        org.assertj.core.groups.Tuple.tuple("5", "3", ""));
+        assertThat(document.getElementsByTag("b")).isEmpty();
+    }
+
+    /**
+     * Verifies that the snippet contains no element for the annotations if there are no annotations.
+     */
+    @Test
+    void shouldSkipAnnotationsWithoutAnnotations() {
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of());
+
+        assertThat(document.getElementsByClass("prism-source__annotations")).isEmpty();
+        assertThat(document.getElementsByClass("prism-line__annotation")).isEmpty();
+    }
+
+    /**
      * Verifies that plain text is not colorized: either if requested explicitly or for log and text files.
      */
     @Test

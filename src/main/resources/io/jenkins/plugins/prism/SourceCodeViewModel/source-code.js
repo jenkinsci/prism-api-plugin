@@ -11,6 +11,8 @@
  *   'data-first-line' of the raw code defines the number of the first line. The layout is created again whenever Prism has
  *   colorized the code (e.g., after a language definition has been loaded).</li>
  *   <li>The lines of the visible markers are highlighted with the color of the highest severity.</li>
+ *   <li>If the server rendered annotations of the lines (".prism-source__annotations"), then the annotations are
+ *   shown in a separate column between the line numbers and the code.</li>
  *   <li>A marker is selected by the fragment of the URL: either the ID of the marker or a line number ("42" or
  *   "L42", then all markers that contain the line are selected). If there is only one marker, then this marker is
  *   selected automatically. The view scrolls to the first selected marker (or line).</li>
@@ -38,6 +40,8 @@
   const RAW_CODE = ".prism-source__raw > code";
   const LINES = "prism-source__lines";
   const MARKER = ".prism-marker";
+  const ANNOTATIONS = ".prism-source__annotations > [data-line]";
+  const ANNOTATION = "prism-line__annotation";
   const CARD = ".prism-marker:not(.prism-marker--empty)";
   const LINE = "prism-line";
   const SELECTED = "prism-marker--selected";
@@ -72,6 +76,8 @@
   const expansion = { ranges: [] };
   // the fixed or sticky elements of the page that might cover the ruler (computed once)
   const overlays = { elements: undefined };
+  // the annotations of the lines, indexed by their line numbers (collected once, see getAnnotations)
+  const annotations = { byLine: undefined };
 
   /**
    * Splits the (colorized) content of an element into lines. Elements that contain line breaks (e.g., a token of a
@@ -289,7 +295,35 @@
     return language || "language-none";
   }
 
-  function createLine(number, content) {
+  /**
+   * Returns the annotations of the lines, indexed by their line numbers. The elements of the annotations are moved
+   * into the lines when the layout is created. So they are collected only once: then the elements (and their
+   * tooltips) are kept if the layout is created again.
+   *
+   * @param {Element} source the source code view
+   * @returns {Map<number, Element>} the annotations
+   */
+  function getAnnotations(source) {
+    if (annotations.byLine === undefined) {
+      annotations.byLine = new Map(
+        Array.from(source.querySelectorAll(ANNOTATIONS)).map((element) => [
+          Number(element.dataset.line),
+          element,
+        ]),
+      );
+    }
+    return annotations.byLine;
+  }
+
+  function getAnnotationWidth(annotationsByLine) {
+    let width = 1;
+    annotationsByLine.forEach((annotation) => {
+      width = Math.max(width, annotation.textContent.length);
+    });
+    return width;
+  }
+
+  function createLine(number, content, annotationsByLine) {
     const line = document.createElement("div");
     line.className = LINE;
     line.id = "L" + number;
@@ -300,6 +334,15 @@
     link.href = "#L" + number;
     link.textContent = String(number);
     line.appendChild(link);
+
+    if (annotationsByLine.size > 0) {
+      let annotation = annotationsByLine.get(number);
+      if (!annotation) {
+        annotation = document.createElement("span");
+        annotation.className = ANNOTATION;
+      }
+      line.appendChild(annotation);
+    }
 
     const code = document.createElement("span");
     code.className = "prism-line__code";
@@ -333,6 +376,14 @@
       "--prism-line-number-digits",
       String(String(Math.max(lastLine, 1)).length),
     );
+    const annotationsByLine = getAnnotations(source);
+    if (annotationsByLine.size > 0) {
+      lines.classList.add(LINES + "--annotated");
+      lines.style.setProperty(
+        "--prism-annotation-width",
+        String(getAnnotationWidth(annotationsByLine)),
+      );
+    }
 
     const cardsByAnchor = new Map();
     getCards().forEach((card) => {
@@ -352,6 +403,7 @@
         createLine(
           number,
           contents[number - firstLine] || document.createDocumentFragment(),
+          annotationsByLine,
         ),
       );
       children.push(...(cardsByAnchor.get(number) || []));
