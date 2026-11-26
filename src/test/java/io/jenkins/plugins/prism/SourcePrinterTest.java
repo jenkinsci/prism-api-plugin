@@ -382,6 +382,41 @@ class SourcePrinterTest extends ResourceTest {
     }
 
     /**
+     * Verifies that a marker without title and description that has been added to the navigation gets an additional
+     * CSS class. Markers with a title are always part of the navigation, so they do not need that class.
+     */
+    @Test
+    void shouldRenderNavigableMarkers() {
+        var navigable = new MarkerBuilder()
+                .withLineStart(2)
+                .withLineEnd(3)
+                .withId("navigable")
+                .withNavigation()
+                .build();
+        var highlight = new MarkerBuilder().withLineStart(5).withId("highlight").build();
+        var box = new MarkerBuilder()
+                .withLineStart(7)
+                .withId("box")
+                .withTitle(MESSAGE)
+                .withNavigation()
+                .build();
+
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(navigable, highlight, box));
+
+        assertThat(navigable.isNavigable()).isTrue();
+        assertThat(highlight.isNavigable()).isFalse();
+        assertThat(document.getElementsByClass("prism-marker"))
+                .extracting(Element::id, e -> String.join(" ", e.classNames()))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(
+                                "navigable",
+                                "prism-marker prism-marker--warning prism-marker--empty prism-marker--navigable"),
+                        org.assertj.core.groups.Tuple.tuple(
+                                "highlight", "prism-marker prism-marker--warning prism-marker--empty"),
+                        org.assertj.core.groups.Tuple.tuple("box", "prism-marker prism-marker--warning"));
+    }
+
+    /**
      * Verifies that the severity of a marker is rendered as CSS modifier and as data of the box, so the client side
      * script can compute the color of the marked lines.
      *

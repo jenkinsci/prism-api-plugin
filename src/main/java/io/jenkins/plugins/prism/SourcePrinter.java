@@ -44,7 +44,9 @@ import org.jenkins.ui.symbol.SymbolRequest;
  *     <li>a hidden {@code div} element with the class {@code prism-source__markers} that contains an element for
  *     each marker. The attributes {@code data-line-start}, {@code data-line-end}, and {@code data-anchor-line} define
  *     the position of the marker. Markers without title and description have the class {@code prism-marker--empty}:
- *     they only highlight their lines.</li>
+ *     they only highlight their lines. If such a marker is part of the navigation (see
+ *     {@link Marker.MarkerBuilder#withNavigation()}), it additionally has the class
+ *     {@code prism-marker--navigable}.</li>
  *     <li>a hidden {@code div} element with the class {@code prism-source__annotations} that contains an element for
  *     each {@link LineAnnotation annotation} of a line. The attribute {@code data-line} defines the line of the
  *     annotation. The element is part of the snippet only if there are annotations.</li>
@@ -263,9 +265,14 @@ class SourcePrinter {
     private DomContent createMarker(final PositionedMarker positioned) {
         var marker = positioned.marker();
         var severityClass = MARKER + "--" + marker.getSeverity().getCssModifier();
-        var element = hasText(marker)
-                ? div().withClasses(MARKER, severityClass)
-                : div().withClasses(MARKER, severityClass, MARKER + "--empty");
+        var classes = new ArrayList<>(List.of(MARKER, severityClass));
+        if (!hasText(marker)) {
+            classes.add(MARKER + "--empty");
+            if (marker.isNavigable()) {
+                classes.add(MARKER + "--navigable");
+            }
+        }
+        var element = div().withClasses(classes.toArray(String[]::new));
         element.withId(positioned.id())
                 .attr("data-line-start", marker.getLineStart())
                 .attr("data-line-end", marker.getLineEnd())

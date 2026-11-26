@@ -70,7 +70,9 @@ function createSource(lines, markers, language = "language-java", firstLine = 1,
           .join("")}</div>`;
   const markerElements = markers
     .map((marker) => {
-      const classes = `prism-marker prism-marker--${marker.severity}${marker.empty ? " prism-marker--empty" : ""}`;
+      const classes =
+        `prism-marker prism-marker--${marker.severity}${marker.empty ? " prism-marker--empty" : ""}` +
+        `${marker.navigable ? " prism-marker--navigable" : ""}`;
       const content = marker.empty
         ? ""
         : `<div class="prism-marker__header"><span class="prism-marker__title">${marker.id}</span></div>`;
@@ -118,6 +120,10 @@ function markedSeverity(row) {
 
 function getSelected() {
   return Array.from(document.querySelectorAll(".prism-marker--selected")).map((marker) => marker.id);
+}
+
+function getSelectedLines() {
+  return Array.from(document.querySelectorAll(".prism-line--selected")).map((row) => row.id);
 }
 
 function position() {
@@ -522,6 +528,28 @@ describe("overview ruler", () => {
     ).toBe(true);
   });
 
+  test("should select a navigable marker without a box by its mark", () => {
+    createSource(
+      createLines(100),
+      [
+        { id: "highlight", start: 11, end: 11, anchor: 11, severity: "success", empty: true },
+        { id: "missed", start: 51, end: 52, anchor: 52, severity: "error", empty: true, navigable: true },
+      ],
+      "",
+    );
+    loadScript();
+
+    document.querySelector('.prism-ruler__mark[data-marker="highlight"]').click();
+    expect(window.location.hash).toBe("");
+
+    document.querySelector('.prism-ruler__mark[data-marker="missed"]').click();
+    expect(window.location.hash).toBe("#missed");
+    expect(getSelectedLines()).toEqual(["L51", "L52"]);
+    expect(
+      document.querySelector('.prism-ruler__mark[data-marker="missed"]').classList.contains("prism-ruler__mark--selected"),
+    ).toBe(true);
+  });
+
   test("should remove the ruler if all markers are hidden", () => {
     createSource(createLines(100), [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }], "");
     loadScript();
@@ -676,6 +704,52 @@ describe("selection and navigation", () => {
     document.getElementById("input").dispatchEvent(new KeyboardEvent("keydown", { key: "j", bubbles: true }));
 
     expect(getSelected()).toEqual([]);
+  });
+
+  test("should navigate to the markers without a box that are navigable", () => {
+    createSource(JAVA_SOURCE.map(escape), [
+      { id: "covered", start: 1, end: 2, anchor: 2, severity: "success", empty: true },
+      { id: "missed", start: 3, end: 4, anchor: 4, severity: "error", empty: true, navigable: true },
+      { id: "partially", start: 5, end: 5, anchor: 5, severity: "warning", empty: true, navigable: true },
+    ]);
+    loadScript();
+    expect(position()).toBe("- / 2");
+
+    pressKey("j");
+    expect(window.location.hash).toBe("#missed");
+    expect(getSelectedLines()).toEqual(["L3", "L4"]);
+    expect(Element.prototype.scrollIntoView.mock.contexts.at(-1)).toBe(document.getElementById("L3"));
+    expect(position()).toBe("1 / 2");
+
+    pressKey("j");
+    expect(window.location.hash).toBe("#partially");
+    expect(getSelectedLines()).toEqual(["L5"]);
+  });
+
+  test("should select a navigable marker without a box by the fragment", () => {
+    window.history.replaceState(null, "", "#missed");
+    createSource(JAVA_SOURCE.map(escape), [
+      { id: "missed", start: 2, end: 3, anchor: 3, severity: "error", empty: true, navigable: true },
+      { id: "other", start: 5, end: 5, anchor: 5, severity: "error", empty: true, navigable: true },
+    ]);
+
+    loadScript();
+
+    expect(getSelected()).toEqual(["missed"]);
+    expect(getSelectedLines()).toEqual(["L2", "L3"]);
+  });
+
+  test("should not highlight the lines of a hidden navigable marker", () => {
+    window.history.replaceState(null, "", "#missed");
+    createSource(JAVA_SOURCE.map(escape), [
+      { id: "missed", start: 2, end: 3, anchor: 3, severity: "error", empty: true, navigable: true },
+    ]);
+    loadScript();
+
+    document.getElementById("missed").hidden = true;
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+    expect(getSelectedLines()).toEqual([]);
   });
 
   test("should show the navigation only for at least two visible markers", () => {

@@ -124,6 +124,10 @@ the previous or next marker (like the scroll buttons of the stage view). The key
 page has been scrolled down, an additional button scrolls back to the top. The
 buttons are part of the fragment `content.jelly`.
 
+Markers without title and description only highlight their lines, the navigation skips them. Use
+`MarkerBuilder#withNavigation()` to add such a marker to the navigation (e.g., a block of lines that is not covered by
+tests): then the navigation selects the marker as well, highlights its lines, and scrolls to its first line.
+
 Additional data of a marker (`MarkerBuilder#withData(name, value)`) is rendered as attribute `data-marker-<name>`
 of the box. Your page can use this data to filter the markers: set the attribute `hidden` of the boxes that should
 not be shown and dispatch the event `prism-markers-changed` on the document. The view then removes the highlight

@@ -19,8 +19,10 @@
  *   <li>Each marker gets a button that copies the link to the marker (URL with the ID of the marker as fragment).
  *   </li>
  *   <li>The previous and next visible marker can be selected with the floating buttons (tag 'prism:navigation') or
- *   with the keys 'k' and 'j'. The buttons are shown only if there are at least two visible markers. An additional
- *   floating button scrolls to the top of the page, it is shown if the page has been scrolled down.</li>
+ *   with the keys 'k' and 'j'. Markers without a box are skipped, unless they have the class
+ *   'prism-marker--navigable': then the lines of the selected marker are highlighted. The buttons are shown only
+ *   if there are at least two visible markers. An additional floating button scrolls to the top of the page, it is
+ *   shown if the page has been scrolled down.</li>
  *   <li>Pages can hide markers (e.g., by a filter) by setting the attribute 'hidden' of the marker element.
  *   Afterwards, the page must dispatch the event 'prism-markers-changed' on the document. Then the highlights of
  *   the lines are computed from the visible markers only, and the navigation skips the hidden markers.</li>
@@ -42,7 +44,10 @@
   const MARKER = ".prism-marker";
   const ANNOTATIONS = ".prism-source__annotations > [data-line]";
   const ANNOTATION = "prism-line__annotation";
-  const CARD = ".prism-marker:not(.prism-marker--empty)";
+  const EMPTY = "prism-marker--empty";
+  const CARD = ".prism-marker:not(." + EMPTY + ")";
+  const NAVIGABLE_MARKER = "prism-marker--navigable";
+  const NAVIGABLE = CARD + ", ." + NAVIGABLE_MARKER;
   const LINE = "prism-line";
   const SELECTED = "prism-marker--selected";
   const SELECTED_LINE = "prism-line--selected";
@@ -284,8 +289,37 @@
     return source ? Array.from(source.querySelectorAll(CARD)) : [];
   }
 
-  function getVisibleCards() {
-    return getCards().filter((marker) => !marker.hidden);
+  /**
+   * Returns the markers that are part of the navigation: all markers with a box and the markers without a box that
+   * have been added to the navigation explicitly.
+   *
+   * @returns {Element[]} the markers, in the order of the document
+   */
+  function getNavigableMarkers() {
+    const source = getSource();
+    return source ? Array.from(source.querySelectorAll(NAVIGABLE)) : [];
+  }
+
+  function getVisibleNavigableMarkers() {
+    return getNavigableMarkers().filter((marker) => !marker.hidden);
+  }
+
+  function isEmpty(marker) {
+    return marker.classList.contains(EMPTY);
+  }
+
+  /**
+   * Returns the element to scroll to for the specified marker: the box of the marker or, for a marker without a box,
+   * its first line.
+   *
+   * @param {Element} marker the marker
+   * @returns {Element|null} the element to scroll to
+   */
+  function getScrollTarget(marker) {
+    if (isEmpty(marker)) {
+      return document.getElementById("L" + toPosition(marker).start);
+    }
+    return marker;
   }
 
   function getLanguageClass(code) {
@@ -316,11 +350,10 @@
   }
 
   function getAnnotationWidth(annotationsByLine) {
-    let width = 1;
-    annotationsByLine.forEach((annotation) => {
-      width = Math.max(width, annotation.textContent.length);
-    });
-    return width;
+    return Array.from(annotationsByLine.values()).reduce(
+      (width, annotation) => Math.max(width, annotation.textContent.length),
+      1,
+    );
   }
 
   function createLine(number, content, annotationsByLine) {
@@ -510,7 +543,7 @@
   }
 
   function scrollToMarker(marker, start) {
-    if (marker.classList.contains("prism-marker--empty")) {
+    if (isEmpty(marker) && !marker.classList.contains(NAVIGABLE_MARKER)) {
       const row = document.getElementById("L" + start);
       if (row) {
         row.scrollIntoView({ block: "center" });
@@ -654,26 +687,48 @@
   }
 
   function getSelectedMarker() {
-    return getCards().find((marker) => marker.classList.contains(SELECTED));
+    return getNavigableMarkers().find((marker) =>
+      marker.classList.contains(SELECTED),
+    );
+  }
+
+  /**
+   * Highlights the lines of the selected markers without a box, since these markers have no visible element.
+   *
+   * @param {Element[]} selected the selected markers
+   */
+  function highlightSelectedLines(selected) {
+    selected
+      .filter((marker) => isEmpty(marker) && !marker.hidden)
+      .forEach((marker) => {
+        const position = toPosition(marker);
+        const end = Math.max(position.start, position.end);
+        for (let line = position.start; line <= end; line++) {
+          const row = document.getElementById("L" + line);
+          if (row) {
+            row.classList.add(SELECTED_LINE);
+          }
+        }
+      });
   }
 
   function selectMarkers() {
-    const cards = getCards();
+    const markers = getNavigableMarkers();
     const fragment = parseFragment(window.location.hash);
     let selected = [];
     if (fragment.id) {
-      selected = cards.filter((marker) => marker.id === fragment.id);
+      selected = markers.filter((marker) => marker.id === fragment.id);
     } else if (fragment.line) {
-      selected = cards.filter((marker) => {
+      selected = markers.filter((marker) => {
         const position = toPosition(marker);
         return fragment.line >= position.start && fragment.line <= position.end;
       });
     }
-    if (selected.length === 0 && !fragment.line && cards.length === 1) {
-      selected = cards;
+    if (selected.length === 0 && !fragment.line && markers.length === 1) {
+      selected = markers;
     }
 
-    cards.forEach((marker) => {
+    markers.forEach((marker) => {
       marker.classList.toggle(SELECTED, selected.includes(marker));
     });
     selected.forEach((marker) => {
@@ -699,13 +754,15 @@
           selectedLine.classList.add(SELECTED_LINE);
         }
       }
+      highlightSelectedLines(selected);
     }
 
     if (selection.isInitial) {
+      const marker = selected.find((candidate) => !candidate.hidden);
       const target =
-        selected.find((marker) => !marker.hidden) ||
+        (marker && getScrollTarget(marker)) ||
         selectedLine ||
-        (cards.length === 0 && lines
+        (markers.length === 0 && lines
           ? lines.querySelector("." + LINE + "--marked")
           : null);
       if (target) {
@@ -720,11 +777,14 @@
   function selectMarker(marker) {
     history.replaceState(null, "", "#" + marker.id);
     selectMarkers();
-    marker.scrollIntoView({ block: "center" });
+    const target = getScrollTarget(marker);
+    if (target) {
+      target.scrollIntoView({ block: "center" });
+    }
   }
 
   function navigate(offset) {
-    const visible = getVisibleCards();
+    const visible = getVisibleNavigableMarkers();
     if (visible.length === 0) {
       return;
     }
@@ -739,7 +799,7 @@
   }
 
   function updateNavigation() {
-    const visible = getVisibleCards();
+    const visible = getVisibleNavigableMarkers();
     const index = visible.indexOf(getSelectedMarker());
     const hasMarkers = visible.length > 1;
     const isScrolled = window.scrollY > SCROLL_THRESHOLD;

@@ -32,6 +32,7 @@ public class Marker {
     private final List<Badge> badges;
     private final List<Link> links;
     private final Map<String, String> data;
+    private final boolean navigable;
 
     @SuppressWarnings("checkstyle:ParameterNumber")
     Marker(
@@ -46,7 +47,8 @@ public class Marker {
             final Severity severity,
             final List<Badge> badges,
             final List<Link> links,
-            final Map<String, String> data) {
+            final Map<String, String> data,
+            final boolean navigable) {
         this.id = id;
         this.title = title;
         this.icon = icon;
@@ -59,6 +61,7 @@ public class Marker {
         this.badges = List.copyOf(badges);
         this.links = List.copyOf(links);
         this.data = Map.copyOf(data);
+        this.navigable = navigable;
     }
 
     /**
@@ -136,6 +139,18 @@ public class Marker {
      */
     public Map<String, String> getData() {
         return data;
+    }
+
+    /**
+     * Returns whether this marker is part of the navigation between the markers (keys, floating buttons, and
+     * overview ruler), even if it has neither a title nor a description. Markers with a title or a description are
+     * always part of the navigation.
+     *
+     * @return {@code true} if the marker has been added to the navigation explicitly, {@code false} otherwise
+     * @see MarkerBuilder#withNavigation()
+     */
+    public boolean isNavigable() {
+        return navigable;
     }
 
     /**
@@ -270,6 +285,7 @@ public class Marker {
         private int lineEnd;
         private int columnStart;
         private int columnEnd;
+        private boolean navigable;
 
         /**
          * Defines the ID of the marker. The ID is used as ID of the HTML element that shows the marker in the source
@@ -394,6 +410,20 @@ public class Marker {
                 throw new IllegalArgumentException("Invalid name of marker data: " + name);
             }
             data.put(name, value);
+            return this;
+        }
+
+        /**
+         * Adds the marker to the navigation between the markers, even if it has neither a title nor a description.
+         * Then the keys {@code j} and {@code k}, the floating buttons, and the overview ruler select the marker as
+         * well: the lines of the selected marker are highlighted, and the view scrolls to its first line. Use this
+         * option for markers that only highlight lines, e.g., a block of lines that is not covered by tests. Markers
+         * with a title or a description are always part of the navigation.
+         *
+         * @return this builder
+         */
+        public MarkerBuilder withNavigation() {
+            navigable = true;
             return this;
         }
 
@@ -526,7 +556,8 @@ public class Marker {
                     severity,
                     badges,
                     links,
-                    data);
+                    data,
+                    navigable);
         }
 
         /**
