@@ -17,6 +17,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Tests the class {@link SourcePrinter}.
@@ -377,6 +379,28 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(document.getElementsByClass("prism-marker--warning")).hasSize(1);
         assertThat(document.getElementsByClass("prism-marker__badges")).isEmpty();
         assertThat(document.getElementsByClass("prism-marker__links")).isEmpty();
+    }
+
+    /**
+     * Verifies that the severity of a marker is rendered as CSS modifier and as data of the box, so the client side
+     * script can compute the color of the marked lines.
+     *
+     * @param severity
+     *         the severity of the marker
+     * @param modifier
+     *         the expected CSS modifier
+     */
+    @ParameterizedTest(name = "{0} -> {1}")
+    @CsvSource({"ERROR, error", "WARNING, warning", "INFO, info", "SUCCESS, success"})
+    void shouldRenderSeverity(final Severity severity, final String modifier) {
+        var marker = new MarkerBuilder().withLineStart(3).withSeverity(severity).build();
+
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(marker));
+
+        var box = document.getElementsByClass("prism-marker").first();
+        assertThat(box).isNotNull();
+        assertThat(box.classNames()).contains("prism-marker--" + modifier);
+        assertThat(box.attr("data-severity")).isEqualTo(modifier);
     }
 
     /**

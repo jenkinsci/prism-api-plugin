@@ -44,7 +44,8 @@
   const SELECTED_LINE = "prism-line--selected";
   const HIDDEN_MARK = "code-mark--hidden";
   const CHANGED_EVENT = "prism-markers-changed";
-  const SEVERITIES = ["error", "warning", "info"];
+  // ordered from the highest to the lowest severity, see Marker.Severity
+  const SEVERITIES = ["error", "warning", "info", "success"];
   // the button to scroll to the top is shown if the page has been scrolled down by more than this number of pixels
   const SCROLL_THRESHOLD = 400;
   // the number of lines that are visible before and after a marked line if sections without markers are collapsed

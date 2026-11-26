@@ -141,7 +141,7 @@ public class Marker {
     /**
      * The severity of a marker. The severity defines the color of the marked lines and of the box that shows the
      * details of the marker. If several markers with different severities cover the same line, then the line is
-     * shown with the highest severity.
+     * shown with the highest severity. The severities are ordered from the highest to the lowest severity.
      */
     public enum Severity {
         /** A severe problem, e.g., an error or a line that is not covered by tests. */
@@ -149,7 +149,9 @@ public class Marker {
         /** A problem that should be fixed, e.g., a warning or a partially covered line. */
         WARNING,
         /** An information or a minor problem. */
-        INFO;
+        INFO,
+        /** A positive result, e.g., a line that is covered by tests. */
+        SUCCESS;
 
         /**
          * Returns the name of the CSS modifier for this severity.

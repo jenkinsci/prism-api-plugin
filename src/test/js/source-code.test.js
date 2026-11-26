@@ -100,7 +100,9 @@ function markedSeverity(row) {
   if (!row.classList.contains("prism-line--marked")) {
     return undefined;
   }
-  return ["error", "warning", "info"].find((severity) => row.classList.contains("prism-line--" + severity));
+  return ["error", "warning", "info", "success"].find((severity) =>
+    row.classList.contains("prism-line--" + severity),
+  );
 }
 
 function getSelected() {
@@ -211,6 +213,18 @@ describe("layout of the markers", () => {
     loadScript();
 
     expect(getRows().map(markedSeverity)).toEqual(["info", "warning", "warning", "error", undefined]);
+  });
+
+  test("should highlight the lines of successful markers with the lowest severity", () => {
+    createSource(JAVA_SOURCE.map(escape), [
+      { id: "covered", start: 1, end: 3, anchor: 3, severity: "success", empty: true },
+      { id: "partially", start: 3, end: 3, anchor: 3, severity: "warning", empty: true },
+      { id: "info", start: 2, end: 2, anchor: 2, severity: "info", empty: true },
+    ]);
+
+    loadScript();
+
+    expect(getRows().map(markedSeverity)).toEqual(["success", "info", "warning", undefined, undefined]);
   });
 
   test("should ignore markers outside of the file", () => {

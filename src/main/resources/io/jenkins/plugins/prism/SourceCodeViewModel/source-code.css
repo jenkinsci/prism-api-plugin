@@ -8,6 +8,7 @@
   --prism-color-error: var(--error-color, #e6001f);
   --prism-color-warning: var(--warning-color, #fe820a);
   --prism-color-info: var(--accent-color, #2563eb);
+  --prism-color-success: var(--success-color, #1ea64b);
 }
 
 .prism-marker,
@@ -23,6 +24,11 @@
 .prism-marker--info,
 .prism-line--info {
   --prism-severity-color: var(--prism-color-info);
+}
+
+.prism-marker--success,
+.prism-line--success {
+  --prism-severity-color: var(--prism-color-success);
 }
 
 /* Lines of the source code, created by source-code.js */
@@ -394,6 +400,10 @@ summary.prism-marker__header::after {
 
 .prism-ruler__mark--info {
   background: var(--prism-color-info);
+}
+
+.prism-ruler__mark--success {
+  background: var(--prism-color-success);
 }
 
 .prism-ruler__mark:hover,
