@@ -112,6 +112,9 @@ annotation.
 Each `Marker` can have an ID (`MarkerBuilder#withId`). The ID (or a line number) can be used as fragment of the URL
 to select a marker: the view then scrolls to the marker and expands its description.
 
+Long lines are wrapped (soft wrap), so the view never needs to be scrolled horizontally: the wrapped part of a line
+starts below the code of the line, the line numbers (and annotations) stay in their column.
+
 The server renders the source code as a single block, so Prism colorizes the whole file at once (multi-line
 comments and strings are colorized correctly). The layout is created on the client side: the colorized code is split
 into lines with line numbers (each line can be linked with `#L<line>`), and the boxes of the markers are inserted

@@ -31,17 +31,21 @@
   --prism-severity-color: var(--prism-color-success);
 }
 
-/* Lines of the source code, created by source-code.js */
+/*
+ * Lines of the source code, created by source-code.js. Long lines are wrapped (soft wrap), so the view does not need
+ * to be scrolled horizontally: the wrapped part of a line starts below the code of the line (and not below the line
+ * number). The rules beat the white space settings of the Prism themes for 'pre[class*="language-"]'.
+ */
 .prism-source pre.prism-source__lines {
   margin: 0;
   padding: 0.5rem 0;
   overflow-x: auto;
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
 .prism-line {
   display: flex;
-  min-width: fit-content;
+  min-width: 0;
 }
 
 .prism-line__number {
@@ -62,8 +66,11 @@
 }
 
 .prism-line__code {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0 1rem 0 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* Column with the annotations of the lines (e.g., the number of covered branches), see LineAnnotation */
