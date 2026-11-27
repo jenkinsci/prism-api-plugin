@@ -550,6 +550,43 @@ describe("overview ruler", () => {
     ).toBe(true);
   });
 
+  test("should position the ruler again if the height of the page changes", () => {
+    const observers = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback) {
+          this.callback = callback;
+          observers.push(this);
+        }
+
+        observe(target) {
+          this.target = target;
+        }
+      },
+    );
+    createSource(createLines(100), [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }], "");
+    loadScript();
+
+    const ruler = document.querySelector(".prism-ruler");
+    expect(ruler.hidden).toBe(true); // jsdom has no layout: the view is not visible
+    expect(observers.map((observer) => observer.target)).toEqual([document.body]);
+
+    document.querySelector(".prism-source").getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 700,
+      left: 0,
+      right: 800,
+      width: 800,
+      height: 600,
+    });
+    observers.forEach((observer) => observer.callback([]));
+
+    expect(ruler.hidden).toBe(false);
+    expect(ruler.style.top).toBe("108px");
+    vi.unstubAllGlobals();
+  });
+
   test("should remove the ruler if all markers are hidden", () => {
     createSource(createLines(100), [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }], "");
     loadScript();

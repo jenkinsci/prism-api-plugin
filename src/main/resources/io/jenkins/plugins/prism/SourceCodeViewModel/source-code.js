@@ -34,7 +34,9 @@
  *   file. Clicking a mark selects the marker. The ruler has a fixed position at the right side of the view: it
  *   covers the visible part of the view, below the fixed or sticky elements at the top of the page (e.g., the
  *   header) and above the fixed or sticky elements at the bottom (e.g., the floating navigation). A sticky position
- *   would not work, since the view is typically part of a card that is a scroll container.</li>
+ *   would not work, since the view is typically part of a card that is a scroll container. The ruler is positioned
+ *   again when the page is scrolled or resized, and when the height of the page changes (e.g., if content above the
+ *   view is loaded asynchronously).</li>
  * </ul>
  */
 (function () {
@@ -937,6 +939,11 @@
       { passive: true },
     );
     window.addEventListener("resize", positionRuler, { passive: true });
+    if (typeof ResizeObserver !== "undefined") {
+      // the content of the page might change its height after the layout has been created (e.g., a table above the
+      // view that is loaded asynchronously): then the view moves, so the fixed ruler needs to be positioned again
+      new ResizeObserver(() => positionRuler()).observe(document.body);
+    }
   }
 
   function initialize() {
