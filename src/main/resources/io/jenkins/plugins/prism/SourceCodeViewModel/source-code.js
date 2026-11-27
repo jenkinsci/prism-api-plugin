@@ -11,14 +11,18 @@
  *   'data-first-line' of the raw code defines the number of the first line. The layout is created again whenever Prism has
  *   colorized the code (e.g., after a language definition has been loaded).</li>
  *   <li>The lines of the visible markers are highlighted with the color of the highest severity.</li>
+ *   <li>If the server rendered annotations of the lines (".prism-source__annotations"), then the annotations are
+ *   shown in a separate column between the line numbers and the code.</li>
  *   <li>A marker is selected by the fragment of the URL: either the ID of the marker or a line number ("42" or
  *   "L42", then all markers that contain the line are selected). If there is only one marker, then this marker is
  *   selected automatically. The view scrolls to the first selected marker (or line).</li>
  *   <li>Each marker gets a button that copies the link to the marker (URL with the ID of the marker as fragment).
  *   </li>
  *   <li>The previous and next visible marker can be selected with the floating buttons (tag 'prism:navigation') or
- *   with the keys 'k' and 'j'. The buttons are shown only if there are at least two visible markers. An additional
- *   floating button scrolls to the top of the page, it is shown if the page has been scrolled down.</li>
+ *   with the keys 'k' and 'j'. Markers without a box are skipped, unless they have the class
+ *   'prism-marker--navigable': then the lines of the selected marker are highlighted. The buttons are shown only
+ *   if there are at least two visible markers. An additional floating button scrolls to the top of the page, it is
+ *   shown if the page has been scrolled down.</li>
  *   <li>Pages can hide markers (e.g., by a filter) by setting the attribute 'hidden' of the marker element.
  *   Afterwards, the page must dispatch the event 'prism-markers-changed' on the document. Then the highlights of
  *   the lines are computed from the visible markers only, and the navigation skips the hidden markers.</li>
@@ -30,7 +34,9 @@
  *   file. Clicking a mark selects the marker. The ruler has a fixed position at the right side of the view: it
  *   covers the visible part of the view, below the fixed or sticky elements at the top of the page (e.g., the
  *   header) and above the fixed or sticky elements at the bottom (e.g., the floating navigation). A sticky position
- *   would not work, since the view is typically part of a card that is a scroll container.</li>
+ *   would not work, since the view is typically part of a card that is a scroll container. The ruler is positioned
+ *   again when the page is scrolled or resized, and when the height of the page changes (e.g., if content above the
+ *   view is loaded asynchronously).</li>
  * </ul>
  */
 (function () {
@@ -38,13 +44,19 @@
   const RAW_CODE = ".prism-source__raw > code";
   const LINES = "prism-source__lines";
   const MARKER = ".prism-marker";
-  const CARD = ".prism-marker:not(.prism-marker--empty)";
+  const ANNOTATIONS = ".prism-source__annotations > [data-line]";
+  const ANNOTATION = "prism-line__annotation";
+  const EMPTY = "prism-marker--empty";
+  const CARD = ".prism-marker:not(." + EMPTY + ")";
+  const NAVIGABLE_MARKER = "prism-marker--navigable";
+  const NAVIGABLE = CARD + ", ." + NAVIGABLE_MARKER;
   const LINE = "prism-line";
   const SELECTED = "prism-marker--selected";
   const SELECTED_LINE = "prism-line--selected";
   const HIDDEN_MARK = "code-mark--hidden";
   const CHANGED_EVENT = "prism-markers-changed";
-  const SEVERITIES = ["error", "warning", "info"];
+  // ordered from the highest to the lowest severity, see Marker.Severity
+  const SEVERITIES = ["error", "warning", "info", "success"];
   // the button to scroll to the top is shown if the page has been scrolled down by more than this number of pixels
   const SCROLL_THRESHOLD = 400;
   // the number of lines that are visible before and after a marked line if sections without markers are collapsed
@@ -71,6 +83,8 @@
   const expansion = { ranges: [] };
   // the fixed or sticky elements of the page that might cover the ruler (computed once)
   const overlays = { elements: undefined };
+  // the annotations of the lines, indexed by their line numbers (collected once, see getAnnotations)
+  const annotations = { byLine: undefined };
 
   /**
    * Splits the (colorized) content of an element into lines. Elements that contain line breaks (e.g., a token of a
@@ -277,8 +291,37 @@
     return source ? Array.from(source.querySelectorAll(CARD)) : [];
   }
 
-  function getVisibleCards() {
-    return getCards().filter((marker) => !marker.hidden);
+  /**
+   * Returns the markers that are part of the navigation: all markers with a box and the markers without a box that
+   * have been added to the navigation explicitly.
+   *
+   * @returns {Element[]} the markers, in the order of the document
+   */
+  function getNavigableMarkers() {
+    const source = getSource();
+    return source ? Array.from(source.querySelectorAll(NAVIGABLE)) : [];
+  }
+
+  function getVisibleNavigableMarkers() {
+    return getNavigableMarkers().filter((marker) => !marker.hidden);
+  }
+
+  function isEmpty(marker) {
+    return marker.classList.contains(EMPTY);
+  }
+
+  /**
+   * Returns the element to scroll to for the specified marker: the box of the marker or, for a marker without a box,
+   * its first line.
+   *
+   * @param {Element} marker the marker
+   * @returns {Element|null} the element to scroll to
+   */
+  function getScrollTarget(marker) {
+    if (isEmpty(marker)) {
+      return document.getElementById("L" + toPosition(marker).start);
+    }
+    return marker;
   }
 
   function getLanguageClass(code) {
@@ -288,7 +331,34 @@
     return language || "language-none";
   }
 
-  function createLine(number, content) {
+  /**
+   * Returns the annotations of the lines, indexed by their line numbers. The elements of the annotations are moved
+   * into the lines when the layout is created. So they are collected only once: then the elements (and their
+   * tooltips) are kept if the layout is created again.
+   *
+   * @param {Element} source the source code view
+   * @returns {Map<number, Element>} the annotations
+   */
+  function getAnnotations(source) {
+    if (annotations.byLine === undefined) {
+      annotations.byLine = new Map(
+        Array.from(source.querySelectorAll(ANNOTATIONS)).map((element) => [
+          Number(element.dataset.line),
+          element,
+        ]),
+      );
+    }
+    return annotations.byLine;
+  }
+
+  function getAnnotationWidth(annotationsByLine) {
+    return Array.from(annotationsByLine.values()).reduce(
+      (width, annotation) => Math.max(width, annotation.textContent.length),
+      1,
+    );
+  }
+
+  function createLine(number, content, annotationsByLine) {
     const line = document.createElement("div");
     line.className = LINE;
     line.id = "L" + number;
@@ -299,6 +369,15 @@
     link.href = "#L" + number;
     link.textContent = String(number);
     line.appendChild(link);
+
+    if (annotationsByLine.size > 0) {
+      let annotation = annotationsByLine.get(number);
+      if (!annotation) {
+        annotation = document.createElement("span");
+        annotation.className = ANNOTATION;
+      }
+      line.appendChild(annotation);
+    }
 
     const code = document.createElement("span");
     code.className = "prism-line__code";
@@ -332,6 +411,14 @@
       "--prism-line-number-digits",
       String(String(Math.max(lastLine, 1)).length),
     );
+    const annotationsByLine = getAnnotations(source);
+    if (annotationsByLine.size > 0) {
+      lines.classList.add(LINES + "--annotated");
+      lines.style.setProperty(
+        "--prism-annotation-width",
+        String(getAnnotationWidth(annotationsByLine)),
+      );
+    }
 
     const cardsByAnchor = new Map();
     getCards().forEach((card) => {
@@ -351,6 +438,7 @@
         createLine(
           number,
           contents[number - firstLine] || document.createDocumentFragment(),
+          annotationsByLine,
         ),
       );
       children.push(...(cardsByAnchor.get(number) || []));
@@ -457,7 +545,7 @@
   }
 
   function scrollToMarker(marker, start) {
-    if (marker.classList.contains("prism-marker--empty")) {
+    if (isEmpty(marker) && !marker.classList.contains(NAVIGABLE_MARKER)) {
       const row = document.getElementById("L" + start);
       if (row) {
         row.scrollIntoView({ block: "center" });
@@ -601,26 +689,48 @@
   }
 
   function getSelectedMarker() {
-    return getCards().find((marker) => marker.classList.contains(SELECTED));
+    return getNavigableMarkers().find((marker) =>
+      marker.classList.contains(SELECTED),
+    );
+  }
+
+  /**
+   * Highlights the lines of the selected markers without a box, since these markers have no visible element.
+   *
+   * @param {Element[]} selected the selected markers
+   */
+  function highlightSelectedLines(selected) {
+    selected
+      .filter((marker) => isEmpty(marker) && !marker.hidden)
+      .forEach((marker) => {
+        const position = toPosition(marker);
+        const end = Math.max(position.start, position.end);
+        for (let line = position.start; line <= end; line++) {
+          const row = document.getElementById("L" + line);
+          if (row) {
+            row.classList.add(SELECTED_LINE);
+          }
+        }
+      });
   }
 
   function selectMarkers() {
-    const cards = getCards();
+    const markers = getNavigableMarkers();
     const fragment = parseFragment(window.location.hash);
     let selected = [];
     if (fragment.id) {
-      selected = cards.filter((marker) => marker.id === fragment.id);
+      selected = markers.filter((marker) => marker.id === fragment.id);
     } else if (fragment.line) {
-      selected = cards.filter((marker) => {
+      selected = markers.filter((marker) => {
         const position = toPosition(marker);
         return fragment.line >= position.start && fragment.line <= position.end;
       });
     }
-    if (selected.length === 0 && !fragment.line && cards.length === 1) {
-      selected = cards;
+    if (selected.length === 0 && !fragment.line && markers.length === 1) {
+      selected = markers;
     }
 
-    cards.forEach((marker) => {
+    markers.forEach((marker) => {
       marker.classList.toggle(SELECTED, selected.includes(marker));
     });
     selected.forEach((marker) => {
@@ -646,13 +756,15 @@
           selectedLine.classList.add(SELECTED_LINE);
         }
       }
+      highlightSelectedLines(selected);
     }
 
     if (selection.isInitial) {
+      const marker = selected.find((candidate) => !candidate.hidden);
       const target =
-        selected.find((marker) => !marker.hidden) ||
+        (marker && getScrollTarget(marker)) ||
         selectedLine ||
-        (cards.length === 0 && lines
+        (markers.length === 0 && lines
           ? lines.querySelector("." + LINE + "--marked")
           : null);
       if (target) {
@@ -667,11 +779,14 @@
   function selectMarker(marker) {
     history.replaceState(null, "", "#" + marker.id);
     selectMarkers();
-    marker.scrollIntoView({ block: "center" });
+    const target = getScrollTarget(marker);
+    if (target) {
+      target.scrollIntoView({ block: "center" });
+    }
   }
 
   function navigate(offset) {
-    const visible = getVisibleCards();
+    const visible = getVisibleNavigableMarkers();
     if (visible.length === 0) {
       return;
     }
@@ -686,7 +801,7 @@
   }
 
   function updateNavigation() {
-    const visible = getVisibleCards();
+    const visible = getVisibleNavigableMarkers();
     const index = visible.indexOf(getSelectedMarker());
     const hasMarkers = visible.length > 1;
     const isScrolled = window.scrollY > SCROLL_THRESHOLD;
@@ -824,6 +939,11 @@
       { passive: true },
     );
     window.addEventListener("resize", positionRuler, { passive: true });
+    if (typeof ResizeObserver !== "undefined") {
+      // the content of the page might change its height after the layout has been created (e.g., a table above the
+      // view that is loaded asynchronously): then the view moves, so the fixed ruler needs to be positioned again
+      new ResizeObserver(() => positionRuler()).observe(document.body);
+    }
   }
 
   function initialize() {

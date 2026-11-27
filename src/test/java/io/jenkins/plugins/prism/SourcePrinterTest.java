@@ -17,6 +17,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Tests the class {@link SourcePrinter}.
@@ -380,6 +382,63 @@ class SourcePrinterTest extends ResourceTest {
     }
 
     /**
+     * Verifies that a marker without title and description that has been added to the navigation gets an additional
+     * CSS class. Markers with a title are always part of the navigation, so they do not need that class.
+     */
+    @Test
+    void shouldRenderNavigableMarkers() {
+        var navigable = new MarkerBuilder()
+                .withLineStart(2)
+                .withLineEnd(3)
+                .withId("navigable")
+                .withNavigation()
+                .build();
+        var highlight = new MarkerBuilder().withLineStart(5).withId("highlight").build();
+        var box = new MarkerBuilder()
+                .withLineStart(7)
+                .withId("box")
+                .withTitle(MESSAGE)
+                .withNavigation()
+                .build();
+
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(navigable, highlight, box));
+
+        assertThat(navigable.isNavigable()).isTrue();
+        assertThat(highlight.isNavigable()).isFalse();
+        assertThat(document.getElementsByClass("prism-marker"))
+                .extracting(Element::id, e -> String.join(" ", e.classNames()))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(
+                                "navigable",
+                                "prism-marker prism-marker--warning prism-marker--empty prism-marker--navigable"),
+                        org.assertj.core.groups.Tuple.tuple(
+                                "highlight", "prism-marker prism-marker--warning prism-marker--empty"),
+                        org.assertj.core.groups.Tuple.tuple("box", "prism-marker prism-marker--warning"));
+    }
+
+    /**
+     * Verifies that the severity of a marker is rendered as CSS modifier and as data of the box, so the client side
+     * script can compute the color of the marked lines.
+     *
+     * @param severity
+     *         the severity of the marker
+     * @param modifier
+     *         the expected CSS modifier
+     */
+    @ParameterizedTest(name = "{0} -> {1}")
+    @CsvSource({"ERROR, error", "WARNING, warning", "INFO, info", "SUCCESS, success"})
+    void shouldRenderSeverity(final Severity severity, final String modifier) {
+        var marker = new MarkerBuilder().withLineStart(3).withSeverity(severity).build();
+
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of(marker));
+
+        var box = document.getElementsByClass("prism-marker").first();
+        assertThat(box).isNotNull();
+        assertThat(box.classNames()).contains("prism-marker--" + modifier);
+        assertThat(box.attr("data-severity")).isEqualTo(modifier);
+    }
+
+    /**
      * Verifies that the data of a marker is rendered as attributes of the box, so client side scripts can filter
      * the markers.
      */
@@ -541,6 +600,41 @@ class SourcePrinterTest extends ResourceTest {
         assertThat(document.getElementsByClass("code-mark"))
                 .extracting(Element::text, e -> e.attr("data-markers"))
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("121", "inside"));
+    }
+
+    /**
+     * Verifies that the annotations of the lines are rendered as hidden elements: the text is escaped, only the last
+     * annotation of a line is shown, and annotations of lines outside the file are skipped.
+     */
+    @Test
+    void shouldRenderLineAnnotations() {
+        var annotations = List.of(
+                new LineAnnotation(5, "1"),
+                new LineAnnotation(2, "<b>2/4</b>", "Covered branches"),
+                new LineAnnotation(5, "3"),
+                new LineAnnotation(0, "before"),
+                new LineAnnotation(100, "after"));
+
+        var document = Jsoup.parse(new SourcePrinter(createJenkinsFacade())
+                .render(FILE_NAME, asStream(CPP_FILE), List.of(), annotations, 1, false));
+
+        assertThat(document.select(".prism-source__annotations[hidden] > .prism-line__annotation"))
+                .extracting(e -> e.attr("data-line"), Element::text, e -> e.attr("tooltip"))
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("2", "<b>2/4</b>", "Covered branches"),
+                        org.assertj.core.groups.Tuple.tuple("5", "3", ""));
+        assertThat(document.getElementsByTag("b")).isEmpty();
+    }
+
+    /**
+     * Verifies that the snippet contains no element for the annotations if there are no annotations.
+     */
+    @Test
+    void shouldSkipAnnotationsWithoutAnnotations() {
+        var document = render(FILE_NAME, asStream(CPP_FILE), List.of());
+
+        assertThat(document.getElementsByClass("prism-source__annotations")).isEmpty();
+        assertThat(document.getElementsByClass("prism-line__annotation")).isEmpty();
     }
 
     /**

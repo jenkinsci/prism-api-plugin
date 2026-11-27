@@ -8,6 +8,7 @@
   --prism-color-error: var(--error-color, #e6001f);
   --prism-color-warning: var(--warning-color, #fe820a);
   --prism-color-info: var(--accent-color, #2563eb);
+  --prism-color-success: var(--success-color, #1ea64b);
 }
 
 .prism-marker,
@@ -25,17 +26,26 @@
   --prism-severity-color: var(--prism-color-info);
 }
 
-/* Lines of the source code, created by source-code.js */
+.prism-marker--success,
+.prism-line--success {
+  --prism-severity-color: var(--prism-color-success);
+}
+
+/*
+ * Lines of the source code, created by source-code.js. Long lines are wrapped (soft wrap), so the view does not need
+ * to be scrolled horizontally: the wrapped part of a line starts below the code of the line (and not below the line
+ * number). The rules beat the white space settings of the Prism themes for 'pre[class*="language-"]'.
+ */
 .prism-source pre.prism-source__lines {
   margin: 0;
   padding: 0.5rem 0;
   overflow-x: auto;
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
 .prism-line {
   display: flex;
-  min-width: fit-content;
+  min-width: 0;
 }
 
 .prism-line__number {
@@ -56,8 +66,22 @@
 }
 
 .prism-line__code {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0 1rem 0 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Column with the annotations of the lines (e.g., the number of covered branches), see LineAnnotation */
+.prism-line__annotation {
+  flex: 0 0 auto;
+  box-sizing: content-box;
+  width: calc(var(--prism-annotation-width, 1) * 1ch);
+  padding: 0 0.5rem;
+  color: var(--text-color-secondary, inherit);
+  text-align: right;
+  user-select: none;
 }
 
 /* Marked lines: a bar next to the line numbers and a light background in the color of the severity */
@@ -66,6 +90,15 @@
 }
 
 .prism-line--marked .prism-line__number {
+  box-shadow: inset -3px 0 0 var(--prism-severity-color);
+}
+
+/* With annotations, the bar is shown between the annotations and the code */
+.prism-source__lines--annotated .prism-line--marked .prism-line__number {
+  box-shadow: none;
+}
+
+.prism-line--marked .prism-line__annotation {
   box-shadow: inset -3px 0 0 var(--prism-severity-color);
 }
 
@@ -345,6 +378,11 @@ summary.prism-marker__header::after {
   text-align: right;
 }
 
+/* With annotations, the text of the button starts at the same position as the code */
+.prism-source__lines--annotated .prism-gap__button::before {
+  margin-right: calc(2.5rem + var(--prism-annotation-width, 1) * 1ch);
+}
+
 .prism-gap__button:hover,
 .prism-gap__button:focus-visible {
   color: var(--text-color);
@@ -394,6 +432,10 @@ summary.prism-marker__header::after {
 
 .prism-ruler__mark--info {
   background: var(--prism-color-info);
+}
+
+.prism-ruler__mark--success {
+  background: var(--prism-color-success);
 }
 
 .prism-ruler__mark:hover,

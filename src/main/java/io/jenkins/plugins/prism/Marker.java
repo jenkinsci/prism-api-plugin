@@ -32,6 +32,7 @@ public class Marker {
     private final List<Badge> badges;
     private final List<Link> links;
     private final Map<String, String> data;
+    private final boolean navigable;
 
     @SuppressWarnings("checkstyle:ParameterNumber")
     Marker(
@@ -46,7 +47,8 @@ public class Marker {
             final Severity severity,
             final List<Badge> badges,
             final List<Link> links,
-            final Map<String, String> data) {
+            final Map<String, String> data,
+            final boolean navigable) {
         this.id = id;
         this.title = title;
         this.icon = icon;
@@ -59,6 +61,7 @@ public class Marker {
         this.badges = List.copyOf(badges);
         this.links = List.copyOf(links);
         this.data = Map.copyOf(data);
+        this.navigable = navigable;
     }
 
     /**
@@ -139,9 +142,21 @@ public class Marker {
     }
 
     /**
+     * Returns whether this marker is part of the navigation between the markers (keys, floating buttons, and
+     * overview ruler), even if it has neither a title nor a description. Markers with a title or a description are
+     * always part of the navigation.
+     *
+     * @return {@code true} if the marker has been added to the navigation explicitly, {@code false} otherwise
+     * @see MarkerBuilder#withNavigation()
+     */
+    public boolean isNavigable() {
+        return navigable;
+    }
+
+    /**
      * The severity of a marker. The severity defines the color of the marked lines and of the box that shows the
      * details of the marker. If several markers with different severities cover the same line, then the line is
-     * shown with the highest severity.
+     * shown with the highest severity. The severities are ordered from the highest to the lowest severity.
      */
     public enum Severity {
         /** A severe problem, e.g., an error or a line that is not covered by tests. */
@@ -149,7 +164,9 @@ public class Marker {
         /** A problem that should be fixed, e.g., a warning or a partially covered line. */
         WARNING,
         /** An information or a minor problem. */
-        INFO;
+        INFO,
+        /** A positive result, e.g., a line that is covered by tests. */
+        SUCCESS;
 
         /**
          * Returns the name of the CSS modifier for this severity.
@@ -268,6 +285,7 @@ public class Marker {
         private int lineEnd;
         private int columnStart;
         private int columnEnd;
+        private boolean navigable;
 
         /**
          * Defines the ID of the marker. The ID is used as ID of the HTML element that shows the marker in the source
@@ -392,6 +410,20 @@ public class Marker {
                 throw new IllegalArgumentException("Invalid name of marker data: " + name);
             }
             data.put(name, value);
+            return this;
+        }
+
+        /**
+         * Adds the marker to the navigation between the markers, even if it has neither a title nor a description.
+         * Then the keys {@code j} and {@code k}, the floating buttons, and the overview ruler select the marker as
+         * well: the lines of the selected marker are highlighted, and the view scrolls to its first line. Use this
+         * option for markers that only highlight lines, e.g., a block of lines that is not covered by tests. Markers
+         * with a title or a description are always part of the navigation.
+         *
+         * @return this builder
+         */
+        public MarkerBuilder withNavigation() {
+            navigable = true;
             return this;
         }
 
@@ -524,7 +556,8 @@ public class Marker {
                     severity,
                     badges,
                     links,
-                    data);
+                    data,
+                    navigable);
         }
 
         /**

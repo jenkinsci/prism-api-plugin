@@ -57,10 +57,22 @@ function escape(text) {
 /**
  * Creates the snippet that is rendered by the server (see SourcePrinter), together with the navigation.
  */
-function createSource(lines, markers, language = "language-java", firstLine = 1, attributes = "") {
+function createSource(lines, markers, language = "language-java", firstLine = 1, attributes = "", annotations = []) {
+  const annotationElements =
+    annotations.length === 0
+      ? ""
+      : `<div class="prism-source__annotations" hidden>${annotations
+          .map(
+            (annotation) =>
+              `<span class="prism-line__annotation" data-line="${annotation.line}"` +
+              `${annotation.tooltip ? ` tooltip="${annotation.tooltip}"` : ""}>${annotation.text}</span>`,
+          )
+          .join("")}</div>`;
   const markerElements = markers
     .map((marker) => {
-      const classes = `prism-marker prism-marker--${marker.severity}${marker.empty ? " prism-marker--empty" : ""}`;
+      const classes =
+        `prism-marker prism-marker--${marker.severity}${marker.empty ? " prism-marker--empty" : ""}` +
+        `${marker.navigable ? " prism-marker--navigable" : ""}`;
       const content = marker.empty
         ? ""
         : `<div class="prism-marker__header"><span class="prism-marker__title">${marker.id}</span></div>`;
@@ -73,6 +85,7 @@ function createSource(lines, markers, language = "language-java", firstLine = 1,
     <div class="prism-source" data-copy-link="Copy" data-copy-link-done="Copied" ${attributes}>
       <pre class="prism-source__raw" hidden><code class="${language}" data-lines="${lines.length}" data-first-line="${firstLine}">${lines.join("\n")}</code></pre>
       <div class="prism-source__markers" hidden>${markerElements}</div>
+      ${annotationElements}
     </div>
     <div class="prism-navigation">
       <button data-prism-navigation="top"></button>
@@ -100,11 +113,17 @@ function markedSeverity(row) {
   if (!row.classList.contains("prism-line--marked")) {
     return undefined;
   }
-  return ["error", "warning", "info"].find((severity) => row.classList.contains("prism-line--" + severity));
+  return ["error", "warning", "info", "success"].find((severity) =>
+    row.classList.contains("prism-line--" + severity),
+  );
 }
 
 function getSelected() {
   return Array.from(document.querySelectorAll(".prism-marker--selected")).map((marker) => marker.id);
+}
+
+function getSelectedLines() {
+  return Array.from(document.querySelectorAll(".prism-line--selected")).map((row) => row.id);
 }
 
 function position() {
@@ -125,6 +144,8 @@ async function loadPrism() {
   const prism = (await import("prismjs")).default;
   await import("prismjs/components/prism-clike");
   await import("prismjs/components/prism-java");
+  // the module is evaluated only once: in later tests, the global variable must be set again
+  window.Prism = prism;
   return prism;
 }
 
@@ -213,6 +234,18 @@ describe("layout of the markers", () => {
     expect(getRows().map(markedSeverity)).toEqual(["info", "warning", "warning", "error", undefined]);
   });
 
+  test("should highlight the lines of successful markers with the lowest severity", () => {
+    createSource(JAVA_SOURCE.map(escape), [
+      { id: "covered", start: 1, end: 3, anchor: 3, severity: "success", empty: true },
+      { id: "partially", start: 3, end: 3, anchor: 3, severity: "warning", empty: true },
+      { id: "info", start: 2, end: 2, anchor: 2, severity: "info", empty: true },
+    ]);
+
+    loadScript();
+
+    expect(getRows().map(markedSeverity)).toEqual(["success", "info", "warning", undefined, undefined]);
+  });
+
   test("should ignore markers outside of the file", () => {
     createSource(["one", "two"], [
       { id: "no-line", start: 0, end: 0, anchor: 0, severity: "error" },
@@ -237,6 +270,57 @@ describe("layout of the markers", () => {
     expect(comments).toEqual([["/* A comment"], ["       with two lines */"]]);
     expect(getRows()[3].querySelector(".token.string").textContent).toBe('"<b>text</b>"');
     expect(getLayout()).toEqual(["top", "1", "2", "3", "comment", "4", "string", "5"]);
+  });
+});
+
+describe("annotations of the lines", () => {
+  const annotations = [
+    { line: 2, text: "1" },
+    { line: 4, text: "2/4", tooltip: "Covered branches" },
+  ];
+
+  function getAnnotations() {
+    return getRows().map((row) => row.querySelector(".prism-line__annotation").textContent);
+  }
+
+  test("should show the annotations in a separate column", () => {
+    createSource(JAVA_SOURCE.map(escape), [], "language-java", 1, "", annotations);
+
+    loadScript();
+
+    const lines = document.querySelector(".prism-source__lines");
+    expect(lines.classList.contains("prism-source__lines--annotated")).toBe(true);
+    expect(lines.style.getPropertyValue("--prism-annotation-width")).toBe("3");
+    expect(getAnnotations()).toEqual(["", "1", "", "2/4", ""]);
+    expect(Array.from(getRows()[3].children).map((cell) => cell.className)).toEqual([
+      "prism-line__number",
+      "prism-line__annotation",
+      "prism-line__code",
+    ]);
+    expect(getRows()[3].querySelector(".prism-line__annotation").getAttribute("tooltip")).toBe("Covered branches");
+  });
+
+  test("should not show a column without annotations", () => {
+    createSource(JAVA_SOURCE.map(escape), []);
+
+    loadScript();
+
+    expect(document.querySelector(".prism-source__lines").classList.contains("prism-source__lines--annotated")).toBe(
+      false,
+    );
+    expect(document.querySelector(".prism-line__annotation")).toBeNull();
+  });
+
+  test("should keep the annotations if the layout is created again", async () => {
+    createSource(JAVA_SOURCE.map(escape), [], "language-java", 1, "", annotations);
+    const annotation = document.querySelector('.prism-source__annotations [data-line="4"]');
+    const prism = await loadPrism();
+
+    loadScript();
+    prism.highlightElement(document.querySelector(".prism-source__raw > code"));
+
+    expect(getRows()[3].querySelector(".prism-line__annotation")).toBe(annotation);
+    expect(getAnnotations()).toEqual(["", "1", "", "2/4", ""]);
   });
 });
 
@@ -444,6 +528,65 @@ describe("overview ruler", () => {
     ).toBe(true);
   });
 
+  test("should select a navigable marker without a box by its mark", () => {
+    createSource(
+      createLines(100),
+      [
+        { id: "highlight", start: 11, end: 11, anchor: 11, severity: "success", empty: true },
+        { id: "missed", start: 51, end: 52, anchor: 52, severity: "error", empty: true, navigable: true },
+      ],
+      "",
+    );
+    loadScript();
+
+    document.querySelector('.prism-ruler__mark[data-marker="highlight"]').click();
+    expect(window.location.hash).toBe("");
+
+    document.querySelector('.prism-ruler__mark[data-marker="missed"]').click();
+    expect(window.location.hash).toBe("#missed");
+    expect(getSelectedLines()).toEqual(["L51", "L52"]);
+    expect(
+      document.querySelector('.prism-ruler__mark[data-marker="missed"]').classList.contains("prism-ruler__mark--selected"),
+    ).toBe(true);
+  });
+
+  test("should position the ruler again if the height of the page changes", () => {
+    const observers = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback) {
+          this.callback = callback;
+          observers.push(this);
+        }
+
+        observe(target) {
+          this.target = target;
+        }
+      },
+    );
+    createSource(createLines(100), [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }], "");
+    loadScript();
+
+    const ruler = document.querySelector(".prism-ruler");
+    expect(ruler.hidden).toBe(true); // jsdom has no layout: the view is not visible
+    expect(observers.map((observer) => observer.target)).toEqual([document.body]);
+
+    document.querySelector(".prism-source").getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 700,
+      left: 0,
+      right: 800,
+      width: 800,
+      height: 600,
+    });
+    observers.forEach((observer) => observer.callback([]));
+
+    expect(ruler.hidden).toBe(false);
+    expect(ruler.style.top).toBe("108px");
+    vi.unstubAllGlobals();
+  });
+
   test("should remove the ruler if all markers are hidden", () => {
     createSource(createLines(100), [{ id: "m", start: 20, end: 20, anchor: 20, severity: "error" }], "");
     loadScript();
@@ -598,6 +741,52 @@ describe("selection and navigation", () => {
     document.getElementById("input").dispatchEvent(new KeyboardEvent("keydown", { key: "j", bubbles: true }));
 
     expect(getSelected()).toEqual([]);
+  });
+
+  test("should navigate to the markers without a box that are navigable", () => {
+    createSource(JAVA_SOURCE.map(escape), [
+      { id: "covered", start: 1, end: 2, anchor: 2, severity: "success", empty: true },
+      { id: "missed", start: 3, end: 4, anchor: 4, severity: "error", empty: true, navigable: true },
+      { id: "partially", start: 5, end: 5, anchor: 5, severity: "warning", empty: true, navigable: true },
+    ]);
+    loadScript();
+    expect(position()).toBe("- / 2");
+
+    pressKey("j");
+    expect(window.location.hash).toBe("#missed");
+    expect(getSelectedLines()).toEqual(["L3", "L4"]);
+    expect(Element.prototype.scrollIntoView.mock.contexts.at(-1)).toBe(document.getElementById("L3"));
+    expect(position()).toBe("1 / 2");
+
+    pressKey("j");
+    expect(window.location.hash).toBe("#partially");
+    expect(getSelectedLines()).toEqual(["L5"]);
+  });
+
+  test("should select a navigable marker without a box by the fragment", () => {
+    window.history.replaceState(null, "", "#missed");
+    createSource(JAVA_SOURCE.map(escape), [
+      { id: "missed", start: 2, end: 3, anchor: 3, severity: "error", empty: true, navigable: true },
+      { id: "other", start: 5, end: 5, anchor: 5, severity: "error", empty: true, navigable: true },
+    ]);
+
+    loadScript();
+
+    expect(getSelected()).toEqual(["missed"]);
+    expect(getSelectedLines()).toEqual(["L2", "L3"]);
+  });
+
+  test("should not highlight the lines of a hidden navigable marker", () => {
+    window.history.replaceState(null, "", "#missed");
+    createSource(JAVA_SOURCE.map(escape), [
+      { id: "missed", start: 2, end: 3, anchor: 3, severity: "error", empty: true, navigable: true },
+    ]);
+    loadScript();
+
+    document.getElementById("missed").hidden = true;
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+    expect(getSelectedLines()).toEqual([]);
   });
 
   test("should show the navigation only for at least two visible markers", () => {

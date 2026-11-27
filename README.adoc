@@ -100,12 +100,20 @@ no marker is visible (e.g., all markers are hidden by a filter), then all lines 
 `withoutCollapsing()` of the builder to show all lines. Files with at least 50 lines get an overview ruler next to the
 lines that shows the positions of the visible markers; clicking a mark selects the marker.
 
-Each `Marker` has a severity (`withSeverity`: `ERROR`, `WARNING` (default), or `INFO`) that defines the color of
-the marked lines and of the box. The box can additionally show badges (`withBadge`, e.g., the name of a tool or a
-category) and links to related pages (`withLink`). Each box gets a button to copy the link to the marker.
+Each `Marker` has a severity (`withSeverity`: `ERROR`, `WARNING` (default), `INFO`, or `SUCCESS`) that defines the
+color of the marked lines and of the box. The box can additionally show badges (`withBadge`, e.g., the name of a tool
+or a category) and links to related pages (`withLink`). Each box gets a button to copy the link to the marker.
+
+Each line can additionally get a short annotation (`LineAnnotation`, e.g., the number of covered branches of the
+line, optionally with a tooltip): the builder method `withLineAnnotations(annotations)` shows the annotations in a
+separate column between the line numbers and the code. The column is shown only if at least one line has an
+annotation.
 
 Each `Marker` can have an ID (`MarkerBuilder#withId`). The ID (or a line number) can be used as fragment of the URL
 to select a marker: the view then scrolls to the marker and expands its description.
+
+Long lines are wrapped (soft wrap), so the view never needs to be scrolled horizontally: the wrapped part of a line
+starts below the code of the line, the line numbers (and annotations) stay in their column.
 
 The server renders the source code as a single block, so Prism colorizes the whole file at once (multi-line
 comments and strings are colorized correctly). The layout is created on the client side: the colorized code is split
@@ -118,6 +126,10 @@ If the source code view shows at least two markers, floating buttons in the lowe
 the previous or next marker (like the scroll buttons of the stage view). The keys `j` and `k` do the same. If the
 page has been scrolled down, an additional button scrolls back to the top. The
 buttons are part of the fragment `content.jelly`.
+
+Markers without title and description only highlight their lines, the navigation skips them. Use
+`MarkerBuilder#withNavigation()` to add such a marker to the navigation (e.g., a block of lines that is not covered by
+tests): then the navigation selects the marker as well, highlights its lines, and scrolls to its first line.
 
 Additional data of a marker (`MarkerBuilder#withData(name, value)`) is rendered as attribute `data-marker-<name>`
 of the box. Your page can use this data to filter the markers: set the attribute `hidden` of the boxes that should

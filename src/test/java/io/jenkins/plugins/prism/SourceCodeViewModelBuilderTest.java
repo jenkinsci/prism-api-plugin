@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -89,6 +90,27 @@ class SourceCodeViewModelBuilderTest {
                 .isInstanceOfSatisfying(
                         SourceCodeViewModel.class,
                         model -> assertThat(model.isCollapsible()).isFalse());
+    }
+
+    /**
+     * Verifies that the annotations of the lines of an excerpt are shown, the annotations of the other lines are
+     * skipped.
+     */
+    @Test
+    void shouldShowAnnotationsOfExcerpt() {
+        var view = new SourceCodeViewModel.Builder(mock(Run.class), FILE_NAME)
+                .withLineAnnotations(
+                        List.of(new LineAnnotation(1, "skipped"), new LineAnnotation(3, "2/4", "Covered branches")))
+                .withExcerpt(2, 4)
+                .withoutPermissionCheck()
+                .build(Stream.of("one", "two", "three", "four", "five"));
+
+        assertThat(view).isInstanceOfSatisfying(SourceCodeViewModel.class, model -> {
+            var annotations = Jsoup.parse(model.getSourceCode()).getElementsByClass("prism-line__annotation");
+            assertThat(annotations)
+                    .extracting(e -> e.attr("data-line"), Element::text, e -> e.attr("tooltip"))
+                    .containsExactly(org.assertj.core.groups.Tuple.tuple("3", "2/4", "Covered branches"));
+        });
     }
 
     /**
